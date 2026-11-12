@@ -294,8 +294,8 @@ export async function createOrder(
           .prepare(
             `INSERT INTO orders (order_code, external_order_id, channel, customer_name, customer_phone, customer_email,
                shipping_address, notes, subtotal_vnd, shipping_fee_vnd, discount_vnd, total_amount, payment_method,
-               order_status, customer_id, due_date, source, created_by, quote_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${p.customer.customerIdSql}, ?, ?, ?, ?)`,
+               order_status, customer_id, due_date, source, created_by, quote_id, voucher_code)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${p.customer.customerIdSql}, ?, ?, ?, ?, ?)`,
           )
           .bind(
             orderCode,
@@ -317,6 +317,7 @@ export async function createOrder(
             opts.source,
             opts.userId,
             opts.quoteId ?? null,
+            input.voucher_code,
           ),
         ...insertItemStmts(db, byCode, [orderCode], p.items),
         ...stockStmts,
@@ -582,7 +583,7 @@ route('GET', '/orders', async ({ env, url }) => {
   const [items, total] = await env.DB.batch([
     env.DB.prepare(
       `SELECT o.id, o.order_code, o.external_order_id, o.channel, o.source, o.customer_id, o.customer_name,
-              o.customer_phone, o.subtotal_vnd, o.shipping_fee_vnd, o.discount_vnd, o.total_amount,
+              o.customer_phone, o.subtotal_vnd, o.shipping_fee_vnd, o.discount_vnd, o.voucher_code, o.total_amount,
               o.payment_method, o.payment_status, o.paid_amount, o.order_status, o.due_date,
               o.shipping_carrier, o.shipping_tracking_code, o.created_at, o.updated_at,
               (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id) AS item_count

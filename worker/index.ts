@@ -2,7 +2,9 @@
 import type { Env } from "./lib/env";
 import { timingSafeCompare } from "./lib/crypto";
 import { isValidVnPhone, normalizeVnPhone } from "./lib/phone";
-import { generateOrderCode } from "./lib/codes";
+import { ApiError } from "./lib/http";
+import { createOrder } from "./admin/orders";
+import { availability } from "./admin/inventory";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
 import "./admin/routes";
@@ -116,7 +118,7 @@ async function readJsonSafe<T = Record<string, unknown>>(
 }
 
 async function loadCatalogWithBom(db: D1Database) {
-  const [{ results: prodRows }, { results: bomRows }] = await Promise.all([
+  const [{ results: prodRows }, { results: bomRows }, avail] = await Promise.all([
     db
       .prepare(
         `SELECT sku, product_id, name, slug, price_vnd, listed_price_vnd, stock_qty, min_stock,
@@ -125,6 +127,7 @@ async function loadCatalogWithBom(db: D1Database) {
       )
       .all<ProductRow>(),
     db.prepare(`SELECT combo_sku, component_sku, qty_per_combo FROM bom_items`).all<BomRow>(),
+    availability(db),
   ]);
 
   const bySku = new Map<string, ProductRow>();
@@ -158,19 +161,15 @@ async function loadCatalogWithBom(db: D1Database) {
           shelf_label: cp?.shelf_label || "",
         };
       });
-      const avail =
-        compDetails.length > 0
-          ? Math.min(...compDetails.map((c) => Math.floor(c.stock_qty / c.qty_per_combo)))
-          : 0;
       return {
         ...p,
-        available_stock: Math.max(0, avail),
+        available_stock: avail.get(p.sku)?.available ?? 0,
         bom_components: compDetails,
       };
     }
     return {
       ...p,
-      available_stock: p.stock_qty,
+      available_stock: avail.get(p.sku)?.available ?? 0,
       bom_components: [] as Array<{
         sku: string;
         component_sku: string;
@@ -408,24 +407,6 @@ export default {
           return jsonResponse({ ok: false, error: "Giỏ hàng không có sản phẩm hợp lệ." }, 400);
         }
 
-        // Verify live physical stock across single items + Combo BOM components
-        const physReq = expandPhysicalRequirements(
-          normalizedItems.map((i) => ({ sku: i.product.sku, quantity: i.quantity })),
-          bomByCombo
-        );
-        for (const [physSku, reqInfo] of physReq.entries()) {
-          const physProd = bySku.get(physSku);
-          if (!physProd || physProd.stock_qty < reqInfo.qty) {
-            return jsonResponse(
-              {
-                ok: false,
-                error: `Sản phẩm "${physProd?.name || physSku}" hiện chỉ còn ${physProd?.stock_qty ?? 0} đơn vị trong kho.`,
-              },
-              409
-            );
-          }
-        }
-
         const subtotalVnd = normalizedItems.reduce(
           (sum, item) => sum + item.product.price_vnd * item.quantity,
           0
@@ -448,56 +429,44 @@ export default {
 
         const totalAmount = Math.max(0, subtotalVnd - discountVnd + shippingFeeVnd);
 
-        // Generate collision-free VKxxxxxx code (0 PII in transfer memo)
-        let orderCode = generateOrderCode();
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const dup = await env.DB.prepare(`SELECT id FROM orders WHERE order_code = ?`)
-            .bind(orderCode)
-            .first();
-          if (!dup) break;
-          orderCode = generateOrderCode();
+        // Một batch nguyên tử: upsert khách + đơn + dòng hàng + giữ hàng (createOrder dùng chung với trang quản trị).
+        let orderCode: string;
+        try {
+          const created = await createOrder(
+            env,
+            {
+              channel: "WEB",
+              customer: {
+                phone: customerPhone,
+                name: customerName,
+                email: customerEmail || undefined,
+                address: shippingAddress,
+              },
+              shipping_address: shippingAddress,
+              notes,
+              items: normalizedItems.map((i) => ({
+                sku: i.product.sku,
+                quantity: i.quantity,
+                unit_price: i.product.price_vnd,
+              })),
+              shipping_fee_vnd: shippingFeeVnd,
+              discount_vnd: discountVnd,
+              voucher_code: appliedVoucher,
+              payment_method: paymentMethod,
+            },
+            { source: "WEB", userId: null },
+            ctx
+          );
+          orderCode = created.order_code;
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 409) {
+            return jsonResponse({ ok: false, error: e.message }, 409);
+          }
+          if (e instanceof ApiError && e.status === 422) {
+            return jsonResponse({ ok: false, error: e.message }, 400);
+          }
+          throw e;
         }
-
-        const insertOrderRes = await env.DB.prepare(
-          `INSERT INTO orders (
-            order_code, channel, customer_name, customer_phone, customer_email,
-            shipping_address, notes, subtotal_vnd, shipping_fee_vnd, discount_vnd,
-            voucher_code, total_amount, payment_method, payment_status, order_status,
-            stock_deducted, privacy_consent, du_an
-          ) VALUES (?, 'WEB', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'UNPAID', 'PENDING', 0, 1, ?)`
-        )
-          .bind(
-            orderCode,
-            customerName,
-            customerPhone,
-            customerEmail,
-            shippingAddress,
-            notes,
-            subtotalVnd,
-            shippingFeeVnd,
-            discountVnd,
-            appliedVoucher,
-            totalAmount,
-            paymentMethod,
-            PROJECT_SLUG
-          )
-          .run();
-
-        const orderId = Number(insertOrderRes.meta.last_row_id);
-        const itemStmts = normalizedItems.map((item) =>
-          env.DB.prepare(
-            `INSERT INTO order_items (order_id, sku, product_name, unit_price, quantity, line_total)
-             VALUES (?, ?, ?, ?, ?, ?)`
-          ).bind(
-            orderId,
-            item.product.sku,
-            item.product.name,
-            item.product.price_vnd,
-            item.quantity,
-            item.product.price_vnd * item.quantity
-          )
-        );
-        await env.DB.batch(itemStmts);
 
         const vietqrUrl = buildVietQrUrl(totalAmount, orderCode);
         const itemsSummary = normalizedItems

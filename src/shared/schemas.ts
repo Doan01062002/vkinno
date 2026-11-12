@@ -228,6 +228,8 @@ const orderFields = {
 export const createOrderInput = z.object({
   ...orderFields,
   external_order_id: z.string().trim().min(1).max(100).optional(),
+  /** Mã ưu đãi chỉ để lưu (đơn web tự tính giảm giá rồi truyền `discount_vnd`). */
+  voucher_code: z.string().trim().max(50).default(''),
 });
 
 export type CreateOrderInput = z.input<typeof createOrderInput>;
