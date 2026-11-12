@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { hashPassword, signSession, verifyPassword } from '../worker/admin/auth';
 import { redact } from '../worker/admin/redact';
 import { route } from '../worker/admin/router';
-import { ok } from '../worker/lib/http';
+import { ApiError, ok } from '../worker/lib/http';
 import { api, callWorker, createUser, makeEnv } from './helpers';
 
 type TestEnv = Awaited<ReturnType<typeof makeEnv>>;
@@ -19,6 +19,13 @@ const post = (env: TestEnv, path: string, body: object, user: { id: number }) =>
 
 // Route chỉ dùng trong test (router là đăng ký toàn cục theo module).
 route('GET', '/test-only/admin', async () => ok({}), { role: 'ADMIN' });
+route('GET', '/test-only/err', async () => {
+  throw new ApiError(422, 'VALIDATION', 'x', { lines: [{ unit_cost_vnd: 7, qty: 1 }] });
+});
+route('GET', '/test-only/csv', async () => new Response('a,b', { headers: { 'Content-Type': 'text/csv' } }));
+route('GET', '/test-only/csv-ok', async () => new Response('a,b', { headers: { 'Content-Type': 'text/csv' } }), {
+  staffNonJson: true,
+});
 route('GET', '/test-only/costs', async () => ok({ rows: [{ sku: 'A', cost_avg_vnd: 5, qty: 1 }] }));
 
 describe('đăng nhập', () => {
@@ -68,6 +75,17 @@ describe('đăng nhập', () => {
     expect((await login(env, u.email, u.password)).status).toBe(200);
     const left = await env.DB.prepare('SELECT COUNT(*) AS n FROM login_attempts').first<{ n: number }>();
     expect(left?.n).toBe(0);
+  });
+
+  it('8 lần sai song song cùng ip|email: tăng bộ đếm trước khi băm, tối đa 5 lần được xác thực', async () => {
+    const env = await makeEnv();
+    const u = await createUser(env.DB, 'ADMIN');
+    const results = await Promise.all(Array.from({ length: 8 }, () => login(env, u.email, 'sai')));
+    const statuses = results.map((r) => r.status);
+    expect(statuses.filter((c) => c === 401).length).toBeLessThanOrEqual(5);
+    expect(statuses.filter((c) => c === 429).length).toBeGreaterThanOrEqual(3);
+    const row = await env.DB.prepare('SELECT count FROM login_attempts').first<{ count: number }>();
+    expect(row?.count).toBe(8);
   });
 
   it('cửa sổ hết hạn: lần sai kế tiếp đặt lại đếm về 1', async () => {
@@ -149,6 +167,35 @@ describe('phiên và phân quyền', () => {
     const a = (await (await api(env, '/test-only/costs', {}, admin)).json()) as { data: { rows: object[] } };
     expect(s.data.rows).toEqual([{ sku: 'A', qty: 1 }]);
     expect(a.data.rows).toEqual([{ sku: 'A', cost_avg_vnd: 5, qty: 1 }]);
+  });
+});
+
+describe('redaction cho STAFF ngoài phản hồi thành công', () => {
+  it('ApiError.details chứa unit_cost_vnd: STAFF không thấy, ADMIN thấy', async () => {
+    const env = await makeEnv();
+    const staff = await createUser(env.DB, 'STAFF');
+    const admin = await createUser(env.DB, 'ADMIN');
+    const s = await api(env, '/test-only/err', {}, staff);
+    const a = await api(env, '/test-only/err', {}, admin);
+    expect(s.status).toBe(422);
+    expect(((await s.json()) as { error: { details: unknown } }).error.details).toEqual({ lines: [{ qty: 1 }] });
+    expect(((await a.json()) as { error: { details: unknown } }).error.details).toEqual({
+      lines: [{ unit_cost_vnd: 7, qty: 1 }],
+    });
+  });
+
+  it('phản hồi không phải JSON: STAFF bị 500 REDACTION_UNSUPPORTED trừ khi route opt-in', async () => {
+    const env = await makeEnv();
+    const staff = await createUser(env.DB, 'STAFF');
+    const admin = await createUser(env.DB, 'ADMIN');
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const denied = await api(env, '/test-only/csv', {}, staff);
+    expect(denied.status).toBe(500);
+    expect(((await denied.json()) as { error: { code: string } }).error.code).toBe('REDACTION_UNSUPPORTED');
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+    expect(await (await api(env, '/test-only/csv-ok', {}, staff)).text()).toBe('a,b');
+    expect(await (await api(env, '/test-only/csv', {}, admin)).text()).toBe('a,b');
   });
 });
 
