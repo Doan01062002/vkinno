@@ -33,7 +33,8 @@ import {
   type DocRef,
   type Line,
 } from './inventory';
-import { isCheckError, isUniqueError, marketplaceReceiptStmts, paymentStatusSql } from './payments';
+import { isCheckError, isUniqueError } from '../lib/db-errors';
+import { marketplaceReceiptStmts, paymentStatusSql } from './payments';
 import { route } from './router';
 
 export type OrderStatus = 'PENDING' | 'PACKED' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED' | 'RETURNED';

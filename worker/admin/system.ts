@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { columnMapSchema } from '../../src/shared/marketplace';
 import { pageQuerySchema } from '../../src/shared/schemas';
+import { isCheckError } from '../lib/db-errors';
 import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
 import { hashPassword } from './auth';
 import { auditStmt } from './audit';
@@ -166,13 +167,13 @@ route(
       ),
     ];
     if (input.role !== 'ADMIN' || active === 0) {
-      // Chốt chặn trong cùng batch: nếu sau khi cập nhật không còn ADMIN hoạt động nào, json() báo lỗi
-      // và D1 huỷ cả batch (kể cả nhật ký), nên hai yêu cầu song song cũng không lách được.
+      // Chốt chặn trong cùng batch (kiểu CHECK): nếu sau khi cập nhật không còn ADMIN hoạt động nào, gán role
+      // không hợp lệ để CHECK của bảng users làm D1 huỷ cả batch (kể cả nhật ký); yêu cầu song song cũng không lách được.
       stmts.push(
         env.DB.prepare(
-          `SELECT CASE WHEN (SELECT COUNT(*) FROM users WHERE role = 'ADMIN' AND is_active = 1) = 0
-                       THEN json('LAST_ADMIN') END`,
-        ),
+          `UPDATE users SET role = CASE WHEN (SELECT COUNT(*) FROM users WHERE role = 'ADMIN' AND is_active = 1) = 0
+                                        THEN 'INVALID' ELSE role END WHERE id = ?`,
+        ).bind(id),
       );
     }
     stmts.push(
@@ -185,7 +186,7 @@ route(
     try {
       await env.DB.batch(stmts);
     } catch (e) {
-      if (e instanceof Error && e.message.includes('malformed JSON')) throw lastAdmin();
+      if (isCheckError(e)) throw lastAdmin();
       throw e;
     }
     return ok(await env.DB.prepare(`SELECT ${USER_COLUMNS} FROM users WHERE id = ?`).bind(id).first());
@@ -228,7 +229,8 @@ route(
   async ({ env, url }) => {
     const q = parseQuery(url, auditQuery);
     const where = `WHERE (?1 IS NULL OR a.user_id = ?1) AND (?2 IS NULL OR a.entity = ?2)
-      AND (?3 IS NULL OR date(a.created_at, '+7 hours') >= ?3) AND (?4 IS NULL OR date(a.created_at, '+7 hours') <= ?4)`;
+      AND (?3 IS NULL OR a.created_at >= datetime(?3, '-7 hours'))
+      AND (?4 IS NULL OR a.created_at < datetime(?4, '+1 day', '-7 hours'))`;
     const f = [q.user_id ?? null, q.entity ?? null, q.from ?? null, q.to ?? null];
     const [items, total] = await env.DB.batch([
       env.DB.prepare(

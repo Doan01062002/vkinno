@@ -11,6 +11,7 @@ import { mirrorEvent } from '../lib/notify';
 import { auditStmt } from './audit';
 import type { AdminCtx } from './auth';
 import { route } from './router';
+import { isCheckError, isUniqueError } from '../lib/db-errors';
 
 export const paymentInput = z.object({
   kind: z.enum(['RECEIPT', 'REFUND']),
@@ -104,10 +105,6 @@ export function marketplaceReceiptStmts(db: D1Database, order: OrderRef): D1Prep
     ...recomputePaymentStmts(db, order, "AND payment_method = 'MARKETPLACE'"),
   ];
 }
-
-export const isCheckError = (e: unknown) => e instanceof Error && e.message.includes('CHECK constraint failed');
-export const isUniqueError = (e: unknown, column: string) =>
-  e instanceof Error && e.message.includes('UNIQUE constraint failed') && e.message.includes(column);
 
 interface PaymentOrder {
   id: number;

@@ -66,6 +66,33 @@ async function telegramEnabled(env: Env): Promise<boolean> {
   return row?.value === 'true';
 }
 
+const TELEGRAM_CHUNK_MAX = 3900;
+
+/** Gộp các dòng thành các tin ≤ max ký tự, chỉ ngắt giữa các dòng (dòng quá dài bị cắt). */
+export function chunkLines(lines: string[], max = TELEGRAM_CHUNK_MAX): string[] {
+  const chunks: string[] = [];
+  let cur = '';
+  for (const raw of lines) {
+    const line = raw.length > max ? `${raw.slice(0, max - 1)}…` : raw;
+    if (cur && cur.length + 1 + line.length > max) {
+      chunks.push(cur);
+      cur = line;
+    } else {
+      cur = cur ? `${cur}\n${line}` : line;
+    }
+  }
+  if (cur) chunks.push(cur);
+  return chunks;
+}
+
+interface ExpiringLot {
+  name: string;
+  sku: string;
+  batch_code: string;
+  expiry_date: string;
+  qty: number;
+}
+
 async function sendInventoryAlerts(env: Env): Promise<void> {
   if (!(await telegramEnabled(env))) return;
   const { low_stock, expiring } = await inventoryAlerts(env.DB);
@@ -77,11 +104,15 @@ async function sendInventoryAlerts(env: Env): Promise<void> {
   }
   if (expiring.length > 0) {
     lines.push('', `Lô sắp hết hạn (${expiring.length}):`);
-    for (const e of expiring as unknown as { name: string; sku: string; batch_code: string; expiry_date: string; qty: number }[]) {
+    for (const e of expiring as unknown as ExpiringLot[]) {
       lines.push(`- ${e.name} (${e.sku}) lô ${e.batch_code || '-'}: ${e.qty} hết hạn ${e.expiry_date}`);
     }
   }
-  await sendTelegramAlert(env, lines.join('\n'));
+  let failed = 0;
+  for (const chunk of chunkLines(lines)) {
+    if (!(await sendTelegramAlert(env, chunk))) failed++;
+  }
+  if (failed > 0) console.error(`Gửi cảnh báo tồn kho: ${failed} tin Telegram thất bại`);
 }
 
 /** Tác vụ hằng ngày; mỗi bước độc lập, một bước lỗi không chặn các bước còn lại. */
@@ -90,11 +121,8 @@ export async function runDaily(env: Env): Promise<void> {
     await runBackup(env);
   } catch (e) {
     console.error('Sao lưu hằng ngày thất bại', e);
-    try {
-      await sendTelegramAlert(env, 'Sao lưu D1 hằng ngày THẤT BẠI. Vui lòng kiểm tra nhật ký Worker.');
-    } catch (e2) {
-      console.error(e2);
-    }
+    const sentOk = await sendTelegramAlert(env, 'Sao lưu D1 hằng ngày THẤT BẠI. Vui lòng kiểm tra nhật ký Worker.');
+    if (!sentOk) console.error('Không gửi được tin báo lỗi sao lưu qua Telegram');
   }
   try {
     await env.DB.prepare(

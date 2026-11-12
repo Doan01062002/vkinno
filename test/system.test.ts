@@ -138,6 +138,56 @@ describe('runDaily / scheduled', () => {
     expect(sent[0]).toContain(DG);
   });
 
+  it('cảnh báo dài được tách thành nhiều tin ≤ 4096 ký tự, đủ 80 SKU', async () => {
+    const sent = stubTelegram();
+    env = { ...env, TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: 'c' };
+    const stmts = [];
+    for (let i = 0; i < 80; i++) {
+      stmts.push(
+        env.DB.prepare(
+          "INSERT INTO products (sku, product_id, name, slug, price_vnd, listed_price_vnd, stock_qty, min_stock, shelf_zone, shelf_label, image_url) VALUES (?, ?, ?, ?, 1000, 1000, 0, 5, 'RED_ACID', 'A', '')",
+        ).bind(`LONG-SKU-${String(i).padStart(3, '0')}`, 1000 + i, `Sản phẩm có tên rất dài ${'x'.repeat(80)} số ${i}`, `long-${i}`),
+      );
+    }
+    await env.DB.batch(stmts);
+    await send('/settings', 'PUT', { 'telegram.enabled': true });
+    await runDaily(env);
+    expect(sent.length).toBeGreaterThan(1);
+    for (const m of sent) expect(m.length).toBeLessThanOrEqual(4096);
+    const all = sent.join('\n');
+    for (let i = 0; i < 80; i++) expect(all).toContain(`LONG-SKU-${String(i).padStart(3, '0')}`);
+  });
+
+  it('Telegram trả 400 → console.error, runDaily vẫn chạy các bước còn lại', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"ok":false}', { status: 400 })));
+    env = { ...env, TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: 'c' };
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await send('/settings', 'PUT', { 'telegram.enabled': true });
+    await env.DB.prepare('UPDATE products SET stock_qty = 0, reserved_qty = 0, min_stock = 5 WHERE sku = ?').bind(DG).run();
+    await env.DB.prepare("INSERT INTO login_attempts (key, count, window_start) VALUES ('old', 3, datetime('now', '-1 day'))").run();
+    await runDaily(env);
+    expect(err.mock.calls.some((c) => String(c[0]).includes('400'))).toBe(true);
+    expect(await env.FILES.head(backupKey(0))).not.toBeNull();
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM login_attempts').first<{ n: number }>())!.n).toBe(0);
+  });
+
+  it('cảnh báo hằng ngày gồm cả lô sắp hết hạn', async () => {
+    const sent = stubTelegram();
+    env = { ...env, TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: 'c' };
+    const expiry = vnDay(10);
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO stock_docs (code, type, status, posted_at) VALUES ('PN-TEST', 'RECEIPT', 'POSTED', datetime('now'))"),
+      env.DB.prepare(
+        "INSERT INTO stock_doc_lines (doc_id, sku, qty, batch_code, expiry_date) VALUES ((SELECT id FROM stock_docs WHERE code = 'PN-TEST'), ?, 10, 'LOT-EXP', ?)",
+      ).bind(DG, expiry),
+    ]);
+    await send('/settings', 'PUT', { 'telegram.enabled': true });
+    await runDaily(env);
+    const all = sent.join('\n');
+    expect(all).toContain('LOT-EXP');
+    expect(all).toContain(expiry);
+  });
+
   it('worker.scheduled gọi runDaily (tạo bản sao lưu)', async () => {
     const pending: Promise<unknown>[] = [];
     const ctx = { waitUntil: (p: Promise<unknown>) => void pending.push(p), passThroughOnException: () => {} } as unknown as ExecutionContext;
@@ -200,6 +250,13 @@ describe('tài khoản', () => {
     expect((await send('/users', 'POST', { email: 'a@b.co', name: 'A', role: 'STAFF', password: 'ngan' })).status).toBe(422);
   });
 
+  it('STAFF bị 403 ở GET và POST users', async () => {
+    const staff = await createUser(env.DB, 'STAFF');
+    expect((await send('/users', 'GET', undefined, staff)).status).toBe(403);
+    const body = { email: 'x@y.co', name: 'X', role: 'STAFF', password: 'matkhau-dai-123' };
+    expect((await send('/users', 'POST', body, staff)).status).toBe(403);
+  });
+
   it('đặt lại mật khẩu: đăng nhập được bằng mật khẩu mới, nhật ký không chứa mật khẩu', async () => {
     const u = await createUser(env.DB, 'STAFF');
     const r = await send(`/users/${u.id}/reset-password`, 'POST', { password: 'mat-khau-moi-999' });
@@ -255,6 +312,13 @@ describe('nhật ký thao tác', () => {
     // 2026-11-01 16:30 UTC = 2026-11-01 23:30 VN; 2026-11-02 10:00 UTC = 17:00 VN
     expect((await send('/audit-logs?from=2026-11-02&to=2026-11-02&entity=order')).json.data.items.map((i: any) => i.entity_id)).toEqual(['2']);
     expect((await send('/audit-logs?from=2026-11-01&to=2026-11-01')).json.data.items.map((i: any) => i.entity_id)).toEqual(['1']);
+    // Biên nửa đêm VN: 16:59:59 UTC = 23:59:59 VN (ngày 11-01), 17:00:00 UTC = 00:00:00 VN (ngày 11-02)
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO audit_logs (user_id, action, entity, entity_id, created_at) VALUES (?, 'x', 'edge', 'a', '2026-12-01 16:59:59')").bind(admin.id),
+      env.DB.prepare("INSERT INTO audit_logs (user_id, action, entity, entity_id, created_at) VALUES (?, 'x', 'edge', 'b', '2026-12-01 17:00:00')").bind(admin.id),
+    ]);
+    expect((await send('/audit-logs?entity=edge&from=2026-12-01&to=2026-12-01')).json.data.items.map((i: any) => i.entity_id)).toEqual(['a']);
+    expect((await send('/audit-logs?entity=edge&from=2026-12-02&to=2026-12-02')).json.data.items.map((i: any) => i.entity_id)).toEqual(['b']);
     expect((await send('/audit-logs?from=bad')).status).toBe(422);
     const staff = await createUser(env.DB, 'STAFF');
     expect((await send('/audit-logs', 'GET', undefined, staff)).status).toBe(403);

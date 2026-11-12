@@ -7,7 +7,7 @@ import { docCode } from '../lib/codes';
 import { auditStmt } from './audit';
 import type { AdminCtx } from './auth';
 import { createOrder, quoteNotConvertible } from './orders';
-import { isCheckError, isUniqueError } from './payments';
+import { isCheckError, isUniqueError } from '../lib/db-errors';
 import { route } from './router';
 
 const TODAY = `date('now', '+7 hours')`;

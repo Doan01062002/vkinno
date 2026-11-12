@@ -1,9 +1,10 @@
 import type { Env } from './env';
 
-export async function sendTelegramAlert(env: Env, text: string): Promise<void> {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
+/** Gửi tin Telegram; không bao giờ ném lỗi. Trả true khi Telegram nhận (HTTP 2xx), false nếu lỗi hoặc chưa cấu hình. */
+export async function sendTelegramAlert(env: Env, text: string): Promise<boolean> {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return false;
   try {
-    await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -12,8 +13,12 @@ export async function sendTelegramAlert(env: Env, text: string): Promise<void> {
         disable_web_page_preview: true,
       }),
     });
-  } catch {
+    if (!res.ok) console.error(`Telegram sendMessage thất bại: HTTP ${res.status}`);
+    return res.ok;
+  } catch (e) {
     // Non-blocking alert hook: never fail customer/webhook flow if Telegram is unreachable
+    console.error("Telegram sendMessage lỗi mạng", e);
+    return false;
   }
 }
 
