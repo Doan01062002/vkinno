@@ -198,6 +198,22 @@ describe('SePay', () => {
   });
 });
 
+describe('SePay assign: đơn đã đóng', () => {
+  it('assign vào đơn đã huỷ → 409, log vẫn UNMATCHED, không có payment; đơn không tồn tại → 404', async () => {
+    const o = await makeOrder();
+    expect((await send(`/orders/${o.id}/transition`, 'POST', { to: 'CANCELLED' })).status).toBe(200);
+    await sepay({ id: 9300, transferAmount: 1000, content: 'khong ma' });
+    const r = await send('/sepay/9300/assign', 'POST', { order_id: o.id });
+    expect(r.status).toBe(409);
+    expect(r.json.error!.code).toBe('ORDER_CLOSED');
+    const log = await env.DB.prepare('SELECT match_status FROM sepay_webhook_logs WHERE sepay_tx_id = 9300').first<any>();
+    expect(log.match_status).toBe('UNMATCHED');
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM payments').first<{ n: number }>();
+    expect(n!.n).toBe(0);
+    expect((await send('/sepay/9300/assign', 'POST', { order_id: 987654 })).status).toBe(404);
+  });
+});
+
 describe('đơn sàn', () => {
   it('đơn MARKETPLACE COMPLETED → PAID', async () => {
     const o = await makeOrder({ channel: 'SHOPEE', payment_method: 'MARKETPLACE' });
@@ -226,5 +242,18 @@ describe('đơn sàn', () => {
     expect(rows.results.map((r: any) => r.amount_vnd)).toEqual([1000, m.total_amount - 1000]);
     expect((await orderRow(m.id))!.payment_status).toBe('PAID');
     expect((await orderRow(cod.id))!.payment_status).toBe('UNPAID');
+  });
+
+  it('đơn COD hoàn thành không bị tính lại paid_amount/payment_status/paid_at', async () => {
+    const cod = await makeOrder();
+    await env.DB.prepare(
+      "UPDATE orders SET paid_amount = 777, payment_status = 'PARTIAL', paid_at = '2026-01-01 00:00:00' WHERE id = ?",
+    ).bind(cod.id).run();
+    for (const to of ['PACKED', 'SHIPPING', 'COMPLETED']) {
+      expect((await send(`/orders/${cod.id}/transition`, 'POST', { to })).status).toBe(200);
+    }
+    expect(await orderRow(cod.id)).toMatchObject({ paid_amount: 777, payment_status: 'PARTIAL', paid_at: '2026-01-01 00:00:00' });
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM payments WHERE order_id = ?').bind(cod.id).first<{ n: number }>();
+    expect(n!.n).toBe(0);
   });
 });

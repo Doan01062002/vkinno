@@ -36,17 +36,17 @@ export const paymentStatusSql = (total: string) => `payment_status = CASE
   paid_at = CASE WHEN paid_amount > 0 AND paid_amount >= ${total} THEN COALESCE(paid_at, datetime('now')) ELSE NULL END`;
 
 /** Tính lại paid_amount từ payments rồi trạng thái, sau một INSERT payments của đơn. */
-export function recomputePaymentStmts(db: D1Database, orderId: number): D1PreparedStatement[] {
+export function recomputePaymentStmts(db: D1Database, orderId: number, andWhere = ''): D1PreparedStatement[] {
   return [
     db
       .prepare(
         `UPDATE orders SET paid_amount = COALESCE((SELECT SUM(CASE kind WHEN 'RECEIPT' THEN amount_vnd ELSE -amount_vnd END)
-           FROM payments WHERE order_id = ?1), 0), updated_at = datetime('now') WHERE id = ?1`,
+           FROM payments WHERE order_id = ?1), 0), updated_at = datetime('now') WHERE id = ?1 ${andWhere}`,
       )
       .bind(orderId),
     // Hai UPDATE riêng vì SET đọc giá trị cũ của hàng: trạng thái phải dựa trên paid_amount mới.
     db
-      .prepare(`UPDATE orders SET ${paymentStatusSql('total_amount')} WHERE id = ?`)
+      .prepare(`UPDATE orders SET ${paymentStatusSql('total_amount')} WHERE id = ? ${andWhere}`)
       .bind(orderId),
   ];
 }
@@ -94,7 +94,8 @@ export function marketplaceReceiptStmts(db: D1Database, orderId: number): D1Prep
          FROM orders WHERE id = ? AND payment_method = 'MARKETPLACE' AND total_amount - paid_amount > 0`,
       )
       .bind(orderId),
-    ...recomputePaymentStmts(db, orderId),
+    // Đơn không phải MARKETPLACE: không đụng paid_amount/payment_status.
+    ...recomputePaymentStmts(db, orderId, "AND payment_method = 'MARKETPLACE'"),
   ];
 }
 
@@ -108,18 +109,23 @@ interface PaymentOrder {
   total_amount: number;
   paid_amount: number;
   payment_status: string;
+  order_status: string;
 }
 
 const orderNotFound = () => new ApiError(404, 'ORDER_NOT_FOUND', 'Không tìm thấy đơn hàng.');
 
 async function loadPaymentOrder(db: D1Database, id: number): Promise<PaymentOrder> {
   const row = await db
-    .prepare('SELECT id, order_code, total_amount, paid_amount, payment_status FROM orders WHERE id = ?')
+    .prepare('SELECT id, order_code, total_amount, paid_amount, payment_status, order_status FROM orders WHERE id = ?')
     .bind(id)
     .first<PaymentOrder>();
   if (!row) throw orderNotFound();
   return row;
 }
+
+const isClosed = (status: string) => status === 'CANCELLED' || status === 'RETURNED';
+const orderClosed = () =>
+  new ApiError(409, 'ORDER_CLOSED', 'Đơn đã huỷ hoặc đã trả hàng, không thể gán giao dịch.');
 
 const refundExceeds = (paid: number) =>
   new ApiError(422, 'REFUND_EXCEEDS_PAID', 'Số tiền hoàn lớn hơn số đã thu của đơn.', { paid_amount: paid });
@@ -195,6 +201,7 @@ export async function assignSepay(env: Env, txId: number, orderId: number, userI
     throw new ApiError(409, 'SEPAY_ALREADY_HANDLED', 'Giao dịch này đã được ghi nhận hoặc bị bỏ qua.');
   }
   const order = await loadPaymentOrder(db, orderId);
+  if (isClosed(order.order_status)) throw orderClosed();
   const input: PaymentInput = {
     kind: 'RECEIPT',
     amount_vnd: log.transfer_amount,
@@ -204,6 +211,13 @@ export async function assignSepay(env: Env, txId: number, orderId: number, userI
   };
   try {
     await db.batch([
+      // Guard đầu batch: đơn vừa bị huỷ/trả → 'INVALID' ngoài CHECK → rollback cả batch.
+      db
+        .prepare(
+          `UPDATE orders SET order_status = CASE WHEN order_status IN ('CANCELLED', 'RETURNED') THEN 'INVALID' ELSE order_status END
+           WHERE id = ?`,
+        )
+        .bind(orderId),
       // payments.sepay_tx_id UNIQUE: hai lần gán đồng thời thì lần sau rollback cả batch.
       ...addPaymentStmts(db, orderId, input, { userId, sepayTxId: txId }),
       db
@@ -223,6 +237,7 @@ export async function assignSepay(env: Env, txId: number, orderId: number, userI
     if (isUniqueError(e, 'payments.sepay_tx_id')) {
       throw new ApiError(409, 'SEPAY_ALREADY_HANDLED', 'Giao dịch này đã được ghi nhận.');
     }
+    if (isCheckError(e)) throw orderClosed();
     throw e;
   }
   const result = await paymentResult(db, orderId);
