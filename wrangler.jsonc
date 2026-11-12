@@ -7,7 +7,7 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/quan-tri/*", "/files/*"]
   },
   "d1_databases": [
     {
@@ -16,5 +16,20 @@
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "vkinno-files" }],
+  "triggers": { "crons": ["0 19 * * *"] },
+  "env": {
+    "staging": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "vkinno-db-staging",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "vkinno-files-staging" }]
+    }
+  }
 }

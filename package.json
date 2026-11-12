@@ -8,7 +8,8 @@
     "preview": "astro preview",
     "db:migrate:local": "wrangler d1 migrations apply vkinno-db --local",
     "dev:all": "npm run build && wrangler d1 migrations apply vkinno-db --local && wrangler dev --port 8787",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.2",
@@ -18,10 +19,13 @@
     "lucide-react": "^1.65.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
     "@cloudflare/workers-types": "^5.20261107.1",
+    "vitest": "^4.1.12",
     "wrangler": "^4.158.0"
   }
 }

@@ -3,6 +3,7 @@
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
+  FILES: R2Bucket;
   ADMIN_PASSWORD?: string;
   ADMIN_SESSION_SECRET?: string;
   SEPAY_WEBHOOK_API_KEY?: string;

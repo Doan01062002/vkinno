@@ -23,3 +23,6 @@ Thumbs.db
 *.log
 qa-screenshots/
 .superpowers/
+
+# Dev cục bộ (SQLite file)
+.dev/
