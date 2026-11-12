@@ -38,7 +38,7 @@ class TestStatement {
     return { duration: performance.now() - start, changes, last_row_id: lastRowId };
   }
 
-  async run() {
+  runSync() {
     const start = performance.now();
     const info = this.sqlite.prepare(this.sql).run(...this.params);
     return {
@@ -48,13 +48,21 @@ class TestStatement {
     };
   }
 
-  async all<T = Record<string, unknown>>() {
+  allSync<T = Record<string, unknown>>() {
     const start = performance.now();
     const rows = this.sqlite
       .prepare(this.sql)
       .all(...this.params)
       .map(normRow) as T[];
     return { results: rows, success: true as const, meta: this.meta(0, 0, start) };
+  }
+
+  async run() {
+    return this.runSync();
+  }
+
+  async all<T = Record<string, unknown>>() {
+    return this.allSync<T>();
   }
 
   async first<T = Record<string, unknown>>(col?: string): Promise<T | null> {
@@ -82,18 +90,22 @@ class TestD1 {
 
   async exec(sql: string) {
     const start = performance.now();
-    this.sqlite.exec(sql);
+    // D1 luôn bật khoá ngoại và bỏ qua PRAGMA foreign_keys.
+    this.sqlite.exec(sql.replace(/^[ \t]*PRAGMA\s+foreign_keys\s*=\s*\w+\s*;/gim, ''));
     return { count: 1, duration: performance.now() - start };
   }
 
-  /** Cả batch là một giao dịch: lỗi thì ROLLBACK và ném lại. */
+  /**
+   * Cả batch là một giao dịch: lỗi thì ROLLBACK và ném lại. Chạy đồng bộ hoàn toàn
+   * (không await giữa BEGIN và COMMIT) nên các batch chạy chồng nhau không xen kẽ.
+   */
   async batch(stmts: TestStatement[]) {
     const out = [];
     this.sqlite.exec('BEGIN');
     try {
       for (const s of stmts) {
         const head = s.sql.trim().toUpperCase();
-        out.push(head.startsWith('SELECT') || head.startsWith('WITH') ? await s.all() : await s.run());
+        out.push(head.startsWith('SELECT') || head.startsWith('WITH') ? s.allSync() : s.runSync());
       }
       this.sqlite.exec('COMMIT');
     } catch (err) {
@@ -119,12 +131,26 @@ export function createTestD1(path = ':memory:'): D1Database {
   return new TestD1(sqlite) as unknown as D1Database;
 }
 
-/** Chạy migrations/*.sql theo thứ tự tên file. */
-export async function applyMigrations(db: D1Database, dir = join(process.cwd(), 'migrations')): Promise<void> {
+/**
+ * Chạy migrations/*.sql theo thứ tự tên file, mỗi file trong một giao dịch.
+ * `filter` chọn file theo tên (dùng để dừng ở một phiên bản).
+ */
+export async function applyMigrations(
+  db: D1Database,
+  opts: { dir?: string; filter?: (name: string) => boolean } = {},
+): Promise<void> {
+  const dir = opts.dir ?? join(process.cwd(), 'migrations');
   const files = readdirSync(dir)
-    .filter((f) => f.endsWith('.sql'))
+    .filter((f) => f.endsWith('.sql') && (opts.filter?.(f) ?? true))
     .sort();
   for (const f of files) {
-    await db.exec(readFileSync(join(dir, f), 'utf8'));
+    await db.exec('BEGIN');
+    try {
+      await db.exec(readFileSync(join(dir, f), 'utf8'));
+      await db.exec('COMMIT');
+    } catch (err) {
+      await db.exec('ROLLBACK');
+      throw err;
+    }
   }
 }

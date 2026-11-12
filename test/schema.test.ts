@@ -68,13 +68,90 @@ describe('migration 0003', () => {
 
   it('batch rollback khi một lệnh lỗi', async () => {
     const db = await freshDb();
+    const before = await db.prepare("SELECT stock_qty FROM products WHERE sku='VK-DEGREASER-500ML'").first('stock_qty');
     await expect(
       db.batch([
         db.prepare("UPDATE products SET stock_qty = 7 WHERE sku='VK-DEGREASER-500ML'"),
         db.prepare("UPDATE products SET stock_qty = -1 WHERE sku='VK-DEGREASER-500ML'"),
       ]),
     ).rejects.toThrow(/CHECK constraint failed/);
-    expect(await db.prepare("SELECT stock_qty FROM products WHERE sku='VK-DEGREASER-500ML'").first('stock_qty')).toBe(64);
+    expect(await db.prepare("SELECT stock_qty FROM products WHERE sku='VK-DEGREASER-500ML'").first('stock_qty')).toBe(before);
+  });
+
+  it('hai batch chạy chồng nhau không xen kẽ: chỉ một batch lấy được đơn vị cuối', async () => {
+    const db = await freshDb();
+    await db.prepare("UPDATE products SET stock_qty = 1 WHERE sku='VK-DEGREASER-500ML'").run();
+    const take = (note: string) =>
+      db.batch([
+        db.prepare("UPDATE products SET stock_qty = stock_qty - 1 WHERE sku='VK-DEGREASER-500ML'"),
+        db
+          .prepare("INSERT INTO inventory_logs (sku, delta, stock_after, reason, ref_order_code) VALUES ('VK-DEGREASER-500ML', -1, 0, 'SALE_OUT', ?)")
+          .bind(note),
+      ]);
+    const results = await Promise.allSettled([take('A'), take('B')]);
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected']);
+    expect(String((results[1] as PromiseRejectedResult).reason)).toMatch(/CHECK constraint failed/);
+    expect(await db.prepare("SELECT stock_qty FROM products WHERE sku='VK-DEGREASER-500ML'").first('stock_qty')).toBe(0);
+    expect(await db.prepare("SELECT ref_order_code FROM inventory_logs WHERE reason='SALE_OUT'").all()).toMatchObject({
+      results: [{ ref_order_code: 'A' }],
+    });
+  });
+
+  it('nâng cấp 0002 -> 0003 giữ nguyên dòng con và khoá ngoại sạch', async () => {
+    const db = createTestD1();
+    await applyMigrations(db, { filter: (n) => !n.startsWith('0003') });
+    await db
+      .prepare(
+        `INSERT INTO orders (order_code, customer_name, customer_phone, shipping_address, subtotal_vnd, shipping_fee_vnd, total_amount)
+         VALUES ('OLD1', 'A', '0900000000', 'HN', 90000, 0, 90000)`,
+      )
+      .run();
+    await db
+      .prepare(
+        "INSERT INTO order_items (order_id, sku, product_name, unit_price, quantity, line_total) VALUES ((SELECT id FROM orders WHERE order_code='OLD1'), 'VK-DEGREASER-500ML', 'Tẩy dầu', 85000, 2, 170000)",
+      )
+      .run();
+    await db
+      .prepare("INSERT INTO inventory_logs (sku, delta, stock_after, reason, ref_order_code) VALUES ('VK-DEGREASER-500ML', -2, 62, 'SALE_OUT', 'OLD1')")
+      .run();
+    const snap = async () => ({
+      bom: (await db.prepare('SELECT * FROM bom_items ORDER BY component_sku').all()).results,
+      items: (await db.prepare('SELECT * FROM order_items ORDER BY id').all()).results,
+      logs: (await db.prepare('SELECT * FROM inventory_logs ORDER BY id').all()).results,
+    });
+    const before = await snap();
+    expect(before.bom).toHaveLength(2);
+    expect(before.items).toHaveLength(1);
+    expect(before.logs.length).toBeGreaterThanOrEqual(2);
+
+    await applyMigrations(db, { filter: (n) => n.startsWith('0003') });
+
+    const after = await snap();
+    expect(after.bom).toEqual(before.bom);
+    expect(after.items).toEqual(before.items.map((r) => ({ ...r, unit_cost_vnd: null })));
+    expect(after.logs).toEqual(
+      before.logs.map((r) => ({ ...r, doc_type: null, doc_code: null, unit_cost_vnd: null, created_by: null })),
+    );
+    expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
+    expect(await db.prepare("SELECT COUNT(*) AS n FROM orders WHERE order_code='OLD1'").first('n')).toBe(1);
+
+    const idx = (await db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'").all()).results.map(
+      (r) => r.name,
+    );
+    for (const name of [
+      'idx_orders_status_created',
+      'idx_orders_channel',
+      'idx_orders_phone',
+      'idx_orders_customer_created',
+      'idx_order_items_order',
+      'idx_inventory_logs_created',
+      'idx_inventory_logs_sku_created',
+      'idx_payments_order',
+      'idx_stock_doc_lines_doc',
+      'idx_quote_items_quote',
+    ]) {
+      expect(idx).toContain(name);
+    }
   });
 
   it('seedProducts đặt tồn 100, giá vốn 50.000', async () => {
