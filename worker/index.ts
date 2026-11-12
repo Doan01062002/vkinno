@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 import type { Env } from "./lib/env";
 import { timingSafeCompare } from "./lib/crypto";
+import { isValidVnPhone, normalizeVnPhone } from "./lib/phone";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
 import "./admin/routes";
@@ -83,18 +84,6 @@ function jsonResponse(data: unknown, status = 200, extraHeaders: Record<string, 
       ...extraHeaders,
     },
   });
-}
-
-function normalizeVnPhone(raw: unknown): string {
-  if (typeof raw !== "string") return "";
-  let digits = raw.replace(/[^\d+]/g, "");
-  if (digits.startsWith("+84")) digits = "0" + digits.slice(3);
-  else if (digits.startsWith("84") && digits.length === 11) digits = "0" + digits.slice(2);
-  return digits.replace(/\D/g, "");
-}
-
-function isValidVnPhone(phone: string): boolean {
-  return /^0[235789]\d{8,9}$/.test(phone);
 }
 
 function generateOrderCode(): string {

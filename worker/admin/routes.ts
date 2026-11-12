@@ -3,3 +3,5 @@
 import './stock-docs';
 import './products';
 import './uploads';
+import './customers';
+import './suppliers';

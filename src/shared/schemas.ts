@@ -139,3 +139,50 @@ export const ledgerQuery = pageQuerySchema.pick({ page: true, page_size: true })
   from: dateSchema.optional(),
   to: dateSchema.optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Khách hàng và nhà cung cấp
+// ---------------------------------------------------------------------------
+
+const customerFields = {
+  phone: z.string().trim().min(1).max(30),
+  name: z.string().trim().min(1).max(200),
+  type: z.enum(['RETAIL', 'B2B']).default('RETAIL'),
+  company_name: z.string().trim().max(300).default(''),
+  tax_code: z.string().trim().max(30).default(''),
+  email: z.string().trim().max(254).default(''),
+  address: z.string().trim().max(500).default(''),
+  credit_limit_vnd: vndSchema.optional(),
+  payment_terms_days: z.number().int().nonnegative().optional(),
+  price_tier: z.enum(['RETAIL', 'WHOLESALE']).default('RETAIL'),
+  note: z.string().trim().max(1000).default(''),
+};
+
+/** Khách B2B bắt buộc có hạn mức công nợ và số ngày nợ (≥ 0); khách lẻ có thể bỏ qua. */
+export const customerInput = z.object(customerFields).superRefine((c, ctx) => {
+  if (c.type !== 'B2B') return;
+  if (c.payment_terms_days === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['payment_terms_days'], message: 'Khách B2B bắt buộc có số ngày nợ (từ 0 trở lên)' });
+  }
+  if (c.credit_limit_vnd === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['credit_limit_vnd'], message: 'Khách B2B bắt buộc có hạn mức công nợ (từ 0 trở lên)' });
+  }
+});
+
+export type CustomerInput = z.infer<typeof customerInput>;
+
+export const customerListQuery = pageQuerySchema.extend({
+  type: z.enum(['RETAIL', 'B2B']).optional(),
+});
+
+export const supplierInput = z.object({
+  name: z.string().trim().min(1).max(200),
+  phone: z.string().trim().max(30).default(''),
+  email: z.string().trim().max(254).default(''),
+  address: z.string().trim().max(500).default(''),
+  tax_code: z.string().trim().max(30).default(''),
+  note: z.string().trim().max(1000).default(''),
+  is_active: flag.default(1),
+});
+
+export type SupplierInput = z.infer<typeof supplierInput>;
