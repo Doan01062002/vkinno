@@ -35,19 +35,24 @@ export const paymentStatusSql = (total: string) => `payment_status = CASE
     WHEN paid_amount <= 0 THEN 'UNPAID' WHEN paid_amount < ${total} THEN 'PARTIAL' ELSE 'PAID' END,
   paid_at = CASE WHEN paid_amount > 0 AND paid_amount >= ${total} THEN COALESCE(paid_at, datetime('now')) ELSE NULL END`;
 
+/** Đơn được chỉ bằng id hoặc bằng biểu thức SQL (vd. subquery theo order_code, dùng khi đơn vừa tạo trong cùng batch). */
+export type OrderRef = number | { sql: string; bind: unknown[] };
+const orderRefParts = (o: OrderRef) => (typeof o === 'number' ? { sql: '?', bind: [o] } : o);
+
 /** Tính lại paid_amount từ payments rồi trạng thái, sau một INSERT payments của đơn. */
-export function recomputePaymentStmts(db: D1Database, orderId: number, andWhere = ''): D1PreparedStatement[] {
+export function recomputePaymentStmts(db: D1Database, order: OrderRef, andWhere = ''): D1PreparedStatement[] {
+  const { sql, bind } = orderRefParts(order);
   return [
     db
       .prepare(
         `UPDATE orders SET paid_amount = COALESCE((SELECT SUM(CASE kind WHEN 'RECEIPT' THEN amount_vnd ELSE -amount_vnd END)
-           FROM payments WHERE order_id = ?1), 0), updated_at = datetime('now') WHERE id = ?1 ${andWhere}`,
+           FROM payments WHERE order_id = ${sql}), 0), updated_at = datetime('now') WHERE id = ${sql} ${andWhere}`,
       )
-      .bind(orderId),
+      .bind(...bind, ...bind),
     // Hai UPDATE riêng vì SET đọc giá trị cũ của hàng: trạng thái phải dựa trên paid_amount mới.
     db
-      .prepare(`UPDATE orders SET ${paymentStatusSql('total_amount')} WHERE id = ? ${andWhere}`)
-      .bind(orderId),
+      .prepare(`UPDATE orders SET ${paymentStatusSql('total_amount')} WHERE id = ${sql} ${andWhere}`)
+      .bind(...bind),
   ];
 }
 
@@ -85,17 +90,18 @@ export function addPaymentStmts(
 }
 
 /** Tự thu phần còn thiếu của đơn sàn (số tiền tính trong SQL; không làm gì nếu đã đủ). */
-export function marketplaceReceiptStmts(db: D1Database, orderId: number): D1PreparedStatement[] {
+export function marketplaceReceiptStmts(db: D1Database, order: OrderRef): D1PreparedStatement[] {
+  const { sql, bind } = orderRefParts(order);
   return [
     db
       .prepare(
         `INSERT INTO payments (order_id, kind, amount_vnd, method, note)
          SELECT id, 'RECEIPT', total_amount - paid_amount, 'MARKETPLACE', 'Tự thu khi đơn sàn hoàn thành'
-         FROM orders WHERE id = ? AND payment_method = 'MARKETPLACE' AND total_amount - paid_amount > 0`,
+         FROM orders WHERE id = ${sql} AND payment_method = 'MARKETPLACE' AND total_amount - paid_amount > 0`,
       )
-      .bind(orderId),
+      .bind(...bind),
     // Đơn không phải MARKETPLACE: không đụng paid_amount/payment_status.
-    ...recomputePaymentStmts(db, orderId, "AND payment_method = 'MARKETPLACE'"),
+    ...recomputePaymentStmts(db, order, "AND payment_method = 'MARKETPLACE'"),
   ];
 }
 

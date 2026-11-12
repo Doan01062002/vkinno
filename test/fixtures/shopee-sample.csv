@@ -1,0 +1,6 @@
+Mã đơn hàng,Ngày đặt hàng,Trạng Thái Đơn Hàng,SKU phân loại hàng,Tên sản phẩm,Số lượng,Giá ưu đãi,Phí vận chuyển (dự kiến),Tên Người nhận,Số điện thoại,Địa chỉ nhận hàng
+SP1001,2026-11-01 09:15,Hoàn thành,SHP-DEG-500,Tẩy dầu mỡ 500ml,2,"150.000",25000,Nguyễn Thị Lan,0912345678,"12 Lê Lợi, Quận 1, TP.HCM"
+SP1001,2026-11-01 09:15,Hoàn thành,VK-VISIONX-CLEAN-500ML,Nước lau kính 500ml,1,₫120.000,25000,Nguyễn Thị Lan,0912345678,"12 Lê Lợi, Quận 1, TP.HCM"
+SP1002,2026-11-02 10:00,Đã hủy,SHP-DEG-500,Tẩy dầu mỡ 500ml,1,150000,0,Trần Văn Nam,******12,"5 Hai Bà Trưng, Hà Nội"
+SP1003,2026-11-03 14:30,Đang giao,VK-BOSSMAN-DESCALER-500ML,Tẩy cặn 500ml,3,"90,000",30000,Lê Hoa,0987654321,"88 Nguyễn Huệ, Đà Nẵng"
+SP1004,2026-11-04 08:05,Cần xử lý,SHP-UNKNOWN,Sản phẩm lạ,1,50000,0,Phạm Minh,******89,"9 Trần Phú, Huế"

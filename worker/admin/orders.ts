@@ -17,7 +17,7 @@ import type { Env } from '../lib/env';
 import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
 import { generateOrderCode } from '../lib/codes';
 import { mirrorEvent } from '../lib/notify';
-import { normalizeVnPhone } from '../lib/phone';
+import { isValidVnPhone, normalizeVnPhone } from '../lib/phone';
 import { auditStmt } from './audit';
 import type { AdminCtx } from './auth';
 import { upsertCustomerByPhoneStmts } from './customers';
@@ -172,15 +172,25 @@ interface PreparedOrder {
  * Kiểm tra toàn bộ đầu vào trước khi dựng batch: SĐT, SKU (tồn tại, đang bán, combo có
  * thành phần), giảm giá ≤ tạm tính. Giá dòng không gửi lấy theo hạng giá của khách.
  */
-async function prepareOrder(db: D1Database, input: ParsedOrder): Promise<PreparedOrder> {
+async function prepareOrder(
+  db: D1Database,
+  input: ParsedOrder,
+  opts: { lenientPhone?: boolean } = {},
+): Promise<PreparedOrder> {
   const lines = toLines(input.items);
-  const customer = await upsertCustomerByPhoneStmts(db, {
-    phone: input.customer.phone,
-    name: input.customer.name,
-    email: input.customer.email,
-    address: input.customer.address,
-  });
-  const phone = customer.bind[0] as string;
+  // Đơn nhập từ sàn: SĐT người mua thường bị che (****) → không tạo khách, giữ nguyên chuỗi gốc.
+  const rawPhone = input.customer.phone;
+  const skipCustomer =
+    opts.lenientPhone === true && (rawPhone.includes('*') || !isValidVnPhone(normalizeVnPhone(rawPhone)));
+  const customer = skipCustomer
+    ? { stmts: [] as D1PreparedStatement[], customerIdSql: 'NULL', bind: [] as unknown[] }
+    : await upsertCustomerByPhoneStmts(db, {
+        phone: input.customer.phone,
+        name: input.customer.name,
+        email: input.customer.email,
+        address: input.customer.address,
+      });
+  const phone = skipCustomer ? rawPhone : (customer.bind[0] as string);
   await expandToPhysical(db, lines);
 
   const [prodRes, custRes] = await db.batch([
@@ -262,6 +272,11 @@ async function quoteIsConvertible(db: D1Database, quoteId: number): Promise<bool
   return row !== null;
 }
 
+/** Đơn nhập từ sàn: SĐT có thể thiếu/bị che nên cho phép chuỗi rỗng (xem prepareOrder). */
+const importOrderInput = createOrderInput.extend({
+  customer: createOrderInput.shape.customer.extend({ phone: z.string().trim().max(30) }),
+});
+
 export interface CreateOrderOpts {
   source: OrderSource;
   userId: number | null;
@@ -280,12 +295,13 @@ export async function createOrder(
   opts: CreateOrderOpts,
   ctx?: ExecutionContext,
 ): Promise<{ id: number; order_code: string }> {
-  const parsed = createOrderInput.safeParse(rawInput);
+  const isImport = opts.source === 'IMPORT';
+  const parsed = (isImport ? importOrderInput : createOrderInput).safeParse(rawInput);
   if (!parsed.success) throw validationError(parsed.error);
   const input = parsed.data;
   const status = opts.status ?? 'PENDING';
   const db = env.DB;
-  const p = await prepareOrder(db, input);
+  const p = await prepareOrder(db, input, { lenientPhone: isImport });
 
   let orderCode = '';
   for (let attempt = 0; ; attempt++) {
@@ -295,7 +311,12 @@ export async function createOrder(
     const stockStmts =
       status === 'PENDING'
         ? reserveStmts(db, p.lines)
-        : [...(await directSaleOutStmts(db, null, ref)), dueDateStmt(db, byCode, [orderCode])];
+        : [
+            ...(await directSaleOutStmts(db, null, ref)),
+            dueDateStmt(db, byCode, [orderCode]),
+            // Đơn sàn tạo thẳng COMPLETED: sàn đã thu hộ → ghi nhận thu ngay trong cùng batch.
+            ...(status === 'COMPLETED' ? marketplaceReceiptStmts(db, { sql: byCode, bind: [orderCode] }) : []),
+          ];
     try {
       await db.batch([
         ...(opts.quoteId === undefined ? [] : [quoteConvertGuard(db, opts.quoteId)]),
