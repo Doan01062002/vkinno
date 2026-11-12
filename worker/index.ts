@@ -1,19 +1,9 @@
 /// <reference types="@cloudflare/workers-types" />
+import type { Env } from "./lib/env";
+import { hmacSign, timingSafeCompare } from "./lib/crypto";
+import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
 
-export interface Env {
-  DB: D1Database;
-  ASSETS: Fetcher;
-  FILES: R2Bucket;
-  ADMIN_PASSWORD?: string;
-  ADMIN_SESSION_SECRET?: string;
-  SEPAY_WEBHOOK_API_KEY?: string;
-  TELEGRAM_BOT_TOKEN?: string;
-  TELEGRAM_CHAT_ID?: string;
-  GOOGLE_SCRIPT_WEBHOOK_URL?: string;
-  GOOGLE_SCRIPT_SECRET?: string;
-  GOOGLE_SHEET_ID?: string;
-  APPSHEET_APP_URL?: string;
-}
+export type { Env };
 
 const DEFAULT_GOOGLE_SHEET_ID = "1Q2JtTSh63BWD0znOVNLkpXfR1aPqswc9y7u8l-Xaxvo";
 const DEFAULT_APPSHEET_URL =
@@ -94,46 +84,6 @@ function jsonResponse(data: unknown, status = 200, extraHeaders: Record<string, 
   });
 }
 
-async function timingSafeCompare(input: string, secret: string): Promise<boolean> {
-  const enc = new TextEncoder();
-  const [hashA, hashB] = await Promise.all([
-    crypto.subtle.digest("SHA-256", enc.encode(input)),
-    crypto.subtle.digest("SHA-256", enc.encode(secret)),
-  ]);
-  const subtleAny = crypto.subtle as unknown as {
-    timingSafeEqual?: (a: ArrayBuffer, b: ArrayBuffer) => boolean;
-  };
-  if (typeof subtleAny.timingSafeEqual === "function") {
-    return subtleAny.timingSafeEqual(hashA, hashB);
-  }
-  const viewA = new Uint8Array(hashA);
-  const viewB = new Uint8Array(hashB);
-  let diff = viewA.length ^ viewB.length;
-  for (let i = 0; i < viewA.length; i++) {
-    diff |= viewA[i] ^ (viewB[i] ?? 0);
-  }
-  return diff === 0;
-}
-
-function toHex(buf: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function hmacSign(message: string, secret: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-  return toHex(sig);
-}
-
 async function createAdminToken(secret: string): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + 12 * 3600; // 12h shift
   const payload = `admin.${exp}`;
@@ -209,23 +159,6 @@ async function readJsonSafe<T = Record<string, unknown>>(
     return { ok: true, data: JSON.parse(raw) as T, raw };
   } catch {
     return { ok: false, status: 400, error: "Định dạng JSON không hợp lệ." };
-  }
-}
-
-async function sendTelegramAlert(env: Env, text: string): Promise<void> {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: env.TELEGRAM_CHAT_ID,
-        text,
-        disable_web_page_preview: true,
-      }),
-    });
-  } catch {
-    // Non-blocking alert hook: never fail customer/webhook flow if Telegram is unreachable
   }
 }
 
@@ -346,58 +279,6 @@ function buildPickingGuideText(
     parts.push(`${badge} ${info.qty}x ${shortName}${info.viaCombo ? " (Tách BOM Combo)" : ""}`);
   }
   return parts.join(" + ");
-}
-
-async function syncToGoogleSheetsRealtime(
-  env: Env,
-  payload: Record<string, unknown>
-): Promise<{
-  ok: boolean;
-  mode: "GOOGLE_SHEETS_APPS_SCRIPT_LIVE" | "LOCAL_DEV_REALTIME_MIRROR";
-  latency_ms: number;
-  picking_guide_text?: string;
-}> {
-  const t0 = Date.now();
-  const webhookUrl = (env.GOOGLE_SCRIPT_WEBHOOK_URL || "").trim();
-  if (!webhookUrl || !webhookUrl.startsWith("https://script.google.com/")) {
-    return {
-      ok: true,
-      mode: "LOCAL_DEV_REALTIME_MIRROR",
-      latency_ms: Math.max(1, Date.now() - t0),
-      picking_guide_text:
-        typeof payload.picking_guide_text === "string" ? payload.picking_guide_text : undefined,
-    };
-  }
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3200);
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...payload,
-        secret: env.GOOGLE_SCRIPT_SECRET || "",
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    return {
-      ok: res.ok,
-      mode: "GOOGLE_SHEETS_APPS_SCRIPT_LIVE",
-      latency_ms: Math.max(1, Date.now() - t0),
-      picking_guide_text:
-        typeof payload.picking_guide_text === "string" ? payload.picking_guide_text : undefined,
-    };
-  } catch {
-    return {
-      ok: false,
-      mode: "GOOGLE_SHEETS_APPS_SCRIPT_LIVE",
-      latency_ms: Math.max(1, Date.now() - t0),
-      picking_guide_text:
-        typeof payload.picking_guide_text === "string" ? payload.picking_guide_text : undefined,
-    };
-  }
 }
 
 function mapFuzzySku(rawText: string, bySku: Map<string, ProductRow>): ProductRow | undefined {
