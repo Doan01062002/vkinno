@@ -186,3 +186,74 @@ export const supplierInput = z.object({
 });
 
 export type SupplierInput = z.infer<typeof supplierInput>;
+
+// ---------------------------------------------------------------------------
+// Đơn hàng
+// ---------------------------------------------------------------------------
+
+export const orderChannelSchema = z.enum(['WEB', 'SHOPEE', 'TIKTOK', 'ZALO', 'B2B', 'PHONE', 'FACEBOOK']);
+export const paymentMethodSchema = z.enum(['COD', 'VIETQR', 'SHOPEE', 'BANK_B2B', 'CASH', 'BANK_TRANSFER', 'MARKETPLACE']);
+export const orderStatusSchema = z.enum(['PENDING', 'PACKED', 'SHIPPING', 'COMPLETED', 'CANCELLED', 'RETURNED']);
+
+const orderFields = {
+  channel: orderChannelSchema,
+  customer: z.object({
+    phone: z.string().trim().min(1).max(30),
+    name: z.string().trim().min(1, 'Vui lòng nhập tên khách').max(200),
+    email: z.string().trim().max(254).optional(),
+    address: z.string().trim().max(500).optional(),
+  }),
+  shipping_address: z.string().trim().max(500),
+  notes: z.string().trim().max(2000).default(''),
+  items: z
+    .array(
+      z.object({
+        sku: z.string().trim().min(1).max(64),
+        quantity: z.number().int().positive().max(100000),
+        unit_price: vndSchema.optional(),
+      }),
+    )
+    .min(1)
+    .max(200),
+  shipping_fee_vnd: vndSchema,
+  discount_vnd: vndSchema.default(0),
+  payment_method: paymentMethodSchema,
+  due_date: dateSchema.optional(),
+};
+
+/**
+ * Tạo đơn (mọi nguồn). Dòng không có `unit_price` → giá bán theo hạng giá của khách
+ * (WHOLESALE: `wholesale_price_vnd ?? price_vnd`, còn lại `price_vnd`).
+ */
+export const createOrderInput = z.object({
+  ...orderFields,
+  external_order_id: z.string().trim().min(1).max(100).optional(),
+});
+
+export type CreateOrderInput = z.input<typeof createOrderInput>;
+
+/** Sửa đơn khi còn PENDING: thay toàn bộ thông tin và dòng hàng (mã đơn sàn không đổi). */
+export const updateOrderInput = z.object(orderFields);
+
+export const orderTransitionInput = z.object({
+  to: z.enum(['PACKED', 'SHIPPING', 'COMPLETED', 'CANCELLED', 'RETURNED']),
+  lines: z
+    .array(z.object({ order_item_id: z.number().int().positive(), action: z.enum(['RESTOCK', 'DAMAGED']) }))
+    .max(200)
+    .optional(),
+});
+
+export const orderShippingInput = z.object({
+  shipping_carrier: z.string().trim().max(100),
+  shipping_tracking_code: z.string().trim().max(100),
+  shipping_fee_vnd: vndSchema,
+});
+
+export const orderListQuery = pageQuerySchema.extend({
+  channel: orderChannelSchema.optional(),
+  status: orderStatusSchema.optional(),
+  payment_status: z.enum(['UNPAID', 'PARTIAL', 'PAID']).optional(),
+  from: dateSchema.optional(),
+  to: dateSchema.optional(),
+  customer_id: idSchema.optional(),
+});

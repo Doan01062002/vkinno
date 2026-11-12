@@ -2,6 +2,7 @@
 import type { Env } from "./lib/env";
 import { timingSafeCompare } from "./lib/crypto";
 import { isValidVnPhone, normalizeVnPhone } from "./lib/phone";
+import { generateOrderCode } from "./lib/codes";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
 import "./admin/routes";
@@ -84,17 +85,6 @@ function jsonResponse(data: unknown, status = 200, extraHeaders: Record<string, 
       ...extraHeaders,
     },
   });
-}
-
-function generateOrderCode(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const rand = new Uint8Array(6);
-  crypto.getRandomValues(rand);
-  let suffix = "";
-  for (let i = 0; i < rand.length; i++) {
-    suffix += alphabet[rand[i] % alphabet.length];
-  }
-  return `VK${suffix}`;
 }
 
 function buildVietQrUrl(amountVnd: number, orderCode: string): string {

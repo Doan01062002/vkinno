@@ -5,3 +5,4 @@ import './products';
 import './uploads';
 import './customers';
 import './suppliers';
+import './orders';

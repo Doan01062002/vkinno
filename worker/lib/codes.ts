@@ -10,3 +10,10 @@ export function docCode(prefix: 'PN' | 'PX' | 'DC' | 'KK' | 'BG', now = new Date
   const suffix = Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('');
   return `${prefix}${yy}${mm}${dd}-${suffix}`;
 }
+
+/** Mã đơn hàng: VK + 6 ký tự (bỏ 0/O/1/I dễ nhầm); cũng là nội dung chuyển khoản VietQR. */
+export function generateOrderCode(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const rand = crypto.getRandomValues(new Uint8Array(6));
+  return `VK${Array.from(rand, (b) => alphabet[b % alphabet.length]).join('')}`;
+}
