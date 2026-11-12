@@ -137,19 +137,31 @@ describe('BOM combo', () => {
     expect(kept.n).toBe(2);
   });
 
-  it('combo đang có đơn PENDING → 409 BOM_IN_USE', async () => {
+  const comboOrder = async (code: string, status: string) => {
     const o = await env.DB.prepare(
       `INSERT INTO orders (order_code, customer_name, customer_phone, shipping_address, subtotal_vnd, shipping_fee_vnd, total_amount, order_status)
-       VALUES ('VKTEST1', 'A', '0900000000', 'x', 1, 0, 1, 'PENDING')`,
-    ).run();
+       VALUES (?, 'A', '0900000000', 'x', 1, 0, 1, ?)`,
+    )
+      .bind(code, status)
+      .run();
     await env.DB.prepare(
       'INSERT INTO order_items (order_id, sku, product_name, unit_price, quantity, line_total) VALUES (?, ?, ?, 1, 1, 1)',
     )
       .bind(o.meta.last_row_id, COMBO, 'c')
       .run();
-    const r = await send(`/products/${COMBO}/bom`, 'PUT', { items: [{ component_sku: DG, qty_per_combo: 1 }] });
+  };
+  const putBom = () => send(`/products/${COMBO}/bom`, 'PUT', { items: [{ component_sku: DG, qty_per_combo: 1 }] });
+
+  it.each(['PENDING', 'PACKED', 'SHIPPING'])('combo đang có đơn %s → 409 BOM_IN_USE', async (status) => {
+    await comboOrder('VKTEST1', status);
+    const r = await putBom();
     expect(r.status).toBe(409);
     expect(r.json.error?.code).toBe('BOM_IN_USE');
+  });
+
+  it('combo chỉ còn trong đơn COMPLETED → được sửa BOM', async () => {
+    await comboOrder('VKTEST2', 'COMPLETED');
+    expect((await putBom()).status).toBe(200);
   });
 });
 

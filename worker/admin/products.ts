@@ -176,12 +176,12 @@ route('PUT', '/products/:sku/bom', async ({ env, req, user, params }) => {
   }
   const pending = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM orders o JOIN order_items i ON i.order_id = o.id
-     WHERE i.sku = ? AND o.order_status = 'PENDING'`,
+     WHERE i.sku = ? AND o.order_status IN ('PENDING', 'PACKED', 'SHIPPING')`,
   )
     .bind(combo.sku)
     .first<{ n: number }>();
   if ((pending?.n ?? 0) > 0) {
-    throw new ApiError(409, 'BOM_IN_USE', 'Combo đang có đơn chờ xử lý (đã giữ hàng), chưa thể đổi thành phần.', {
+    throw new ApiError(409, 'BOM_IN_USE', 'Combo đang có đơn chưa hoàn tất (đã giữ hàng hoặc đang giao), chưa thể đổi thành phần.', {
       pending_orders: pending?.n,
     });
   }
