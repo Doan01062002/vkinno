@@ -33,6 +33,7 @@ import {
   type DocRef,
   type Line,
 } from './inventory';
+import { isCheckError, isUniqueError, marketplaceReceiptStmts, paymentStatusSql } from './payments';
 import { route } from './router';
 
 export type OrderStatus = 'PENDING' | 'PACKED' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED' | 'RETURNED';
@@ -69,15 +70,6 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
  */
 const ITEMS_STAMP = `COALESCE((SELECT group_concat(id) FROM
   (SELECT id FROM order_items WHERE order_id = orders.id ORDER BY id)), '')`;
-
-/** payment_status theo tổng mới (quy tắc Task 10: 0 → UNPAID, thiếu → PARTIAL, đủ → PAID). */
-const paymentStatusSql = (total: string) => `payment_status = CASE
-    WHEN paid_amount <= 0 THEN 'UNPAID' WHEN paid_amount < ${total} THEN 'PARTIAL' ELSE 'PAID' END,
-  paid_at = CASE WHEN paid_amount > 0 AND paid_amount >= ${total} THEN COALESCE(paid_at, datetime('now')) ELSE paid_at END`;
-
-const isCheckError = (e: unknown) => e instanceof Error && e.message.includes('CHECK constraint failed');
-const isUniqueError = (e: unknown, column: string) =>
-  e instanceof Error && e.message.includes('UNIQUE constraint failed') && e.message.includes(column);
 
 const notFound = () => new ApiError(404, 'ORDER_NOT_FOUND', 'Không tìm thấy đơn hàng.');
 
@@ -429,6 +421,9 @@ async function transitionStmts(
   switch (`${order.order_status}>${to}`) {
     case 'PENDING>PACKED':
       return [...(await saleOutStmts(db, order.id, ref('ORDER'))), dueDateStmt(db, '?', [order.id])];
+    case 'SHIPPING>COMPLETED':
+      // Đơn sàn: sàn đã thu hộ, tự ghi nhận phần còn thiếu (SQL tính số tiền lúc chạy batch).
+      return marketplaceReceiptStmts(db, order.id);
     case 'PENDING>CANCELLED':
       return releaseStmts(db, lines);
     case 'PACKED>CANCELLED':

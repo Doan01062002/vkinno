@@ -4,6 +4,7 @@ import { timingSafeCompare } from "./lib/crypto";
 import { isValidVnPhone, normalizeVnPhone } from "./lib/phone";
 import { ApiError } from "./lib/http";
 import { createOrder } from "./admin/orders";
+import { addPaymentStmts, isUniqueError } from "./admin/payments";
 import { availability } from "./admin/inventory";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
@@ -896,35 +897,66 @@ export default {
           return jsonResponse({ success: true, match_status: "UNMATCHED" });
         }
 
-        const newPaidAmount = Number(targetOrder.paid_amount || 0) + transferAmount;
-        const nextStatus = newPaidAmount >= Number(targetOrder.total_amount) ? "PAID" : "PARTIAL";
+        // Ghi nhận qua cùng hàm thanh toán của trang quản trị; payments.sepay_tx_id UNIQUE nên
+        // gửi lại cùng giao dịch (kể cả đồng thời) không tạo payment thứ hai.
+        const matchedOrder = targetOrder;
+        try {
+          await env.DB.batch([
+            ...addPaymentStmts(
+              env.DB,
+              matchedOrder.id,
+              {
+                kind: "RECEIPT",
+                amount_vnd: transferAmount,
+                method: "VIETQR",
+                reference: referenceCode ?? undefined,
+                note: "SePay webhook",
+              },
+              { userId: null, sepayTxId: txId }
+            ),
+            env.DB.prepare(
+              `INSERT INTO sepay_webhook_logs (
+                sepay_tx_id, gateway, account_number, transfer_type, transfer_amount,
+                reference_code, content, matched_order_code, match_status, raw_payload
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+                (SELECT CASE WHEN payment_status = 'PAID' THEN 'PAID' ELSE 'PARTIAL' END FROM orders WHERE id = ?), ?)`
+            ).bind(
+              txId,
+              gateway,
+              accountNumber,
+              transferType,
+              transferAmount,
+              referenceCode,
+              content,
+              matchedOrder.order_code,
+              matchedOrder.id,
+              parsed.raw
+            ),
+          ]);
+        } catch (e) {
+          if (isUniqueError(e, "sepay_tx_id")) {
+            const dup = await env.DB.prepare(
+              `SELECT match_status, matched_order_code FROM sepay_webhook_logs WHERE sepay_tx_id = ?`
+            )
+              .bind(txId)
+              .first();
+            return jsonResponse({
+              success: true,
+              duplicate: true,
+              match_status: dup?.match_status ?? null,
+              matched_order_code: dup?.matched_order_code ?? null,
+            });
+          }
+          throw e;
+        }
 
-        await env.DB.batch([
-          env.DB.prepare(
-            `UPDATE orders
-             SET paid_amount = ?, payment_status = ?, sepay_tx_id = ?,
-                 paid_at = CASE WHEN ? = 'PAID' THEN datetime('now') ELSE paid_at END,
-                 updated_at = datetime('now')
-             WHERE id = ?`
-          ).bind(newPaidAmount, nextStatus, txId, nextStatus, targetOrder.id),
-          env.DB.prepare(
-            `INSERT INTO sepay_webhook_logs (
-              sepay_tx_id, gateway, account_number, transfer_type, transfer_amount,
-              reference_code, content, matched_order_code, match_status, raw_payload
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          ).bind(
-            txId,
-            gateway,
-            accountNumber,
-            transferType,
-            transferAmount,
-            referenceCode,
-            content,
-            targetOrder.order_code,
-            nextStatus,
-            parsed.raw
-          ),
-        ]);
+        const settled = (await env.DB.prepare(
+          `SELECT paid_amount, payment_status FROM orders WHERE id = ?`
+        )
+          .bind(matchedOrder.id)
+          .first()) as { paid_amount: number; payment_status: string };
+        const newPaidAmount = Number(settled.paid_amount);
+        const nextStatus = settled.payment_status === "PAID" ? "PAID" : "PARTIAL";
 
         const sheetsSepaySync = await syncToGoogleSheetsRealtime(env, {
           action: "sepay.webhook",

@@ -6,3 +6,4 @@ import './uploads';
 import './customers';
 import './suppliers';
 import './orders';
+import './payments';
