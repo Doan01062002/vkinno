@@ -282,6 +282,8 @@ export interface CreateOrderOpts {
   userId: number | null;
   status?: 'PENDING' | 'SHIPPING' | 'COMPLETED';
   quoteId?: number;
+  /** Chỉ dùng khi source = 'IMPORT': thời điểm đặt hàng của sàn, UTC `YYYY-MM-DD HH:MM:SS`. */
+  createdAt?: string;
 }
 
 /**
@@ -325,8 +327,8 @@ export async function createOrder(
           .prepare(
             `INSERT INTO orders (order_code, external_order_id, channel, customer_name, customer_phone, customer_email,
                shipping_address, notes, subtotal_vnd, shipping_fee_vnd, discount_vnd, total_amount, payment_method,
-               order_status, customer_id, due_date, source, created_by, quote_id, voucher_code)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${p.customer.customerIdSql}, ?, ?, ?, ?, ?)`,
+               order_status, customer_id, due_date, source, created_by, quote_id, voucher_code, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${p.customer.customerIdSql}, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')))`,
           )
           .bind(
             orderCode,
@@ -349,6 +351,7 @@ export async function createOrder(
             opts.userId,
             opts.quoteId ?? null,
             input.voucher_code,
+            isImport ? (opts.createdAt ?? null) : null,
           ),
         ...insertItemStmts(db, byCode, [orderCode], p.items),
         ...stockStmts,
@@ -376,7 +379,8 @@ export async function createOrder(
   }
 
   const row = await db.prepare('SELECT id FROM orders WHERE order_code = ?').bind(orderCode).first<{ id: number }>();
-  if (ctx) {
+  // Đơn nhập từ sàn không đẩy sự kiện từng đơn (tránh fetch ra ngoài mỗi đơn); đồng bộ Sheets cho nhập file thuộc Task 14.
+  if (ctx && !isImport) {
     mirrorEvent(env, ctx, 'order.created', {
       order_code: orderCode,
       channel: input.channel,

@@ -3,7 +3,7 @@
 // bỏ đơn trùng mã sàn, rồi mỗi đơn đi qua createOrder trong `try` riêng (một đơn lỗi không
 // làm hỏng đơn khác).
 import { z } from 'zod';
-import { DEFAULT_COLUMN_MAPS, importOrdersSchema, type Channel, type ColumnMap, type ImportOrder } from '../../src/shared/marketplace';
+import { DEFAULT_COLUMN_MAPS, columnMapSchema, importOrdersSchema, type Channel, type ColumnMap, type ImportOrder } from '../../src/shared/marketplace';
 import { pageQuerySchema } from '../../src/shared/schemas';
 import type { Env } from '../lib/env';
 import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
@@ -14,24 +14,12 @@ import { route } from './router';
 const channelSchema = z.enum(['SHOPEE', 'TIKTOK']);
 const MAX_BODY = 4 * 1024 * 1024;
 
-const columnMapSchema = z.object({
-  order_id: z.string(),
-  created_at: z.string(),
-  status: z.string(),
-  sku: z.string(),
-  product_name: z.string(),
-  quantity: z.string(),
-  unit_price: z.string(),
-  shipping_fee: z.string(),
-  buyer_name: z.string(),
-  buyer_phone: z.string(),
-  address: z.string(),
-});
-
 const previewInput = z.object({ channel: channelSchema, orders: importOrdersSchema });
 const importInput = previewInput.extend({
   file_name: z.string().trim().max(255).default(''),
   total_rows: z.number().int().nonnegative().optional(),
+  /** Các nhóm tiếp theo của cùng một file gửi lại `batch_id` nhận được ở nhóm đầu. */
+  batch_id: z.number().int().positive().optional(),
 });
 
 interface ImportError {
@@ -49,8 +37,9 @@ async function effectiveColumns(db: D1Database, channel: Channel): Promise<Colum
     try {
       const parsed = columnMapSchema.safeParse(JSON.parse(row.value));
       if (parsed.success) return parsed.data;
+      console.warn(`app_settings import.columns.${channel} không hợp lệ, dùng ánh xạ mặc định`);
     } catch {
-      // JSON hỏng → dùng mặc định
+      console.warn(`app_settings import.columns.${channel} không phải JSON, dùng ánh xạ mặc định`);
     }
   }
   return DEFAULT_COLUMN_MAPS[channel];
@@ -113,7 +102,7 @@ function toCreateInput(channel: Channel, o: ImportOrder, resolved: Map<string, s
     external_order_id: o.external_order_id,
     customer: { phone: o.buyer_phone, name: o.buyer_name || `Khách ${channel === 'SHOPEE' ? 'Shopee' : 'TikTok'}`, address: o.address },
     shipping_address: o.address,
-    notes: `Nhập từ ${channel}${o.created_at ? `, đặt ngày ${o.created_at}` : ''}`,
+    notes: `Nhập từ ${channel}`,
     items: o.items.map((i) => ({ sku: resolved.get(i.external_sku)!, quantity: i.quantity, unit_price: i.unit_price })),
     shipping_fee_vnd: o.shipping_fee_vnd,
     payment_method: 'MARKETPLACE' as const,
@@ -127,6 +116,7 @@ export async function runImport(
   input: z.infer<typeof importInput>,
 ) {
   const { channel, orders } = input;
+  const prevBatch = input.batch_id === undefined ? null : await loadBatch(env.DB, input.batch_id, channel);
   const real = orders.filter((o) => o.status !== 'SKIP');
   const existing = await existingExternalIds(env.DB, real.map((o) => o.external_order_id));
   const resolved = await resolveSkus(env.DB, channel, [...new Set(real.flatMap((o) => o.items.map((i) => i.external_sku)))]);
@@ -145,7 +135,7 @@ export async function runImport(
       continue;
     }
     try {
-      await createOrder(env, toCreateInput(channel, o, resolved), { source: 'IMPORT', userId, status: o.status as 'PENDING' | 'SHIPPING' | 'COMPLETED' }, ctx);
+      await createOrder(env, toCreateInput(channel, o, resolved), { source: 'IMPORT', userId, status: o.status as 'PENDING' | 'SHIPPING' | 'COMPLETED', createdAt: o.created_at || undefined }, ctx);
       created++;
     } catch (e) {
       if (e instanceof ApiError && e.code === 'DUPLICATE_ORDER') skipped++;
@@ -157,20 +147,88 @@ export async function runImport(
     }
   }
 
-  await env.DB.batch([
-    env.DB
+  const batch = await saveBatch(env.DB, userId, input, prevBatch, { created, skipped, errors });
+  return { created, skipped_duplicates: skipped, errors, ...batch };
+}
+
+/** Kiểm tra đợt nhập TRƯỚC khi tạo đơn: không có → 404, thuộc kênh khác → 409. */
+async function loadBatch(db: D1Database, id: number, channel: Channel): Promise<{ errors_json: string }> {
+  const row = await db
+    .prepare('SELECT channel, errors_json FROM import_batches WHERE id = ?')
+    .bind(id)
+    .first<{ channel: string; errors_json: string }>();
+  if (!row) throw new ApiError(404, 'IMPORT_BATCH_NOT_FOUND', 'Không tìm thấy đợt nhập.');
+  if (row.channel !== channel) {
+    throw new ApiError(409, 'IMPORT_BATCH_CHANNEL_MISMATCH', 'Đợt nhập thuộc kênh khác.');
+  }
+  return row;
+}
+
+const MAX_STORED_ERRORS = 200;
+const MAX_MESSAGE_LENGTH = 300;
+
+interface StoredErrors {
+  total: number;
+  items: ImportError[];
+}
+
+function readStored(json: string): StoredErrors {
+  try {
+    const v = JSON.parse(json) as StoredErrors | ImportError[];
+    return Array.isArray(v) ? { total: v.length, items: v } : v;
+  } catch {
+    return { total: 0, items: [] };
+  }
+}
+
+/** Tạo (nhóm đầu) hoặc cộng dồn (nhóm sau, có batch_id) dòng import_batches; lỗi lưu tối đa 200. */
+async function saveBatch(
+  db: D1Database,
+  userId: number,
+  input: z.infer<typeof importInput>,
+  prevBatch: { errors_json: string } | null,
+  r: { created: number; skipped: number; errors: ImportError[] },
+): Promise<{ batch_id: number; errors_total: number }> {
+  const rows = input.total_rows ?? input.orders.length;
+  const clipped = r.errors.map((e) => ({ ...e, message: e.message.slice(0, MAX_MESSAGE_LENGTH) }));
+  const audit = (id: number) =>
+    auditStmt(db, userId, 'import.run', 'import_batch', id, {
+      channel: input.channel,
+      file_name: input.file_name,
+      created: r.created,
+      skipped_duplicates: r.skipped,
+      errors: r.errors.length,
+    });
+
+  if (input.batch_id === undefined) {
+    const stored: StoredErrors = { total: clipped.length, items: clipped.slice(0, MAX_STORED_ERRORS) };
+    const res = await db
       .prepare(
         'INSERT INTO import_batches (channel, file_name, total_rows, created_orders, skipped_duplicates, errors_json, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
       )
-      .bind(channel, input.file_name, input.total_rows ?? orders.length, created, skipped, JSON.stringify(errors), userId),
-    auditStmt(env.DB, userId, 'import.run', 'import_batch', input.file_name || channel, {
-      channel,
-      created,
-      skipped_duplicates: skipped,
-      errors: errors.length,
-    }),
+      .bind(input.channel, input.file_name, rows, r.created, r.skipped, JSON.stringify(stored), userId)
+      .run();
+    const id = Number(res.meta.last_row_id);
+    await db.batch([audit(id)]);
+    return { batch_id: id, errors_total: stored.total };
+  }
+
+  const id = input.batch_id!;
+  const prev = readStored(prevBatch!.errors_json);
+  const stored: StoredErrors = {
+    total: prev.total + clipped.length,
+    items: [...prev.items, ...clipped].slice(0, MAX_STORED_ERRORS),
+  };
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE import_batches SET total_rows = total_rows + ?, created_orders = created_orders + ?,
+           skipped_duplicates = skipped_duplicates + ?, errors_json = ? WHERE id = ?`,
+      )
+      .bind(rows, r.created, r.skipped, JSON.stringify(stored), id),
+    audit(id),
   ]);
-  return { created, skipped_duplicates: skipped, errors };
+  return { batch_id: id, errors_total: stored.total };
 }
 
 route('POST', '/orders/import', async ({ env, ctx, req, user }) => {

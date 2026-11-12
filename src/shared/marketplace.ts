@@ -5,19 +5,27 @@ import { z } from 'zod';
 export type Channel = 'SHOPEE' | 'TIKTOK';
 export type ImportStatus = 'SKIP' | 'PENDING' | 'SHIPPING' | 'COMPLETED';
 
-export interface ColumnMap {
-  order_id: string;
-  created_at: string;
-  status: string;
-  sku: string;
-  product_name: string;
-  quantity: string;
-  unit_price: string;
-  shipping_fee: string;
-  buyer_name: string;
-  buyer_phone: string;
-  address: string;
-}
+/** Ánh xạ cột (lưu ở app_settings `import.columns.<KÊNH>`; Cài đặt dùng lại schema này khi PUT). */
+export const columnMapSchema = z.object({
+  order_id: z.string(),
+  created_at: z.string(),
+  status: z.string(),
+  sku: z.string(),
+  product_name: z.string(),
+  quantity: z.string(),
+  unit_price: z.string(),
+  shipping_fee: z.string(),
+  buyer_name: z.string(),
+  buyer_phone: z.string(),
+  address: z.string(),
+});
+export type ColumnMap = z.infer<typeof columnMapSchema>;
+
+/**
+ * Số đơn tối đa mỗi request nhập/xem trước (Workers gói Free giới hạn ~50 truy vấn D1 mỗi
+ * lần gọi). Giao diện tự chia file thành từng nhóm cỡ này và gửi tuần tự với cùng `batch_id`.
+ */
+export const MAX_IMPORT_ORDERS_PER_REQUEST = 10;
 
 /**
  * Tên cột theo file xuất của từng sàn.
@@ -96,6 +104,7 @@ export interface ImportItem {
 
 export interface ImportOrder {
   external_order_id: string;
+  /** Thời điểm đặt hàng đã đổi sang UTC `YYYY-MM-DD HH:MM:SS`, hoặc '' nếu file không có. */
   created_at: string;
   status: ImportStatus;
   buyer_name: string;
@@ -111,30 +120,69 @@ export interface ParseError {
   message: string;
 }
 
+const UTC_TIME = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+
+const importItemSchema = z.object({
+  external_sku: z.string().trim().min(1).max(64),
+  product_name: z.string().trim().max(300).default(''),
+  quantity: z.number().int().positive().max(100000),
+  unit_price: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+});
+
 /** Máy chủ không tin kết quả parse của trình duyệt: kiểm tra lại bằng schema này. */
 export const importOrdersSchema = z
   .array(
-    z.object({
-      external_order_id: z.string().trim().min(1).max(100),
-      created_at: z.string().trim().max(50).default(''),
-      status: z.enum(['SKIP', 'PENDING', 'SHIPPING', 'COMPLETED']),
-      buyer_name: z.string().trim().max(200).default(''),
-      buyer_phone: z.string().trim().max(30).default(''),
-      address: z.string().trim().max(500).default(''),
-      shipping_fee_vnd: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-      items: z
-        .array(
-          z.object({
-            external_sku: z.string().trim().min(1).max(64),
-            product_name: z.string().trim().max(300).default(''),
-            quantity: z.number().int().positive().max(100000),
-            unit_price: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-          }),
-        )
-        .max(200),
-    }),
+    z
+      .object({
+        external_order_id: z.string().trim().min(1).max(100),
+        created_at: z
+          .string()
+          .trim()
+          .refine((v) => v === '' || (UTC_TIME.test(v) && fmtUtc(Date.parse(`${v.replace(' ', 'T')}Z`)) === v), 'Thời điểm không hợp lệ')
+          .default(''),
+        status: z.enum(['SKIP', 'PENDING', 'SHIPPING', 'COMPLETED']),
+        buyer_name: z.string().trim().max(200).default(''),
+        buyer_phone: z.string().trim().max(30).default(''),
+        address: z.string().trim().max(500).default(''),
+        shipping_fee_vnd: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+        items: z.array(importItemSchema).max(200),
+      })
+      .refine((o) => o.status === 'SKIP' || o.items.length >= 1, { message: 'Đơn phải có ít nhất 1 sản phẩm', path: ['items'] }),
   )
-  .max(2000);
+  .max(MAX_IMPORT_ORDERS_PER_REQUEST);
+
+const pad = (n: number) => String(n).padStart(2, '0');
+function fmtUtc(ms: number): string {
+  if (Number.isNaN(ms)) return '';
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+
+/**
+ * Giờ đặt hàng trong file (giờ Việt Nam, UTC+7) → UTC `YYYY-MM-DD HH:MM:SS`.
+ * Shopee: `YYYY-MM-DD HH:mm[:ss]`; TikTok: `DD/MM/YYYY HH:mm[:ss]`. Sai hoặc ngày không tồn tại → null.
+ */
+export function parseOrderDate(channel: Channel, raw: string): string | null {
+  const s = raw.trim();
+  let y: number, mo: number, d: number, h: number, mi: number, sec: number;
+  if (channel === 'SHOPEE') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+    if (!m) return null;
+    [y, mo, d, h, mi] = [+m[1], +m[2], +m[3], +m[4], +m[5]];
+    sec = m[6] ? +m[6] : 0;
+  } else {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+    if (!m) return null;
+    [d, mo, y, h, mi] = [+m[1], +m[2], +m[3], +m[4], +m[5]];
+    sec = m[6] ? +m[6] : 0;
+  }
+  const local = Date.UTC(y, mo - 1, d, h, mi, sec);
+  const back = new Date(local);
+  if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d || h > 23 || mi > 59 || sec > 59) {
+    return null;
+  }
+  return fmtUtc(local - 7 * 3600_000);
+}
 
 /**
  * Số tiền VND nguyên từ ô trong file: bỏ "₫", "đ", "VND" và khoảng trắng; chấp nhận dấu phân
@@ -161,7 +209,8 @@ export function parseMarketplaceRows(
   map: ColumnMap,
 ): { orders: ImportOrder[]; errors: ParseError[] } {
   const errors: ParseError[] = [];
-  const header = new Set(Object.keys(rows[0] ?? {}).map((h) => h.trim()));
+  // Hợp các khoá của mọi dòng: thư viện đọc sheet bỏ ô trống nên dòng đầu có thể thiếu khoá.
+  const header = new Set(rows.flatMap((r) => Object.keys(r)).map((h) => h.trim()));
   const missing = REQUIRED.filter((k) => !header.has(map[k].trim())).map((k) => map[k]);
   if (rows.length > 0 && missing.length > 0) {
     return { orders: [], errors: [{ row: 1, message: `Thiếu cột bắt buộc: ${missing.join(', ')}` }] };
@@ -202,9 +251,15 @@ export function parseMarketplaceRows(
         fail(`Phí vận chuyển không hợp lệ: "${feeRaw}"`);
         return;
       }
+      const dateRaw = cell(row, 'created_at');
+      const created_at = dateRaw === '' ? '' : parseOrderDate(channel, dateRaw);
+      if (created_at === null && status !== 'SKIP') {
+        fail(`Ngày đặt hàng không hợp lệ: "${dateRaw}"`);
+        return;
+      }
       order = {
         external_order_id: id,
-        created_at: cell(row, 'created_at'),
+        created_at: created_at ?? '',
         status,
         buyer_name: cell(row, 'buyer_name'),
         buyer_phone: cell(row, 'buyer_phone'),

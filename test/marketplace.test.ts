@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_COLUMN_MAPS,
+  MAX_IMPORT_ORDERS_PER_REQUEST,
   parseMarketplaceRows,
+  parseOrderDate,
   parseVnd,
   type Channel,
   type ImportOrder,
@@ -85,7 +87,7 @@ const orderByExt = (ext: string) =>
 function order(over: Partial<ImportOrder> = {}): ImportOrder {
   return {
     external_order_id: 'EXT-1',
-    created_at: '2026-11-01',
+    created_at: '2026-11-01 02:00:00',
     status: 'PENDING',
     buyer_name: 'Nguyễn A',
     buyer_phone: '0912345678',
@@ -111,6 +113,7 @@ describe('parseMarketplaceRows', () => {
     expect(o.buyer_name).toBe('Nguyễn Thị Lan');
     expect(o.address).toBe('12 Lê Lợi, Quận 1, TP.HCM');
     expect(orders).toHaveLength(4);
+    expect(o.created_at).toBe('2026-11-01 02:15:00');
   });
 
   it('trạng thái "Đã hủy" → SKIP', () => {
@@ -322,7 +325,7 @@ describe('POST /orders/import', () => {
       skipped_duplicates: 0,
       created_by: admin.id,
     });
-    expect(JSON.parse(b.errors_json)).toHaveLength(1);
+    expect(JSON.parse(b.errors_json)).toMatchObject({ total: 1, items: [{ external_order_id: 'SP1004' }] });
     const a = await env.DB.prepare("SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'import.run'").first<{ n: number }>();
     expect(a!.n).toBe(1);
   });
@@ -374,5 +377,154 @@ describe('cấu hình nhập', () => {
       mappings: [{ external_sku: 'Z', sku: 'KHONG-CO' }],
     });
     expect(bad.status).toBe(422);
+  });
+});
+
+describe('fix round 1', () => {
+  it('parseOrderDate: Shopee và TikTok (giờ VN → UTC), ngày sai → null', () => {
+    expect(parseOrderDate('SHOPEE', '2026-11-01 09:15')).toBe('2026-11-01 02:15:00');
+    expect(parseOrderDate('SHOPEE', '2026-11-01 03:00:30')).toBe('2026-10-31 20:00:30');
+    expect(parseOrderDate('TIKTOK', '05/11/2026 09:00:00')).toBe('2026-11-05 02:00:00');
+    expect(parseOrderDate('TIKTOK', '2026-11-05 09:00:00')).toBeNull();
+    expect(parseOrderDate('TIKTOK', '31/02/2026 09:00:00')).toBeNull();
+    expect(parseOrderDate('SHOPEE', '2026-13-01 09:00')).toBeNull();
+    expect(parseOrderDate('SHOPEE', 'hôm qua')).toBeNull();
+  });
+
+  it('created_at của đơn nhập = giờ sàn đã đổi sang UTC (cả hai kênh); notes không chứa ngày', async () => {
+    const sp = parseFixture('SHOPEE', 'shopee-sample.csv').orders.filter((o) => o.external_order_id === 'SP1003');
+    const tt = parseFixture('TIKTOK', 'tiktok-sample.csv').orders.filter((o) => o.external_order_id === 'TT2001');
+    await doImport('SHOPEE', sp);
+    await doImport('TIKTOK', tt);
+    expect((await orderByExt('SP1003')).created_at).toBe('2026-11-03 07:30:00');
+    const t = await orderByExt('TT2001');
+    expect(t.created_at).toBe('2026-11-05 02:00:00');
+    expect(t.notes).not.toContain('2026');
+  });
+
+  it('ngày sai → lỗi dòng ở bước parse; server từ chối created_at không chuẩn', async () => {
+    const rows = readCsv('shopee-sample.csv');
+    rows[3]['Ngày đặt hàng'] = '31/02/2026';
+    const { errors } = parseMarketplaceRows('SHOPEE', rows, DEFAULT_COLUMN_MAPS.SHOPEE);
+    expect(errors.map((e) => e.row)).toEqual([5]);
+    expect((await doImport('SHOPEE', [order({ created_at: '2026-02-31 00:00:00' })])).status).toBe(422);
+    expect((await doImport('SHOPEE', [order({ created_at: '01/11/2026' })])).status).toBe(422);
+  });
+
+  it('tối đa 10 đơn mỗi request (422 nếu hơn)', async () => {
+    const mk = (n: number) => Array.from({ length: n }, (_, i) => order({ external_order_id: `L${i}` }));
+    expect(MAX_IMPORT_ORDERS_PER_REQUEST).toBe(10);
+    expect((await doImport('SHOPEE', mk(11))).status).toBe(422);
+    expect((await send('/orders/import/preview', 'POST', { channel: 'SHOPEE', orders: mk(11) })).status).toBe(422);
+    expect((await doImport('SHOPEE', mk(10))).json.data.created).toBe(10);
+  });
+
+  it('batch_id: nhóm đầu tạo đợt, nhóm sau cộng dồn; 404 và 409', async () => {
+    const bad = (id: string, sku: string) =>
+      order({ external_order_id: id, items: [{ external_sku: sku, product_name: 'x', quantity: 1, unit_price: 1 }] });
+    const first = await doImport('SHOPEE', [order({ external_order_id: 'B1' }), bad('B2', 'NOPE')], 'big.csv');
+    const id = first.json.data.batch_id;
+    expect(id).toBeGreaterThan(0);
+    const second = await send('/orders/import', 'POST', {
+      channel: 'SHOPEE',
+      file_name: 'big.csv',
+      batch_id: id,
+      orders: [order({ external_order_id: 'B1' }), order({ external_order_id: 'B3' }), bad('B4', 'NOPE2')],
+    });
+    expect(second.json.data).toMatchObject({ batch_id: id, created: 1, skipped_duplicates: 1, errors_total: 2 });
+    const rows = await env.DB.prepare('SELECT * FROM import_batches').all<any>();
+    expect(rows.results).toHaveLength(1);
+    expect(rows.results[0]).toMatchObject({ total_rows: 5, created_orders: 2, skipped_duplicates: 1 });
+    expect(JSON.parse(rows.results[0].errors_json).items).toHaveLength(2);
+    const missing = await send('/orders/import', 'POST', {
+      channel: 'SHOPEE', file_name: 'x', batch_id: 9999, orders: [order({ external_order_id: 'Z1' })],
+    });
+    expect(missing.status).toBe(404);
+    expect(await orderByExt('Z1')).toBeNull();
+    const wrong = await send('/orders/import', 'POST', {
+      channel: 'TIKTOK', file_name: 'x', batch_id: id, orders: [order({ external_order_id: 'Z2' })],
+    });
+    expect(wrong.status).toBe(409);
+    expect(await orderByExt('Z2')).toBeNull();
+  });
+
+  it('lỗi lưu tối đa 200, cắt thông điệp 300 ký tự, đếm tổng', async () => {
+    let id: number | undefined;
+    let total = 0;
+    for (let c = 0; c < 22; c++) {
+      const orders = Array.from({ length: 10 }, (_, i) =>
+        order({
+          external_order_id: `E${c}-${i}`,
+          items: Array.from({ length: 8 }, (_, k) => ({ external_sku: 'X'.repeat(50) + `-${c}-${i}-${k}`, product_name: 'x', quantity: 1, unit_price: 1 })),
+        }),
+      );
+      const r = await send('/orders/import', 'POST', { channel: 'SHOPEE', file_name: 'e.csv', batch_id: id, orders });
+      id = r.json.data.batch_id;
+      total = r.json.data.errors_total;
+    }
+    expect(total).toBe(220);
+    const row = await env.DB.prepare('SELECT errors_json FROM import_batches WHERE id = ?').bind(id).first<{ errors_json: string }>();
+    const stored = JSON.parse(row!.errors_json);
+    expect(stored.total).toBe(220);
+    expect(stored.items).toHaveLength(200);
+    expect(Math.max(...stored.items.map((e: any) => e.message.length))).toBeLessThanOrEqual(300);
+  });
+
+  it('hai dòng cùng quy về một SKU nội bộ (PENDING và COMPLETED)', async () => {
+    const item = (sku: string, q: number) => ({ external_sku: sku, product_name: 'x', quantity: q, unit_price: 100000 });
+    const r = await doImport('SHOPEE', [
+      order({ external_order_id: 'S1', status: 'PENDING', items: [item('SHP-DEG-500', 2), item(DEG, 3)] }),
+      order({ external_order_id: 'S2', status: 'COMPLETED', items: [item('SHP-DEG-500', 1), item(DEG, 4)] }),
+    ]);
+    expect(r.json.data).toMatchObject({ created: 2, errors: [] });
+    const sum = async (ext: string) =>
+      (await env.DB.prepare(
+        'SELECT SUM(quantity) AS q, COUNT(*) AS n FROM order_items WHERE order_id = (SELECT id FROM orders WHERE external_order_id = ?)',
+      ).bind(ext).first<{ q: number; n: number }>())!;
+    expect(await sum('S1')).toMatchObject({ q: 5 });
+    expect(await sum('S2')).toMatchObject({ q: 5 });
+    expect(await stock(DEG)).toMatchObject({ stock_qty: 95, reserved_qty: 5 });
+  });
+
+  it('header là hợp khoá của mọi dòng (dòng đầu thiếu ô trống vẫn được)', () => {
+    const rows = readCsv('shopee-sample.csv');
+    delete rows[0]['Giá ưu đãi'];
+    const { orders, errors } = parseMarketplaceRows('SHOPEE', rows, DEFAULT_COLUMN_MAPS.SHOPEE);
+    expect(errors.map((e) => e.row)).toEqual([2]); // lỗi dòng 2 (thiếu đơn giá), không phải lỗi thiếu cột
+    expect(orders.find((o) => o.external_order_id === 'SP1003')).toBeDefined();
+  });
+
+  it('đơn không SKIP phải có ≥ 1 sản phẩm; SKIP được rỗng', async () => {
+    expect((await doImport('SHOPEE', [order({ items: [] })])).status).toBe(422);
+    expect((await doImport('SHOPEE', [order({ status: 'SKIP', items: [] })])).status).toBe(200);
+  });
+
+  it('một request 10 đơn COMPLETED dùng ≤ 45 lệnh D1', async () => {
+    let calls = 0;
+    const real = env.DB;
+    const unwrap = new WeakMap<object, any>();
+    const wrap = (st: any): any => {
+      const p: any = new Proxy(st, {
+        get(t, k) {
+          if (k === 'bind') return (...a: unknown[]) => wrap(t.bind(...a));
+          if (['run', 'all', 'first', 'raw'].includes(k as string)) return (...a: unknown[]) => (calls++, t[k](...a));
+          const v = t[k];
+          return typeof v === 'function' ? v.bind(t) : v;
+        },
+      });
+      unwrap.set(p, st);
+      return p;
+    };
+    const counting = {
+      prepare: (q: string) => wrap(real.prepare(q)),
+      batch: (stmts: any[]) => (calls++, real.batch(stmts.map((x) => unwrap.get(x) ?? x))),
+    } as unknown as D1Database;
+    env = { ...env, DB: counting };
+    const orders = Array.from({ length: 10 }, (_, i) =>
+      order({ external_order_id: `C${i}`, status: 'COMPLETED', buyer_phone: `09123456${String(i).padStart(2, '0')}` }),
+    );
+    const r = await doImport('SHOPEE', orders);
+    expect(r.json.data.created).toBe(10);
+    expect(calls).toBeLessThanOrEqual(45);
   });
 });
