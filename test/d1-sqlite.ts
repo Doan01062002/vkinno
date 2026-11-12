@@ -77,7 +77,7 @@ class TestStatement {
     stmt.setReturnArrays(true);
     return stmt
       .all(...this.params)
-      .map((r) => (r as unknown[]).map((v) => (typeof v === 'bigint' ? Number(v) : v))) as T[];
+      .map((r) => (r as unknown as unknown[]).map((v) => (typeof v === 'bigint' ? Number(v) : v))) as T[];
   }
 }
 

@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 import type { Env } from "./lib/env";
-import { hmacSign, timingSafeCompare } from "./lib/crypto";
+import { timingSafeCompare } from "./lib/crypto";
+import { handleAdmin } from "./admin/router";
 import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
 
 export type { Env };
@@ -14,9 +15,7 @@ const VIETQR_ACCOUNT_NAME = "CONG TY TNHH CONG NGHE VINH KHANG";
 const FREESHIP_THRESHOLD_VND = 199000;
 const FLAT_SHIPPING_FEE_VND = 25000;
 const PROJECT_SLUG = "chu-dong-vkinno";
-const ADMIN_COOKIE_NAME = "vkinno_admin_session";
 const MAX_PUBLIC_BODY_BYTES = 16384;
-const MAX_ADMIN_BODY_BYTES = 524288;
 
 interface ProductRow {
   sku: string;
@@ -82,33 +81,6 @@ function jsonResponse(data: unknown, status = 200, extraHeaders: Record<string, 
       ...extraHeaders,
     },
   });
-}
-
-async function createAdminToken(secret: string): Promise<string> {
-  const exp = Math.floor(Date.now() / 1000) + 12 * 3600; // 12h shift
-  const payload = `admin.${exp}`;
-  const sig = await hmacSign(payload, secret);
-  return `${payload}.${sig}`;
-}
-
-async function verifyAdminRequest(request: Request, env: Env): Promise<boolean> {
-  const sessionSecret = env.ADMIN_SESSION_SECRET || env.ADMIN_PASSWORD;
-  if (!sessionSecret) return false;
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const match = cookieHeader
-    .split(";")
-    .map((c) => c.trim())
-    .find((c) => c.startsWith(`${ADMIN_COOKIE_NAME}=`));
-  if (!match) return false;
-  const rawVal = decodeURIComponent(match.slice(ADMIN_COOKIE_NAME.length + 1));
-  const parts = rawVal.split(".");
-  if (parts.length !== 3) return false;
-  const [role, expStr, sig] = parts;
-  if (role !== "admin") return false;
-  const exp = Number(expStr);
-  if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return false;
-  const expectedSig = await hmacSign(`${role}.${expStr}`, sessionSecret);
-  return timingSafeCompare(sig, expectedSig);
 }
 
 function normalizeVnPhone(raw: unknown): string {
@@ -329,6 +301,10 @@ export default {
 
     if (!path.startsWith("/api")) {
       return env.ASSETS.fetch(request);
+    }
+
+    if (path === "/api/admin" || path.startsWith("/api/admin/")) {
+      return handleAdmin(request, env, ctx);
     }
 
     const method = request.method.toUpperCase();

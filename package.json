@@ -9,7 +9,8 @@
     "db:migrate:local": "wrangler d1 migrations apply vkinno-db --local",
     "dev:all": "npm run build && wrangler d1 migrations apply vkinno-db --local && wrangler dev --port 8787",
     "astro": "astro",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.worker.json"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.2",
@@ -24,6 +25,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261107.1",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.12",
     "wrangler": "^4.158.0"
   }
