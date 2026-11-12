@@ -454,8 +454,7 @@ export default {
               voucher_code: appliedVoucher,
               payment_method: paymentMethod,
             },
-            { source: "WEB", userId: null },
-            ctx
+            { source: "WEB", userId: null }
           );
           orderCode = created.order_code;
         } catch (e) {

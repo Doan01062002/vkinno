@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../worker/index';
 import { api, callWorker, createUser, makeEnv, seedProducts } from './helpers';
 
@@ -113,6 +113,23 @@ describe('POST /api/orders (web)', () => {
     expect(row).toBeTruthy();
     expect(row.source).toBe('WEB');
     expect(row.voucher_code).toBe('KHACHCU10');
+  });
+});
+
+describe('đồng bộ Google Sheets', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('một đơn web chỉ gửi đúng 1 yêu cầu tới Sheets', async () => {
+    const sheetsUrl = 'https://script.google.com/macros/s/test/exec';
+    env = await makeEnv({ GOOGLE_SCRIPT_WEBHOOK_URL: sheetsUrl });
+    await seedProducts(env.DB);
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', async (url: unknown) => {
+      calls.push(String(url));
+      return new Response('{}', { status: 200 });
+    });
+    expect((await post(webBody())).status).toBe(201);
+    expect(calls.filter((u) => u === sheetsUrl)).toHaveLength(1);
   });
 });
 
