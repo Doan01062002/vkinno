@@ -359,7 +359,7 @@ export function issueStmts(db: D1Database, lines: Line[], ref: DocRef): D1Prepar
   return lines.flatMap((l) => physicalDeltaStmts(db, l.sku, -l.qty, 'ISSUE', ref));
 }
 
-/** Điều chỉnh / kiểm kê SKU lẻ: stock += delta (âm hoặc dương), sổ theo `reason`. */
+/** Điều chỉnh SKU lẻ: stock += delta (âm hoặc dương), sổ theo `reason`. */
 export function adjustStmts(
   db: D1Database,
   lines: { sku: string; delta: number }[],
@@ -369,6 +369,37 @@ export function adjustStmts(
   return lines.flatMap((l) => {
     if (!Number.isSafeInteger(l.delta)) throw invalidQty(l.sku);
     return physicalDeltaStmts(db, l.sku, l.delta, reason, ref);
+  });
+}
+
+/**
+ * Kiểm kê SKU lẻ: đặt stock = số đếm. Tồn lúc chạy được đọc trong SQL: lưu vào
+ * `stock_doc_lines.system_qty` (dòng của phiếu `ref.docCode`), ghi sổ STOCKTAKE với
+ * delta = đếm − tồn lúc chạy (dòng không chênh lệch không ghi sổ). Đếm < reserved → CHECK.
+ */
+export function stocktakeStmts(
+  db: D1Database,
+  lines: { sku: string; counted: number }[],
+  ref: DocRef,
+): D1PreparedStatement[] {
+  return lines.flatMap((l) => {
+    if (!Number.isSafeInteger(l.counted) || l.counted < 0) throw invalidQty(l.sku);
+    return [
+      db
+        .prepare(
+          `UPDATE stock_doc_lines SET system_qty = (SELECT stock_qty FROM products WHERE sku = ?1 AND is_combo = 0)
+           WHERE sku = ?1 AND doc_id = (SELECT id FROM stock_docs WHERE code = ?2)`,
+        )
+        .bind(l.sku, ref.docCode),
+      db
+        .prepare(
+          `${LOG_COLUMNS}
+           SELECT sku, ?2 - stock_qty, ?2, 'STOCKTAKE', ?3, ?4, ?5, cost_avg_vnd, ?6
+           FROM products WHERE sku = ?1 AND is_combo = 0 AND stock_qty <> ?2`,
+        )
+        .bind(l.sku, l.counted, refOrderCode(ref), ref.docType, ref.docCode, ref.userId),
+      db.prepare('UPDATE products SET stock_qty = ?2 WHERE sku = ?1 AND is_combo = 0').bind(l.sku, l.counted),
+    ];
   });
 }
 

@@ -15,6 +15,7 @@ import {
   restockStmts,
   saleOutStmts,
   stockConflictMessage,
+  stocktakeStmts,
   type DocRef,
 } from '../worker/admin/inventory';
 
@@ -342,5 +343,70 @@ describe('expandToPhysical / availability / thông báo', () => {
     await db.batch(reserveStmts(db, [{ sku: DG, qty: 98 }]));
     const name = await db.prepare('SELECT name FROM products WHERE sku = ?').bind(COMBO).first<string>('name');
     expect(await stockConflictMessage(db, [{ sku: COMBO, qty: 3 }])).toBe(`Sản phẩm ${name} chỉ còn 2 có thể bán`);
+  });
+});
+
+describe('kiểm kê', () => {
+  const kkRef: DocRef = { docType: 'STOCKTAKE', docCode: 'KK261112-TEST', userId: 7 };
+
+  async function draftDoc(skus: string[]): Promise<void> {
+    await db.prepare("INSERT INTO stock_docs (code, type) VALUES ('KK261112-TEST', 'STOCKTAKE')").run();
+    for (const sku of skus) {
+      await db
+        .prepare(
+          "INSERT INTO stock_doc_lines (doc_id, sku, counted_qty) VALUES ((SELECT id FROM stock_docs WHERE code = 'KK261112-TEST'), ?, 0)",
+        )
+        .bind(sku)
+        .run();
+    }
+  }
+  const systemQty = (sku: string) =>
+    db.prepare('SELECT system_qty FROM stock_doc_lines WHERE sku = ?').bind(sku).first<{ system_qty: number | null }>();
+
+  it('đếm 120 khi tồn 100 → stock 120, sổ STOCKTAKE delta +20 stock_after 120, system_qty 100', async () => {
+    await draftDoc([DG]);
+    await db.batch(stocktakeStmts(db, [{ sku: DG, counted: 120 }], kkRef));
+    expect(await product(DG)).toMatchObject({ stock_qty: 120, reserved_qty: 0 });
+    expect(await logs()).toEqual([
+      {
+        sku: DG, delta: 20, stock_after: 120, reason: 'STOCKTAKE', ref_order_code: '',
+        doc_type: 'STOCKTAKE', doc_code: 'KK261112-TEST', unit_cost_vnd: 50000, created_by: 7,
+      },
+    ]);
+    expect(await systemQty(DG)).toEqual({ system_qty: 100 });
+  });
+
+  it('dòng không chênh lệch → không ghi sổ nhưng vẫn lưu system_qty', async () => {
+    await draftDoc([DG]);
+    await db.batch(stocktakeStmts(db, [{ sku: DG, counted: 100 }], kkRef));
+    expect(await logs()).toEqual([]);
+    expect(await systemQty(DG)).toEqual({ system_qty: 100 });
+  });
+
+  it('bán xuất xen giữa lúc dựng và lúc chạy → delta tính theo tồn lúc chạy', async () => {
+    await draftDoc([DG]);
+    const stmts = stocktakeStmts(db, [{ sku: DG, counted: 90 }], kkRef);
+    await db.prepare('UPDATE products SET stock_qty = 95 WHERE sku = ?').bind(DG).run();
+    await db.batch(stmts);
+    expect(await product(DG)).toMatchObject({ stock_qty: 90 });
+    expect(await logs()).toMatchObject([{ delta: -5, stock_after: 90 }]);
+    expect(await systemQty(DG)).toEqual({ system_qty: 95 });
+  });
+
+  it('đếm thấp hơn reserved → CHECK, rollback cả system_qty và sổ', async () => {
+    await draftDoc([DG, CW]);
+    await db.prepare('UPDATE products SET reserved_qty = 3 WHERE sku = ?').bind(DG).run();
+    await expect(
+      db.batch(stocktakeStmts(db, [{ sku: CW, counted: 50 }, { sku: DG, counted: 2 }], kkRef)),
+    ).rejects.toThrow(/CHECK constraint failed/);
+    expect(await product(CW)).toMatchObject({ stock_qty: 100 });
+    expect(await product(DG)).toMatchObject({ stock_qty: 100, reserved_qty: 3 });
+    expect(await logs()).toEqual([]);
+    expect(await systemQty(CW)).toEqual({ system_qty: null });
+  });
+
+  it('số đếm không hợp lệ → 422', () => {
+    expect(() => stocktakeStmts(db, [{ sku: DG, counted: -1 }], kkRef)).toThrow(ApiError);
+    expect(() => stocktakeStmts(db, [{ sku: DG, counted: 1.5 }], kkRef)).toThrow(ApiError);
   });
 });

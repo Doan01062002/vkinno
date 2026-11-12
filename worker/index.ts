@@ -2,6 +2,7 @@
 import type { Env } from "./lib/env";
 import { timingSafeCompare } from "./lib/crypto";
 import { handleAdmin } from "./admin/router";
+import "./admin/routes";
 import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
 
 export type { Env };
