@@ -37,7 +37,7 @@ const row = (sku: string) => env.DB.prepare('SELECT * FROM products WHERE sku = 
 
 function upload(bytes: Uint8Array, type: string, name = 'a.bin', user: { id: number } = admin) {
   const form = new FormData();
-  form.set('file', new File([bytes as BlobPart], name, { type }));
+  form.set('file', new File([bytes as any], name, { type }));
   return api(env, '/uploads/image', { method: 'POST', body: form }, user);
 }
 
@@ -195,9 +195,56 @@ describe('upload ảnh', () => {
     );
   });
 
+  describe('giới hạn kích thước khi đọc thân', () => {
+    async function multipart(size: number) {
+      const bytes = new Uint8Array(size);
+      bytes.set(PNG);
+      const form = new FormData();
+      form.set('file', new File([bytes as any], 'a.png', { type: 'image/png' }));
+      const res = new Response(form);
+      return { type: res.headers.get('content-type') as string, bytes: new Uint8Array(await res.arrayBuffer()) };
+    }
+    const streamOf = (bytes: Uint8Array, state: { pulls: number }) => {
+      let at = 0;
+      return new ReadableStream<Uint8Array>({
+        pull(ctrl) {
+          state.pulls += 1;
+          if (at >= bytes.length) return ctrl.close();
+          ctrl.enqueue(bytes.slice(at, at + 65536));
+          at += 65536;
+        },
+      }, { highWaterMark: 0 });
+    };
+    const post = (body: ReadableStream, headers: Record<string, string>) =>
+      api(env, '/uploads/image', { method: 'POST', body, headers, duplex: 'half' } as RequestInit, admin);
+
+    it('Content-Length vượt giới hạn → 413 mà không đọc thân', async () => {
+      const m = await multipart(100);
+      const state = { pulls: 0 };
+      const res = await post(streamOf(m.bytes, state), {
+        'Content-Type': m.type,
+        'Content-Length': String(6 * 1024 * 1024),
+      });
+      expect(res.status).toBe(413);
+      expect(state.pulls).toBe(0);
+    });
+
+    it('thân chunked (không Content-Length) vượt giới hạn → 413', async () => {
+      const m = await multipart(6 * 1024 * 1024);
+      const res = await post(streamOf(m.bytes, { pulls: 0 }), { 'Content-Type': m.type });
+      expect(res.status).toBe(413);
+    });
+
+    it('png hợp lệ không có Content-Length vẫn tải được', async () => {
+      const m = await multipart(1000);
+      const res = await post(streamOf(m.bytes, { pulls: 0 }), { 'Content-Type': m.type });
+      expect(res.status).toBe(200);
+    });
+  });
+
   it('chưa đăng nhập → 401', async () => {
     const form = new FormData();
-    form.set('file', new File([PNG as BlobPart], 'a.png', { type: 'image/png' }));
+    form.set('file', new File([PNG as any], 'a.png', { type: 'image/png' }));
     const res = await api(env, '/uploads/image', { method: 'POST', body: form });
     expect(res.status).toBe(401);
   });

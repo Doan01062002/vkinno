@@ -25,12 +25,41 @@ function sniff(b: Uint8Array): string | null {
 const unsupported = () => new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP.');
 const tooLarge = () => new ApiError(413, 'PAYLOAD_TOO_LARGE', 'Ảnh vượt quá 5 MB.');
 
+/** Đọc thân yêu cầu qua bộ đếm byte; vượt giới hạn thì huỷ luồng và trả 413 (kể cả khi không có Content-Length). */
+async function readBounded(req: Request, limit: number): Promise<Uint8Array> {
+  if (!req.body) return new Uint8Array();
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel().catch(() => {});
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const c of chunks) {
+    out.set(c, at);
+    at += c.byteLength;
+  }
+  return out;
+}
+
 route('POST', '/uploads/image', async ({ env, req, user }) => {
   if (Number(req.headers.get('Content-Length') || '0') > MAX_IMAGE_BYTES + MULTIPART_OVERHEAD) throw tooLarge();
   let form: FormData;
   try {
-    form = await req.formData();
-  } catch {
+    const bytes = await readBounded(req, MAX_IMAGE_BYTES + MULTIPART_OVERHEAD);
+    form = await new Response(bytes, {
+      headers: { 'content-type': req.headers.get('content-type') ?? '' },
+    }).formData();
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
     throw new ApiError(400, 'BAD_REQUEST', 'Cần gửi multipart/form-data với trường "file".');
   }
   const file = form.get('file');
