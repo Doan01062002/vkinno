@@ -153,6 +153,66 @@ describe('báo cáo bán hàng', () => {
     }
   });
 
+  it('ranh giới ngày VN: log lúc 23:59:59 thuộc ngày trước; đơn lệch 1 giây qua nửa đêm tính đúng một lần', async () => {
+    const x = await makeOrder({ items: [{ sku: DG, quantity: 1, unit_price: 100000 }] });
+    await transition(x.id, 'PACKED');
+    await stamp(x.order_code, 'SALE_OUT', '2026-03-09 16:59:59'); // VN 09/03 23:59:59
+    const y = await makeOrder({
+      items: [
+        { sku: DG, quantity: 1, unit_price: 100000 },
+        { sku: BM, quantity: 1, unit_price: 70000 },
+      ],
+    });
+    await transition(y.id, 'PACKED');
+    const at = (sku: string, t: string) =>
+      env.DB.prepare("UPDATE inventory_logs SET created_at = ? WHERE ref_order_code = ? AND reason = 'SALE_OUT' AND sku = ?")
+        .bind(t, y.order_code, sku)
+        .run();
+    await at(DG, '2026-03-09 16:59:59'); // VN 09/03 23:59:59
+    await at(BM, '2026-03-09 17:00:00'); // VN 10/03 00:00:00
+
+    const d9 = (await sales('from=2026-03-09&to=2026-03-09&group=day')).json.data;
+    const d10 = (await sales('from=2026-03-10&to=2026-03-10&group=day')).json.data;
+    expect(d10).toEqual([]);
+    expect(d9).toMatchObject([{ key: '2026-03-09', orders: 2, revenue_vnd: 270000 }]);
+    // Hai khoảng một ngày liền kề: tổng số đơn = 2, mỗi đơn đúng một lần.
+    expect(d9.reduce((n: number, r: any) => n + r.orders, 0) + d10.reduce((n: number, r: any) => n + r.orders, 0)).toBe(2);
+  });
+
+  it('group=product: dòng trùng SKU trong một đơn chỉ tính một lần vào orders/returns', async () => {
+    const o = await makeOrder({
+      items: [
+        { sku: DG, quantity: 1, unit_price: 100000 },
+        { sku: DG, quantity: 2, unit_price: 90000 },
+      ],
+    });
+    await transition(o.id, 'PACKED');
+    await transition(o.id, 'SHIPPING');
+    await transition(o.id, 'COMPLETED');
+    await transition(
+      o.id,
+      'RETURNED',
+      o.items.map((i: any) => ({ order_item_id: i.id, action: 'RESTOCK' })),
+    );
+    await stamp(o.order_code, 'SALE_OUT', '2026-03-05 03:00:00');
+    await stamp(o.order_code, 'RETURN%', '2026-03-06 03:00:00');
+    const rows = (await sales(`${RANGE}&group=product`)).json.data;
+    expect(rows).toMatchObject([{ key: DG, orders: 1, returns: 1, revenue_vnd: 0, cost_total_vnd: 0 }]);
+  });
+
+  it('đơn combo: doanh thu và giá vốn đúng, không tính hai lần', async () => {
+    const o = await makeOrder({ items: [{ sku: COMBO, quantity: 2, unit_price: 500000 }] });
+    await transition(o.id, 'PACKED');
+    await stamp(o.order_code, 'SALE_OUT', '2026-03-09 03:00:00');
+    // Combo = 1 BM + 1 DG (giá vốn 50.000 mỗi chai) → vốn 100.000/combo.
+    const r = await sales(`${RANGE}&group=day`);
+    expect(r.json.data).toEqual([
+      { key: '2026-03-09', orders: 1, returns: 0, revenue_vnd: 1000000, cost_total_vnd: 200000, gross_profit_vnd: 800000, gross_margin: 0.8 },
+    ]);
+    const prod = (await sales(`${RANGE}&group=product`)).json.data;
+    expect(prod).toMatchObject([{ key: COMBO, orders: 1, revenue_vnd: 1000000, cost_total_vnd: 200000 }]);
+  });
+
   it('khoảng ngày sai → 422', async () => {
     for (const qs of [
       'from=2026-03-10&to=2026-03-09&group=day',
@@ -231,10 +291,12 @@ describe('nhập - xuất - tồn', () => {
     const rows = await rowsOf(RANGE);
     const by = Object.fromEntries(rows.map((x) => [x.sku, x]));
     expect(by[COMBO]).toBeUndefined();
-    expect(by[DG]).toMatchObject({ opening: 100, received: 20, other_out: 0, adjusted: -2, closing: await stockOf(DG) });
-    // BM: bán 2 (đơn B) + thành phần combo; xuất khác 3; kiểm kê 90 là điều chỉnh.
-    expect(by[BM]).toMatchObject({ opening: 100, received: 0, other_out: 3, closing: await stockOf(BM) });
-    expect(by[BM].sold_out).toBeGreaterThanOrEqual(2);
+    // DG: bán A2 + B1 + C3 − trả 3 + combo 2 = 5 ròng; nhập 20; điều chỉnh −2 → 100 + 20 − 5 − 2.
+    expect(by[DG]).toEqual({ sku: DG, name: expect.any(String), opening: 100, received: 20, sold_out: 5, other_out: 0, adjusted: -2, closing: 113 });
+    // BM: bán B2 + thành phần combo 2 = 4; xuất khác 3; kiểm kê 93 → 90 là điều chỉnh −3.
+    expect(by[BM]).toEqual({ sku: BM, name: expect.any(String), opening: 100, received: 0, sold_out: 4, other_out: 3, adjusted: -3, closing: 90 });
+    expect(await stockOf(DG)).toBe(113);
+    expect(await stockOf(BM)).toBe(90);
     const untouched = rows.find((x) => x.sku !== DG && x.sku !== BM && x.sold_out === 0 && x.received === 0);
     expect(untouched).toMatchObject({ opening: 100, closing: 100 });
     const early = Object.fromEntries((await rowsOf('from=2026-01-01&to=2026-01-31')).map((x) => [x.sku, x]));

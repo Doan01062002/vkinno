@@ -41,16 +41,24 @@ const topQuery = z
 /**
  * Mỗi đơn có một sự kiện bán (+1) tại MIN(created_at) của SALE_OUT, và nếu bị trả/huỷ sau xuất kho
  * thì một sự kiện hoàn (−1) tại MIN(created_at) của RETURN_* / CANCEL_RESTOCK. Ngày theo giờ Việt Nam.
+ * Chỉ quét sổ trong cửa sổ [đầu ngày `from` − 1 ngày, hết ngày `to`) để dùng chỉ mục created_at; lề 1 ngày
+ * phía trước giữ MIN đúng khi các dòng log của một đơn nằm lệch nhau qua ranh giới ngày. Tham số: ?1 = from, ?2 = to.
  */
 const EVENTS_CTE = `
-  ev AS (
-    SELECT ref_order_code AS code, date(MIN(created_at), '+7 hours') AS day, 1 AS sign
-      FROM inventory_logs WHERE reason = 'SALE_OUT' AND ref_order_code IS NOT NULL GROUP BY ref_order_code
-    UNION ALL
-    SELECT ref_order_code, date(MIN(created_at), '+7 hours'), -1
-      FROM inventory_logs
-     WHERE reason IN ('RETURN_RESTOCK', 'RETURN_DAMAGED', 'CANCEL_RESTOCK') AND ref_order_code IS NOT NULL
-     GROUP BY ref_order_code
+  ev AS MATERIALIZED (
+    SELECT code, date(at, '+7 hours') AS day, sign FROM (
+      SELECT ref_order_code AS code, MIN(created_at) AS at, 1 AS sign
+        FROM inventory_logs
+       WHERE reason = 'SALE_OUT' AND ref_order_code IS NOT NULL
+         AND created_at >= datetime(?1, '-7 hours', '-1 day') AND created_at < datetime(?2, '+1 day', '-7 hours')
+       GROUP BY ref_order_code
+      UNION ALL
+      SELECT ref_order_code, MIN(created_at), -1
+        FROM inventory_logs
+       WHERE reason IN ('RETURN_RESTOCK', 'RETURN_DAMAGED', 'CANCEL_RESTOCK') AND ref_order_code IS NOT NULL
+         AND created_at >= datetime(?1, '-7 hours', '-1 day') AND created_at < datetime(?2, '+1 day', '-7 hours')
+       GROUP BY ref_order_code
+    ) WHERE day BETWEEN ?1 AND ?2
   )`;
 
 interface Money {
@@ -79,7 +87,9 @@ async function dayChannelRows(db: D1Database, from: string, to: string): Promise
   const res = await db
     .prepare(
       `WITH ${EVENTS_CTE},
-       oc AS (SELECT order_id, SUM(COALESCE(unit_cost_vnd, 0) * quantity) AS cost FROM order_items GROUP BY order_id)
+       oc AS (SELECT order_id, SUM(COALESCE(unit_cost_vnd, 0) * quantity) AS cost FROM order_items
+                WHERE order_id IN (SELECT o2.id FROM orders o2 JOIN ev ON ev.code = o2.order_code)
+                GROUP BY order_id)
        SELECT ev.day AS day, o.channel AS channel,
               SUM(ev.sign * (o.subtotal_vnd - o.discount_vnd)) AS revenue,
               SUM(ev.sign * COALESCE(oc.cost, 0)) AS cost,
@@ -95,13 +105,6 @@ async function dayChannelRows(db: D1Database, from: string, to: string): Promise
     .bind(from, to)
     .all<DayChannelRow>();
   return res.results;
-}
-
-/** Tổng doanh thu / giá vốn trong khoảng (dùng cho dashboard, cùng logic với báo cáo). */
-async function totalsBetween(db: D1Database, from: string, to: string): Promise<Money> {
-  const total = emptyMoney();
-  for (const r of await dayChannelRows(db, from, to)) addMoney(total, r);
-  return total;
 }
 
 function isoWeekKey(day: string): string {
@@ -185,13 +188,17 @@ async function productTotals(db: D1Database, from: string, to: string): Promise<
     while (end < rows.length && rows[end].order_id === rows[start].order_id && rows[end].sign === rows[start].sign) end++;
     const lines = rows.slice(start, end);
     const discounts = allocateDiscount(lines);
+    const seen = new Set<string>();
     lines.forEach((l, i) => {
       const a = aggs.get(l.sku) ?? { sku: l.sku, name: l.product_name, quantity: 0, ...emptyMoney() };
       a.quantity += l.sign * l.quantity;
       a.revenue += l.sign * (l.line_total - discounts[i]);
       a.cost += l.sign * l.line_cost;
-      if (l.sign > 0) a.orders += 1;
-      else a.returns += 1;
+      if (!seen.has(l.sku)) {
+        seen.add(l.sku);
+        if (l.sign > 0) a.orders += 1;
+        else a.returns += 1;
+      }
       aggs.set(l.sku, a);
     });
     start = end;
@@ -253,7 +260,8 @@ route('GET', '/reports/stock-movement', async ({ env, url }) => {
                                AND l.reason NOT IN ('RECEIPT', 'ISSUE', 'SALE_OUT', 'CANCEL_RESTOCK', 'RETURN_RESTOCK')
                               THEN l.delta END), 0) AS adjusted
        FROM products p
-       LEFT JOIN (SELECT sku, delta, reason, date(created_at, '+7 hours') AS d FROM inventory_logs) l ON l.sku = p.sku
+       LEFT JOIN (SELECT sku, delta, reason, date(created_at, '+7 hours') AS d FROM inventory_logs
+                   WHERE created_at >= datetime(?1, '-7 hours')) l ON l.sku = p.sku
       WHERE p.is_combo = 0
       GROUP BY p.sku
       ORDER BY p.product_id`,
@@ -284,7 +292,7 @@ route('GET', '/reports/stock-movement', async ({ env, url }) => {
   );
 });
 
-route('GET', '/reports/dashboard', async ({ env }) => {
+route('GET', '/reports/dashboard', async ({ env, user }) => {
   const now = await env.DB.prepare("SELECT date('now', '+7 hours') AS today").first<{ today: string }>();
   if (!now) throw new ApiError(500, 'INTERNAL', 'Lỗi hệ thống, vui lòng thử lại.');
   const today = now.today;
@@ -295,14 +303,18 @@ route('GET', '/reports/dashboard', async ({ env }) => {
   const orders_by_status: Record<string, number> = Object.fromEntries(ORDER_STATUSES.map((s) => [s, 0]));
   for (const r of statuses.results as { status: string; n: number }[]) orders_by_status[r.status] = r.n;
 
-  const [dayTotal, monthTotal, alerts] = await Promise.all([
-    totalsBetween(env.DB, today, today),
-    totalsBetween(env.DB, `${today.slice(0, 7)}-01`, today),
-    inventoryAlerts(env.DB),
-  ]);
+  // STAFF không thấy doanh thu: bỏ hẳn truy vấn. ADMIN: tính cả tháng một lần, hôm nay lấy từ các dòng đó.
+  let revenue: { today_revenue_vnd: number; month_revenue_vnd: number } | undefined;
+  if (user.role === 'ADMIN') {
+    const rows = await dayChannelRows(env.DB, `${today.slice(0, 7)}-01`, today);
+    revenue = {
+      today_revenue_vnd: rows.filter((r) => r.day === today).reduce((s, r) => s + r.revenue, 0),
+      month_revenue_vnd: rows.reduce((s, r) => s + r.revenue, 0),
+    };
+  }
+  const alerts = await inventoryAlerts(env.DB);
   return ok({
-    today_revenue_vnd: dayTotal.revenue,
-    month_revenue_vnd: monthTotal.revenue,
+    ...revenue,
     orders_by_status,
     pending_orders: orders_by_status.PENDING,
     alerts_count: alerts.low_stock.length + alerts.expiring.length,
