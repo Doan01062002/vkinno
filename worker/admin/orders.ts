@@ -245,6 +245,23 @@ function dueDateStmt(db: D1Database, orderSql: string, bind: unknown[]): D1Prepa
 // Tạo đơn
 // ---------------------------------------------------------------------------
 
+const QUOTE_CONVERTIBLE_SQL = `status IN ('SENT', 'ACCEPTED') AND (valid_until IS NULL OR valid_until >= date('now', '+7 hours'))`;
+
+export const quoteNotConvertible = () =>
+  new ApiError(409, 'QUOTE_NOT_CONVERTIBLE', 'Báo giá không thể chuyển thành đơn (sai trạng thái hoặc đã hết hạn).');
+
+/** Câu lệnh đầu batch chuyển báo giá → đơn: không còn chuyển được thì CHECK lỗi, cả batch rollback. */
+function quoteConvertGuard(db: D1Database, quoteId: number): D1PreparedStatement {
+  return db
+    .prepare(`UPDATE quotes SET status = CASE WHEN ${QUOTE_CONVERTIBLE_SQL} THEN 'CONVERTED' ELSE 'INVALID' END WHERE id = ?`)
+    .bind(quoteId);
+}
+
+async function quoteIsConvertible(db: D1Database, quoteId: number): Promise<boolean> {
+  const row = await db.prepare(`SELECT id FROM quotes WHERE id = ? AND ${QUOTE_CONVERTIBLE_SQL}`).bind(quoteId).first();
+  return row !== null;
+}
+
 export interface CreateOrderOpts {
   source: OrderSource;
   userId: number | null;
@@ -281,6 +298,7 @@ export async function createOrder(
         : [...(await directSaleOutStmts(db, null, ref)), dueDateStmt(db, byCode, [orderCode])];
     try {
       await db.batch([
+        ...(opts.quoteId === undefined ? [] : [quoteConvertGuard(db, opts.quoteId)]),
         ...p.customer.stmts,
         db
           .prepare(
@@ -328,7 +346,10 @@ export async function createOrder(
           external_order_id: input.external_order_id,
         });
       }
-      if (isCheckError(e)) throw new ApiError(409, 'STOCK_CONFLICT', await stockConflictMessage(db, p.lines));
+      if (isCheckError(e)) {
+        if (opts.quoteId !== undefined && !(await quoteIsConvertible(db, opts.quoteId))) throw quoteNotConvertible();
+        throw new ApiError(409, 'STOCK_CONFLICT', await stockConflictMessage(db, p.lines));
+      }
       throw e;
     }
   }

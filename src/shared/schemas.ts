@@ -259,3 +259,34 @@ export const orderListQuery = pageQuerySchema.extend({
   to: dateSchema.optional(),
   customer_id: idSchema.optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Báo giá B2B
+// ---------------------------------------------------------------------------
+
+export const quoteInput = z.object({
+  customer_id: idSchema,
+  valid_until: dateSchema.nullable().optional(),
+  discount_vnd: vndSchema.default(0),
+  shipping_fee_vnd: vndSchema.default(0),
+  note: z.string().trim().max(2000).default(''),
+  items: z
+    .array(
+      z.object({
+        sku: z.string().trim().min(1).max(64),
+        quantity: z.number().int().positive().max(100000),
+        unit_price: vndSchema,
+      }),
+    )
+    .min(1)
+    .max(200),
+});
+
+export type QuoteInput = z.infer<typeof quoteInput>;
+
+export const quoteStatusInput = z.object({ to: z.enum(['SENT', 'ACCEPTED', 'REJECTED']) });
+
+export const quoteListQuery = pageQuerySchema.extend({
+  status: z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CONVERTED']).optional(),
+  customer_id: idSchema.optional(),
+});

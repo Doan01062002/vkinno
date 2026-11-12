@@ -7,3 +7,5 @@ import './customers';
 import './suppliers';
 import './orders';
 import './payments';
+import './quotes';
+import './debts';
