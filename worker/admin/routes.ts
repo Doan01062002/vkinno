@@ -10,3 +10,4 @@ import './payments';
 import './quotes';
 import './debts';
 import './imports';
+import './reports';

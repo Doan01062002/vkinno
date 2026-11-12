@@ -224,23 +224,24 @@ route('GET', '/inventory', async ({ env, url }) => {
   return ok({ items: items.slice(start, start + q.page_size), total: items.length, page: q.page, page_size: q.page_size });
 });
 
-route('GET', '/inventory/alerts', async ({ env }) => {
-  const rows = await env.DB.prepare(
+/** Cảnh báo tồn thấp và lô sắp hết hạn (dùng cho trang tồn kho và dashboard). */
+export async function inventoryAlerts(db: D1Database) {
+  const rows = await db.prepare(
     'SELECT sku, name, unit, min_stock, is_combo FROM products WHERE is_active = 1 ORDER BY product_id',
   ).all<ProductRow>();
   const avail = await availability(
-    env.DB,
+    db,
     rows.results.map((r) => r.sku),
   );
   const low_stock = rows.results
     .map((r) => ({ ...r, available: avail.get(r.sku)?.available ?? 0, stock: avail.get(r.sku)?.stock ?? 0 }))
     .filter((r) => r.available < r.min_stock);
 
-  const win = await env.DB.prepare(
+  const win = await db.prepare(
     `SELECT date('now', '+7 hours') AS today, date('now', '+7 hours', '+${EXPIRY_WINDOW_DAYS} days') AS limit_day`,
   ).first<{ today: string; limit_day: string }>();
   // Lô nhập mới nhất trước; cộng dồn đến khi đủ tồn hiện tại (phần còn lại theo FIFO).
-  const lots = await env.DB.prepare(
+  const lots = await db.prepare(
     `SELECT p.sku, p.name, p.stock_qty, l.batch_code, l.expiry_date, l.qty, d.code AS doc_code
      FROM stock_doc_lines l
      JOIN stock_docs d ON d.id = l.doc_id AND d.type = 'RECEIPT' AND d.status = 'POSTED'
@@ -281,8 +282,10 @@ route('GET', '/inventory/alerts', async ({ env }) => {
     }
   }
   expiring.sort((a, b) => a.expiry_date.localeCompare(b.expiry_date) || a.sku.localeCompare(b.sku));
-  return ok({ low_stock, expiring });
-});
+  return { low_stock, expiring };
+}
+
+route('GET', '/inventory/alerts', async ({ env }) => ok(await inventoryAlerts(env.DB)));
 
 route('GET', '/inventory/:sku/ledger', async ({ env, url, params }) => {
   if (!SKU_RE.test(params.sku)) throw notFound();

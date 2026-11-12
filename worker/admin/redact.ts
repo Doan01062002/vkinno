@@ -7,6 +7,9 @@ export const COST_KEYS: ReadonlySet<string> = new Set([
   'cost_total_vnd',
   'gross_profit_vnd',
   'gross_margin',
+  // Doanh thu trên dashboard cũng chỉ dành cho ADMIN.
+  'today_revenue_vnd',
+  'month_revenue_vnd',
 ]);
 
 function strip(value: unknown): unknown {
