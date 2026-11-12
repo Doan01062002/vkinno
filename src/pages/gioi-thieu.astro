@@ -1,0 +1,150 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE_CONFIG } from "../data/siteConfig";
+---
+
+<Layout
+  title="Giới Thiệu Công Ty TNHH Công Nghệ Vĩnh Khang - Thương Hiệu VKINNO"
+  description="Tìm hiểu về Công ty TNHH Công nghệ Vĩnh Khang (VKINNO) — đơn vị nghiên cứu và sản xuất hóa chất tẩy rửa chuyên dụng, chăm sóc ô tô và vệ sinh tấm pin mặt trời tại Việt Nam."
+>
+  <div class="w-full min-h-screen bg-[#F8FAFC] pb-16 font-inter">
+    <!-- Hero Header Section -->
+    <div class="relative bg-gradient-to-br from-[#1E2B6B] to-[#0F1638] text-white py-16 sm:py-22 overflow-hidden mb-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10">
+        <nav class="text-xs text-slate-300 font-semibold mb-6 flex items-center space-x-2" aria-label="Breadcrumb">
+          <a href="/" class="hover:text-[#FF8A15] transition-colors">Trang chủ</a>
+          <span>/</span>
+          <span class="text-white font-bold">Giới thiệu</span>
+        </nav>
+
+        <div class="max-w-3xl space-y-5">
+          <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
+            Pháp nhân chính danh MST {SITE_CONFIG.taxCode}
+          </span>
+          <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold uppercase tracking-wide leading-tight font-montserrat">
+            GIẢI PHÁP LÀM SẠCH CHUYÊN DỤNG <br class="hidden sm:inline" />
+            <span class="text-[#FF8A15]">CHUẨN KỸ THUẬT &amp; MINH BẠCH</span>
+          </h1>
+          <p class="text-sm sm:text-base text-slate-200 font-medium leading-relaxed max-w-2xl">
+            Được phát triển bởi <strong>{SITE_CONFIG.legalName}</strong>, VKINNO tập trung giải quyết bài toán làm sạch cặn khoáng nước cứng, dầu mỡ nhà bếp, kính ô tô và tấm pin năng lượng mặt trời phù hợp điều kiện khí hậu và nguồn nước tại Việt Nam.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-16">
+      <!-- Story Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div class="lg:col-span-7 space-y-5">
+          <h2 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] font-montserrat uppercase tracking-wide border-l-4 border-[#FF8A15] pl-4">
+            Triết lý sản phẩm từ thực tế nhà cửa &amp; công trường Việt
+          </h2>
+          <div class="text-[#334155] space-y-4 text-sm sm:text-base leading-relaxed font-medium">
+            <p>
+              Nguồn nước sinh hoạt giàu khoáng canxi/magie tại nhiều đô thị Việt Nam thường để lại vảy trắng bám chặt trên vách kính nhà tắm và sen vòi mạ Chrome, trong khi thói quen nấu nướng nhiệt độ cao tạo ra lớp màng dầu mỡ polymer hóa bám dính trên lưới lọc máy hút mùi và mặt bếp từ.
+            </p>
+            <p>
+              Thay vì sử dụng axit vô cơ bốc khói hay xút ăn da NaOH dễ làm ố cháy lớp mạ thiết bị và đen lưới nhôm, <strong>VKINNO</strong> xây dựng từng công thức chuyên biệt theo đúng độ pH mục tiêu kết hợp hoạt chất bề mặt phân hủy sinh học và chất ức chế ăn mòn kim loại.
+            </p>
+            <p>
+              Mỗi sản phẩm xuất kho từ Hoài Đức đều công bố minh bạch <strong>thời gian chờ ủ 5–15 phút</strong> cùng danh sách <strong>bề mặt khuyến nghị và bề mặt kỵ dùng</strong> — an toàn cho bề mặt khuyến nghị khi dùng đúng hướng dẫn và bảo vệ tuổi thọ vật liệu lâu dài.
+            </p>
+          </div>
+        </div>
+
+        <!-- Enterprise Verification Card -->
+        <div class="lg:col-span-5 bg-gradient-to-tr from-[#1E2B6B] to-[#0F1638] text-white p-8 rounded-3xl shadow-xl relative overflow-hidden border border-white/10 flex flex-col justify-between min-h-[340px]">
+          <div class="space-y-2">
+            <h3 class="font-montserrat font-extrabold text-xl uppercase tracking-wider text-[#FF8A15]">Hồ sơ Pháp nhân VKINNO</h3>
+            <p class="text-xs text-slate-300 font-semibold">{SITE_CONFIG.legalName}</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6 py-6 border-y border-white/15">
+            <div>
+              <div class="text-2xl sm:text-3xl font-black text-[#FF8A15] font-montserrat tabular-nums">9 SKU</div>
+              <div class="text-xs text-slate-200 font-bold uppercase tracking-wide mt-1">Chuẩn Hóa Gia Đình &amp; B2B</div>
+            </div>
+            <div>
+              <div class="text-2xl sm:text-3xl font-black text-[#FF8A15] font-montserrat tabular-nums">VAT 8%</div>
+              <div class="text-xs text-slate-200 font-bold uppercase tracking-wide mt-1">Hóa Đơn Điện Tử Pháp Nhân</div>
+            </div>
+            <div>
+              <div class="text-2xl sm:text-3xl font-black text-[#FF8A15] font-montserrat">Deion</div>
+              <div class="text-xs text-slate-200 font-bold uppercase tracking-wide mt-1">Nền Nước Khử Khoáng Sạch</div>
+            </div>
+            <div>
+              <div class="text-2xl sm:text-3xl font-black text-[#FF8A15] font-montserrat">BCT</div>
+              <div class="text-xs text-slate-200 font-bold uppercase tracking-wide mt-1">Đã Thông Báo Bộ Công Thương</div>
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-300 font-medium leading-relaxed">
+            Kho vận hành trực tiếp: {SITE_CONFIG.warehouseAddress} · Hotline: {SITE_CONFIG.hotlinePrimary}.
+          </div>
+        </div>
+      </div>
+
+      <!-- Core Values Cards -->
+      <div class="space-y-8">
+        <div class="text-center space-y-2 max-w-xl mx-auto">
+          <h2 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] font-montserrat uppercase tracking-wider">
+            3 Nguyên tắc cam kết chất lượng VKINNO
+          </h2>
+          <div class="w-16 h-1 bg-[#FF8A15] mx-auto rounded"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="bg-white p-7 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col items-center text-center space-y-3">
+            <div class="w-14 h-14 bg-[#EEF2FF] text-[#1E2B6B] rounded-2xl flex items-center justify-center text-2xl">
+              <i class="fa-solid fa-flask"></i>
+            </div>
+            <h3 class="text-[#0F172A] font-extrabold text-base uppercase font-montserrat">Đúng Cơ Chế Hóa Học</h3>
+            <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+              Tách biệt rõ nhóm axit hữu cơ hòa tan cặn khoáng (Bossman, VisionX), nhóm trung tính nước Deion (ClearWay, Solar Shield) và nhóm kiềm êm không xút NaOH (Tẩy dầu mỡ).
+            </p>
+          </div>
+
+          <div class="bg-white p-7 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col items-center text-center space-y-3">
+            <div class="w-14 h-14 bg-[#FFF7ED] text-[#A84B00] rounded-2xl flex items-center justify-center text-2xl">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 class="text-[#0F172A] font-extrabold text-base uppercase font-montserrat">An Toàn Bề Mặt Khuyến Nghị</h3>
+            <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+              An toàn cho bề mặt khuyến nghị khi dùng đúng hướng dẫn: bảo vệ lớp mạ Chrome/Inox nguyên bản, mặt kính bếp từ Ceramic, cao su gạt mưa và lớp phủ chống phản xạ ARC tấm pin.
+            </p>
+          </div>
+
+          <div class="bg-white p-7 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col items-center text-center space-y-3">
+            <div class="w-14 h-14 bg-[#ECFDF5] text-[#047857] rounded-2xl flex items-center justify-center text-2xl">
+              <i class="fa-solid fa-stopwatch"></i>
+            </div>
+            <h3 class="text-[#0F172A] font-extrabold text-base uppercase font-montserrat">Trung Thực Thời Gian Ủ</h3>
+            <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+              Không thổi phồng công dụng. Chúng tôi hướng dẫn khách hàng xịt phủ đều và chờ ủ 5–15 phút để hoạt chất làm mềm chân cặn khoáng và dầu mỡ trước khi lau sạch nhẹ nhàng.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA Banner -->
+      <div class="bg-[#1E2B6B] text-white rounded-3xl p-8 sm:p-10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="space-y-2 max-w-xl text-center md:text-left">
+          <h2 class="text-xl sm:text-2xl font-extrabold font-montserrat uppercase">
+            Trải nghiệm bộ sản phẩm chính hãng từ kho Vĩnh Khang
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            Đơn hàng từ 199.000 ₫ được miễn phí vận chuyển toàn quốc — nhận hàng đồng kiểm trực tiếp.
+          </p>
+        </div>
+
+        <a
+          href="/san-pham"
+          data-cta="about-shop"
+          class="min-h-[48px] inline-flex items-center justify-center bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm tracking-wider uppercase px-7 py-3.5 rounded-xl transition-all shadow-md shrink-0 font-montserrat"
+        >
+          Xem 9 Sản Phẩm VKINNO →
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>

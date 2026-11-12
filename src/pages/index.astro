@@ -1,0 +1,467 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ProductCard from "../components/ProductCard.astro";
+import { products } from "../data/products";
+import { SITE_CONFIG } from "../data/siteConfig";
+import postsData from "../data/posts.json";
+
+const bestsellerSlugs = [
+  "combo-chai-xit-tay-can-canxi-500ml-va-chai-tay-dau-mo-an-toan-da-tay-cong-thuc-moi-sach-vuot-troi---combobossmanvkinno-1782568108",
+  "chai-xit-tay-can-canxi-500ml-an-toan-cho-da-tay-dung-dich-tay-can-canxi-lam-sach-voi-sen-va-nha-tam",
+  "tay-dau-mo-da-nang-cao-cap-vkinno-500ml-chuyen-dung-cho-bep-tu-bep-hong-ngoai-an-toan-be-mat-bep",
+  "dung-dich-ve-sinh-tam-pin-mat-troi-solar-shield-dam-dac-giup-tang-hieu-suat-dien-tang-kem-binh-xit",
+];
+
+const newArrivalSlugs = [
+  "nuoc-lau-kinh-chuyen-dung-clearway-glasspro-cong-thuc-khong-amoniac-an-toan-cho-kinh-va-guong-500ml",
+  "nuoc-lau-kinh-chuyen-dung-clearway-glasspro-cong-thuc-khong-amoniac-an-toan-tang-kem-binh-xit-can-5l",
+  "nuoc-rua-kinh-o-to-chuyen-dung-clearway-chong-bam-nuoc-sach-sau-an-toan-voi-can-gat-va-be-mat-kinh",
+  "chai-xit-tay-rua-vet-o-kinh-logo-o-to-va-mang-dau-kinh-xit-lam-sach-sau-tiet-kiem-visionx-clean",
+];
+
+const bestsellers = bestsellerSlugs
+  .map((slug) => products.find((p) => p.slug === slug))
+  .filter(Boolean);
+
+const newArrivals = newArrivalSlugs
+  .map((slug) => products.find((p) => p.slug === slug))
+  .filter(Boolean);
+---
+
+<Layout
+  title="VKINNO - Chất Tẩy Rửa Sinh Học, Chăm Sóc Ô Tô & Vệ Sinh Điện Mặt Trời"
+  description="Công ty TNHH Công nghệ Vĩnh Khang (VKINNO) sản xuất và phân phối chất tẩy cặn canxi Bossman, tẩy dầu mỡ nhà bếp, nước rửa kính ô tô ClearWay và dung dịch vệ sinh pin mặt trời Solar Shield."
+>
+  <div class="w-full flex flex-col">
+    <!-- ==================== 1. HERO BANNER SLIDER ==================== -->
+    <section class="relative w-full aspect-[2244/701] max-h-[560px] bg-[#0F1638] overflow-hidden" id="home-section-hero">
+      <div class="w-full h-full relative" id="hero-slides-wrapper">
+        <div class="hero-slide absolute inset-0 transition-opacity duration-700 opacity-100" data-index="0">
+          <img
+            alt="VKINNO - Giải pháp tẩy rửa sinh học cho gia đình Việt"
+            class="w-full h-full object-cover"
+            src="/uploads/banner-homepage-1.png"
+            width="1600"
+            height="500"
+            fetchpriority="high"
+          />
+        </div>
+        <div class="hero-slide absolute inset-0 transition-opacity duration-700 opacity-0 pointer-events-none" data-index="1">
+          <img
+            alt="Chăm sóc kính ô tô ClearWay & VisionX Clean không Methanol"
+            class="w-full h-full object-cover"
+            src="/uploads/banner-homepage-2.png"
+            width="1600"
+            height="500"
+            loading="lazy"
+          />
+        </div>
+        <div class="hero-slide absolute inset-0 transition-opacity duration-700 opacity-0 pointer-events-none" data-index="2">
+          <img
+            alt="Dung dịch vệ sinh tấm pin mặt trời Solar Shield Can 5L"
+            class="w-full h-full object-cover"
+            src="/uploads/banner-homepage-3.png"
+            width="1600"
+            height="500"
+            loading="lazy"
+          />
+        </div>
+      </div>
+
+      <button
+        aria-label="Ảnh bìa trước"
+        class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white rounded-full w-11 h-11 flex items-center justify-center transition-all focus:outline-none cursor-pointer z-20"
+        id="hero-prev"
+        type="button"
+      >
+        <i class="fa-solid fa-chevron-left text-sm sm:text-base"></i>
+      </button>
+
+      <button
+        aria-label="Ảnh bìa tiếp theo"
+        class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white rounded-full w-11 h-11 flex items-center justify-center transition-all focus:outline-none cursor-pointer z-20"
+        id="hero-next"
+        type="button"
+      >
+        <i class="fa-solid fa-chevron-right text-sm sm:text-base"></i>
+      </button>
+
+      <div class="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 bg-black/40 backdrop-blur-xs px-3 py-1.5 rounded-full z-20">
+        <button aria-label="Chuyển tới ảnh 1" type="button" class="hero-dot w-3 h-3 rounded-full transition-all bg-[#FF8A15] scale-110 cursor-pointer" data-index="0"></button>
+        <button aria-label="Chuyển tới ảnh 2" type="button" class="hero-dot w-3 h-3 rounded-full transition-all bg-white/80 hover:bg-white cursor-pointer" data-index="1"></button>
+        <button aria-label="Chuyển tới ảnh 3" type="button" class="hero-dot w-3 h-3 rounded-full transition-all bg-white/80 hover:bg-white cursor-pointer" data-index="2"></button>
+      </div>
+    </section>
+
+    <!-- ==================== 1B. BRAND H1 & COMBO FREESHIP BAR ==================== -->
+    <section class="w-full bg-[#1E2B6B] text-white border-b border-white/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div class="space-y-2 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#FF8A15] text-xs font-extrabold uppercase tracking-wider">
+            <i class="fa-solid fa-flask"></i>
+            <span>Kho trực tiếp Công ty TNHH Công nghệ Vĩnh Khang (VAT 8%)</span>
+          </div>
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold leading-snug font-montserrat text-white">
+            Chất Tẩy Rửa Chuyên Dụng, Chăm Sóc Kính Xe &amp; Vệ Sinh Điện Mặt Trời VKINNO
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            Làm sạch đúng cơ chế hóa học an toàn bề mặt khuyến nghị: <strong>Combo Đôi Nhà Sạch 145.000 ₫</strong> (tiết kiệm 9.000 ₫) · <strong>Bộ 3 Toàn Gia 199.000 ₫ miễn phí vận chuyển toàn quốc</strong>.
+          </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <button
+            type="button"
+            id="btn-home-bundle-199k"
+            data-cta="bundle-199k"
+            class="min-h-[48px] px-5 py-3 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all"
+          >
+            <i class="fa-solid fa-gift"></i>
+            <span>Mua Bộ 3 Toàn Gia 199.000 ₫ (Freeship)</span>
+          </button>
+          <a
+            href="/giai-phap-gara"
+            class="min-h-[48px] px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition-all"
+          >
+            <i class="fa-solid fa-building"></i>
+            <span>Báo giá sỉ Gara &amp; Solar</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 2. FEATURED CATEGORIES ==================== -->
+    <section class="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-12 sm:py-14 bg-white" id="home-section-categories">
+      <div class="space-y-8">
+        <div class="flex flex-col items-center text-center space-y-2">
+          <h2 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-wider uppercase font-montserrat">
+            DANH MỤC GIẢI PHÁP CHỦ LỰC
+          </h2>
+          <div class="w-16 h-1 bg-[#FF8A15] rounded"></div>
+          <p class="text-xs sm:text-sm text-[#475569] font-medium max-w-lg">
+            9 sản phẩm chuẩn hóa từ kho VKINNO Hoài Đức — đầy đủ hướng dẫn ủ hóa chất và cảnh báo bề mặt rõ ràng
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <a class="group relative block rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-[#E2E8F0]" href="/san-pham?category=1">
+            <div class="w-full aspect-[4/3] overflow-hidden relative bg-[#F1F5F9]">
+              <img
+                alt="Tẩy Cặn Canxi, Nhà Bếp & Pin Mặt Trời"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+                src="/images/blog/cat-tay-rua.jpg"
+                width="480"
+                height="360"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-[#0F1638]/90 via-[#0F1638]/35 to-transparent"></div>
+            </div>
+            <div class="absolute bottom-4 left-4 right-4 text-white">
+              <h3 class="text-sm sm:text-base font-extrabold uppercase tracking-wide">
+                Nhà Tắm, Nhà Bếp &amp; Solar
+              </h3>
+              <p class="text-xs text-slate-200 font-semibold mt-1">
+                Bossman · Tẩy dầu mỡ · ClearWay · Solar Shield
+              </p>
+            </div>
+          </a>
+
+          <a class="group relative block rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-[#E2E8F0]" href="/san-pham?category=3">
+            <div class="w-full aspect-[4/3] overflow-hidden relative bg-[#F1F5F9]">
+              <img
+                alt="Chăm Sóc Kính & Ngoại Thất Ô Tô"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+                src="/images/blog/cat-oto.jpg"
+                width="480"
+                height="360"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-[#0F1638]/90 via-[#0F1638]/35 to-transparent"></div>
+            </div>
+            <div class="absolute bottom-4 left-4 right-4 text-white">
+              <h3 class="text-sm sm:text-base font-extrabold uppercase tracking-wide">
+                Chăm Sóc Ô Tô &amp; Gara
+              </h3>
+              <p class="text-xs text-slate-200 font-semibold mt-1">
+                ClearWay Can 5L 0% Methanol · VisionX Clean
+              </p>
+            </div>
+          </a>
+
+          <a class="group relative block rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-[#E2E8F0]" href="/san-pham?category=2">
+            <div class="w-full aspect-[4/3] overflow-hidden relative bg-[#F1F5F9]">
+              <img
+                alt="Dụng Cụ Pha Chế & Bình Xịt Định Lượng"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+                src="/images/blog/cat-dung-cu.jpg"
+                width="480"
+                height="360"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-[#0F1638]/90 via-[#0F1638]/35 to-transparent"></div>
+            </div>
+            <div class="absolute bottom-4 left-4 right-4 text-white">
+              <h3 class="text-sm sm:text-base font-extrabold uppercase tracking-wide">
+                Dụng Cụ &amp; Bình Xịt PET
+              </h3>
+              <p class="text-xs text-slate-200 font-semibold mt-1">
+                Vỏ bình xịt kháng hóa chất 500ml sang chiết can 5L
+              </p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3. SẢN PHẨM BÁN CHẠY NHẤT ==================== -->
+    <section class="w-full bg-[#F8FAFC] py-12 sm:py-16 border-t border-[#E2E8F0]" id="home-section-bestsellers">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+        <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-4 gap-4">
+          <h2 class="text-lg sm:text-xl font-extrabold text-[#0F172A] tracking-wider uppercase font-montserrat">
+            Sản phẩm bán chạy tại kho
+          </h2>
+          <a class="text-xs sm:text-sm font-extrabold text-[#A84B00] hover:text-[#1E2B6B] uppercase tracking-wider flex items-center space-x-1.5 transition-colors shrink-0" href="/san-pham">
+            <span>Xem tất cả 9 mã</span>
+            <i class="fa-solid fa-arrow-right-long"></i>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {bestsellers.map((product) => (
+            <ProductCard product={product!} />
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. TRUST BADGES ==================== -->
+    <section class="w-full max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-12 border-t border-[#E2E8F0] bg-white" id="home-section-trustbadges">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div class="bg-[#FFF7ED] text-[#A84B00] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-truck-fast"></i>
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
+              Freeship Từ 199.000 ₫
+            </h3>
+            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+              Miễn phí giao toàn quốc đơn từ 199.000 ₫ (dưới 199.000 ₫ phí ship 25.000 ₫)
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div class="bg-[#EEF2FF] text-[#1E2B6B] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-file-invoice"></i>
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
+              Pháp Nhân TNHH &amp; VAT 8%
+            </h3>
+            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+              Giá công bố đã gồm VAT 8%, xuất hóa đơn điện tử &amp; SDS/MSDS cho doanh nghiệp
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div class="bg-[#ECFDF5] text-[#047857] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
+              Đồng Kiểm &amp; Đổi Trả 7 Ngày
+            </h3>
+            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+              Kiểm tra ngoại quan khi nhận hàng; đổi mới 1:1 nếu móp rò rỉ do vận chuyển
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div class="bg-[#FFF7ED] text-[#A84B00] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-headset"></i>
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
+              Tư Vấn Kỹ Thuật Kho
+            </h3>
+            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+              Gửi ảnh vết ố qua Zalo {SITE_CONFIG.hotlinePrimary} để tư vấn đúng loại hóa chất
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 5. DÒNG CHĂM SÓC KÍNH & Ô TÔ ==================== -->
+    <section class="w-full bg-[#F8FAFC] py-12 sm:py-16 border-t border-[#E2E8F0]" id="home-section-newarrivals">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
+        <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-4 gap-4">
+          <h2 class="text-lg sm:text-xl font-extrabold text-[#0F172A] tracking-wider uppercase font-montserrat">
+            Chăm sóc kính tòa nhà &amp; Ô tô chuyên dụng
+          </h2>
+          <a class="text-xs sm:text-sm font-extrabold text-[#A84B00] hover:text-[#1E2B6B] uppercase tracking-wider flex items-center space-x-1.5 transition-colors shrink-0" href="/san-pham">
+            <span>Xem cửa hàng</span>
+            <i class="fa-solid fa-arrow-right-long"></i>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {newArrivals.map((product) => (
+            <ProductCard product={product!} />
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 6. CẨM NANG VKINNO ==================== -->
+    <section class="w-full max-w-7xl mx-auto px-4 sm:px-8 py-12 sm:py-16 bg-white border-t border-[#E2E8F0]" id="home-section-blogshowcase">
+      <div class="space-y-8">
+        <div class="flex flex-col items-center text-center space-y-2">
+          <h2 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-widest uppercase font-montserrat">
+            CẨM NANG SỬ DỤNG HÓA CHẤT ĐÚNG CÁCH
+          </h2>
+          <div class="w-16 h-1 bg-[#FF8A15] rounded"></div>
+          <p class="text-xs sm:text-sm text-[#475569] font-medium max-w-xl">
+            Hướng dẫn thời gian ủ 5–15 phút, tỷ lệ pha loãng can 5L và lưu ý nhận biết bề mặt vật liệu trước khi vệ sinh
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {postsData.map((post) => (
+            <a class="group space-y-4 flex flex-col justify-between bg-[#F8FAFC] p-4 rounded-2xl border border-[#E2E8F0] hover:shadow-md transition-all" href={`/cam-nang/${post.slug}`}>
+              <div class="space-y-3">
+                <div class="w-full aspect-[16/10] overflow-hidden rounded-xl bg-white relative">
+                  <img
+                    alt={post.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    src={post.image_url}
+                    width="600"
+                    height="375"
+                  />
+                </div>
+                <div class="flex items-center text-[11px] font-bold text-[#475569] uppercase tracking-wider space-x-2">
+                  <span><i class="fa-regular fa-calendar-days mr-1 text-[#A84B00]"></i> 04/07/2026</span>
+                  <span>•</span>
+                  <span>Cẩm nang kỹ thuật</span>
+                </div>
+                <h3 class="text-[#0F172A] font-extrabold text-sm sm:text-base line-clamp-2 group-hover:text-[#1E2B6B] transition-colors leading-snug">
+                  {post.title}
+                </h3>
+                <p class="text-xs text-[#475569] font-medium leading-relaxed line-clamp-3">
+                  {post.summary}
+                </p>
+              </div>
+              <span class="text-xs font-extrabold text-[#A84B00] group-hover:text-[#1E2B6B] uppercase tracking-wider flex items-center space-x-1.5 transition-colors pt-2">
+                <span>Đọc hướng dẫn</span>
+                <i class="fa-solid fa-arrow-right-long"></i>
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  const slides = document.querySelectorAll<HTMLElement>(".hero-slide");
+  const dots = document.querySelectorAll<HTMLElement>(".hero-dot");
+  const prevBtn = document.getElementById("hero-prev");
+  const nextBtn = document.getElementById("hero-next");
+
+  let currentIdx = 0;
+  const totalSlides = slides.length;
+  let interval: ReturnType<typeof setInterval> | null = null;
+
+  function showSlide(index: number) {
+    if (totalSlides === 0) return;
+    currentIdx = (index + totalSlides) % totalSlides;
+
+    slides.forEach((slide, i) => {
+      if (i === currentIdx) {
+        slide.classList.remove("opacity-0", "pointer-events-none");
+        slide.classList.add("opacity-100");
+      } else {
+        slide.classList.remove("opacity-100");
+        slide.classList.add("opacity-0", "pointer-events-none");
+      }
+    });
+
+    dots.forEach((dot, i) => {
+      if (i === currentIdx) {
+        dot.className = "hero-dot w-3 h-3 rounded-full transition-all bg-[#FF8A15] scale-110 cursor-pointer";
+      } else {
+        dot.className = "hero-dot w-3 h-3 rounded-full transition-all bg-white/80 hover:bg-white cursor-pointer";
+      }
+    });
+  }
+
+  function startAutoplay() {
+    stopAutoplay();
+    interval = setInterval(() => {
+      showSlide(currentIdx + 1);
+    }, 5500);
+  }
+
+  function stopAutoplay() {
+    if (interval) clearInterval(interval);
+  }
+
+  prevBtn?.addEventListener("click", () => {
+    showSlide(currentIdx - 1);
+    startAutoplay();
+  });
+
+  nextBtn?.addEventListener("click", () => {
+    showSlide(currentIdx + 1);
+    startAutoplay();
+  });
+
+  dots.forEach((dot, i) => {
+    dot.addEventListener("click", () => {
+      showSlide(i);
+      startAutoplay();
+    });
+  });
+
+  const heroWrap = document.getElementById("home-section-hero");
+  heroWrap?.addEventListener("mouseenter", stopAutoplay);
+  heroWrap?.addEventListener("mouseleave", startAutoplay);
+  startAutoplay();
+
+  // 1-Tap Add Bộ 3 Toàn Gia 199.000đ (Combo 145k + ClearWay 500ml 45k -> wait: 145k + 45k = 190k, OR Bossman 69k + Tẩy dầu mỡ 85k + ClearWay 45k = 199k!)
+  document.getElementById("btn-home-bundle-199k")?.addEventListener("click", () => {
+    const addFn = (window as any).vkinnoAddToCart;
+    if (typeof addFn === "function") {
+      addFn(
+        "Chai Xịt Tẩy Cặn Canxi Bossman 500ml — Sạch Vách Kính & Vòi Sen Inox",
+        69000,
+        "/images/products/vk-bossman-descaler-500ml.jpg",
+        "chai-xit-tay-can-canxi-500ml-an-toan-cho-da-tay-dung-dich-tay-can-canxi-lam-sach-voi-sen-va-nha-tam",
+        1,
+        "VK-BOSSMAN-DESCALER-500ML"
+      );
+      addFn(
+        "Chai Xịt Tẩy Dầu Mỡ Đa Năng VKINNO 500ml — Chuyên Dụng Cho Bếp Từ & Máy Hút Mùi",
+        85000,
+        "/images/products/vk-degreaser-500ml.jpg",
+        "tay-dau-mo-da-nang-cao-cap-vkinno-500ml-chuyen-dung-cho-bep-tu-bep-hong-ngoai-an-toan-be-mat-bep",
+        1,
+        "VK-DEGREASER-500ML"
+      );
+      addFn(
+        "Nước Lau Kính Chuyên Dụng ClearWay GlassPro 500ml — Không Amoniac, Trong Suốt Không Vệt",
+        45000,
+        "/images/products/vk-clearway-glasspro-500ml.jpg",
+        "nuoc-lau-kinh-chuyen-dung-clearway-glasspro-cong-thuc-khong-amoniac-an-toan-cho-kinh-va-guong-500ml",
+        1,
+        "VK-CLEARWAY-GLASSPRO-500ML"
+      );
+      window.location.href = "/thanh-toan";
+    }
+  });
+</script>

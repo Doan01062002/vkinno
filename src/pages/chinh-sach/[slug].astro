@@ -1,0 +1,95 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import policiesData from "../../data/policies.json";
+
+export function getStaticPaths() {
+  return Object.keys(policiesData).map((slug) => {
+    return {
+      params: { slug },
+      props: {
+        policy: policiesData[slug],
+        policies: policiesData,
+        currentSlug: slug,
+      },
+    };
+  });
+}
+
+const { policy, policies, currentSlug } = Astro.props;
+---
+
+<Layout
+  title={`${policy.title} - VKINNO`}
+  description={`Chính sách ${policy.title} chính thức từ Công ty TNHH Công nghệ Vĩnh Khang.`}
+>
+  <!-- Hero Banner -->
+  <section class="w-full bg-[#1E2B6B] text-white py-12 sm:py-16 font-inter">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
+      <nav class="flex items-center space-x-2 text-xs font-semibold text-slate-300">
+        <a href="/" class="hover:text-[#FF8A15] transition-colors">Trang chủ</a>
+        <span>/</span>
+        <a href="/chinh-sach" class="hover:text-[#FF8A15] transition-colors">Chính sách</a>
+        <span>/</span>
+        <span class="text-white truncate max-w-[250px]">{policy.title}</span>
+      </nav>
+
+      <div class="space-y-3 max-w-3xl">
+        <span class="inline-block bg-[#FF8A15] text-slate-950 text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full shadow-[0_0_12px_rgba(255,138,21,0.3)] font-montserrat">
+          {policy.badge}
+        </span>
+        <h1 class="text-2xl sm:text-4xl font-black uppercase tracking-wider font-montserrat" set:html={policy.heroTitle || policy.title}>
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+          Các chính sách, cam kết chính thức từ Công ty TNHH Công nghệ Vĩnh Khang nhằm bảo vệ tối đa quyền lợi khách hàng.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Policy Body Container -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-14 font-inter">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Left Sidebar Navigation -->
+      <aside class="lg:col-span-4 space-y-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-2 px-2 font-montserrat">
+          Danh mục chính sách
+        </h3>
+        <nav class="flex flex-col space-y-1">
+          {Object.entries(policies).map(([slug, item]: [string, any]) => {
+            const isActive = slug === currentSlug;
+            return (
+              <a
+                href={`/chinh-sach/${slug}`}
+                class={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  isActive
+                    ? "bg-[#1E2B6B] text-white shadow-md shadow-[#1E2B6B]/20 translate-x-1"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
+              >
+                <i class={`fa-solid ${item.icon} ${isActive ? "text-[#FF8A15]" : "text-slate-400"} text-base w-5`}></i>
+                <span>{item.title}</span>
+              </a>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <!-- Right Policy Content -->
+      <article class="lg:col-span-8 bg-white p-6 sm:p-10 rounded-3xl shadow-sm border border-slate-100 min-h-[500px]">
+        <div class="flex items-center space-x-3 pb-6 border-b border-slate-100 mb-6">
+          <div class="w-10 h-10 rounded-xl bg-[#FFF7ED] text-[#FF8A15] flex items-center justify-center text-lg">
+            <i class={`fa-solid ${policy.icon}`}></i>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black text-slate-900 font-montserrat tracking-tight">
+            {policy.title}
+          </h2>
+        </div>
+
+        <div class="prose max-w-none text-slate-600 text-xs sm:text-sm leading-relaxed" set:html={policy.content}>
+        </div>
+      </article>
+
+    </div>
+  </section>
+</Layout>

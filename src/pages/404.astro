@@ -1,0 +1,40 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+  title="404 - Không tìm thấy trang | VKINNO"
+  description="Trang bạn tìm kiếm không tồn tại hoặc đã được chuyển sang địa chỉ mới trên vkinno.vn."
+  noindex={true}
+>
+  <section class="max-w-3xl mx-auto px-4 sm:px-8 py-16 sm:py-24 text-center space-y-6">
+    <div class="w-20 h-20 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] text-[#A84B00] flex items-center justify-center mx-auto text-3xl font-black">
+      404
+    </div>
+    <div class="space-y-2">
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-[#0F172A] font-montserrat">
+        Không tìm thấy trang bạn yêu cầu
+      </h1>
+      <p class="text-sm sm:text-base text-[#475569] max-w-lg mx-auto leading-relaxed">
+        Đường dẫn có thể đã thay đổi hoặc sản phẩm đã được cập nhật sang danh mục mới tại cửa hàng chính hãng VKINNO.
+      </p>
+    </div>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+      <a
+        href="/san-pham"
+        data-cta="404-shop"
+        class="w-full sm:w-auto min-h-[48px] px-7 py-3 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-sm uppercase tracking-wide inline-flex items-center justify-center gap-2 transition-colors shadow-sm"
+      >
+        <i class="fa-solid fa-store"></i>
+        <span>Xem 9 sản phẩm VKINNO</span>
+      </a>
+      <a
+        href="/"
+        class="w-full sm:w-auto min-h-[48px] px-7 py-3 rounded-xl bg-[#1E2B6B] hover:bg-[#151E4B] text-white font-bold text-sm uppercase tracking-wide inline-flex items-center justify-center gap-2 transition-colors"
+      >
+        <i class="fa-solid fa-house"></i>
+        <span>Về trang chủ</span>
+      </a>
+    </div>
+  </section>
+</Layout>

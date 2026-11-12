@@ -1,0 +1,17 @@
+# Sao chép file này thành .dev.vars khi chạy thử cục bộ với `npx wrangler dev`
+# Khi đẩy lên Cloudflare thật, nạp bằng lệnh `npx wrangler secret put <TEN_BIEN>`
+
+# 1. CẦU NỐI REALTIME (< 3 GIÂY) GOOGLE SHEETS + APPSHEET (PHƯƠNG ÁN 1 - QUẢN TRỊ TẬP TRUNG 100%)
+GOOGLE_SHEET_ID=1Q2JtTSh63BWD0znOVNLkpXfR1aPqswc9y7u8l-Xaxvo
+GOOGLE_SCRIPT_WEBHOOK_URL=https://script.google.com/macros/s/THAY_BANG_ID_DEPLOYMENT_CODE_GS/exec
+GOOGLE_SCRIPT_SECRET=thay_bang_chuoi_bi_mat_webhook_google_script
+APPSHEET_APP_URL=https://www.appsheet.com/
+
+# 2. ĐỐI SOÁT VIETQR SEPAY (VCB 0491000082331) & CẢNH BÁO TELEGRAM (0Đ)
+SEPAY_WEBHOOK_API_KEY=thay_bang_chuoi_api_key_sepay_32_byte
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+
+# 3. DỰ PHÒNG NỘI BỘ (TÙY CHỌN)
+ADMIN_PASSWORD=thay_bang_mat_khau_quan_tri_manh_12_ky_tu
+ADMIN_SESSION_SECRET=thay_bang_chuoi_ngau_nhien_32_byte_hex

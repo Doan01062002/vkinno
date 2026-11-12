@@ -1,0 +1,801 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE_CONFIG } from "../data/siteConfig";
+
+const freeshipThreshold = SITE_CONFIG.freeshipThresholdVnd;
+const defaultShipping = SITE_CONFIG.defaultShippingFeeVnd;
+---
+
+<Layout
+  title="Thanh Toán Đơn Hàng Chính Hãng - VKINNO"
+  description="Đặt hàng trực tiếp từ kho Công ty TNHH Công nghệ Vĩnh Khang (VKINNO), hỗ trợ COD đồng kiểm và VietQR Vietcombank tự động."
+  hideFloatingZaloOnMobile={true}
+>
+  <div class="w-full min-h-screen bg-[#F8FAFC] py-8 font-inter">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-6">
+      <!-- Breadcrumbs -->
+      <nav class="flex items-center space-x-2 text-xs font-semibold text-[#475569]" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-[#1E2B6B] transition-colors">Trang chủ</a>
+        <span>/</span>
+        <a href="/gio-hang" class="hover:text-[#1E2B6B] transition-colors">Giỏ hàng</a>
+        <span>/</span>
+        <span class="text-[#0F172A] font-bold">Thanh toán</span>
+      </nav>
+
+      <!-- Always-visible Page H1 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h1 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-wider uppercase font-montserrat">
+          THANH TOÁN ĐƠN HÀNG VKINNO
+        </h1>
+        <span class="text-xs font-bold text-[#047857] flex items-center gap-1.5">
+          <i class="fa-solid fa-lock"></i>
+          <span>Bảo mật dữ liệu theo Luật BVDLCN 91/2025/QH15</span>
+        </span>
+      </div>
+
+      <!-- Empty Cart Message -->
+      <div id="checkout-empty" class="hidden max-w-2xl mx-auto text-center py-14 bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-8 space-y-4">
+        <div class="w-16 h-16 rounded-full bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mx-auto text-2xl text-[#64748B]">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+        <h2 class="text-lg sm:text-xl font-extrabold text-[#0F172A] font-montserrat uppercase">Giỏ hàng chưa có sản phẩm</h2>
+        <p class="text-xs sm:text-sm text-[#475569] max-w-md mx-auto leading-relaxed">
+          Vui lòng chọn sản phẩm vào giỏ trước khi đặt hàng, hoặc chọn nhanh Bộ 3 Toàn Gia 199.000 ₫ (Miễn phí vận chuyển) ngay bên dưới.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            id="btn-empty-quick-bundle"
+            class="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs uppercase tracking-wider cursor-pointer transition-colors"
+          >
+            🎁 Đặt ngay Bộ 3 Toàn Gia 199.000 ₫ (Freeship)
+          </button>
+          <a
+            href="/san-pham"
+            class="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-xl bg-[#1E2B6B] hover:bg-[#151E4B] text-white font-bold text-xs uppercase tracking-wider inline-flex items-center justify-center transition-colors"
+          >
+            Quay lại cửa hàng
+          </a>
+        </div>
+      </div>
+
+      <!-- Main Checkout Container -->
+      <div id="checkout-main-view" class="hidden space-y-6">
+        <!-- Freeship Progress Strip -->
+        <div id="checkout-freeship-banner" class="bg-white rounded-2xl border border-[#E2E8F0] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p id="checkout-freeship-text" class="text-xs sm:text-sm font-bold text-[#0F172A]"></p>
+          <button
+            type="button"
+            id="btn-checkout-upsell-glass"
+            class="hidden min-h-[40px] px-3.5 py-1.5 rounded-lg bg-[#FFF7ED] hover:bg-[#FFEDD5] border border-[#FED7AA] text-xs font-extrabold text-[#9A3412] shrink-0 cursor-pointer"
+          >
+            + Thêm Lau kính ClearWay 45.000 ₫ để Freeship
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Left: Customer Form -->
+          <div class="lg:col-span-2 bg-white p-6 sm:p-8 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-6">
+            <h2 class="text-sm font-extrabold text-[#0F172A] uppercase tracking-wider pb-3 border-b border-[#E2E8F0] font-montserrat">
+              1. Thông tin người nhận hàng
+            </h2>
+
+            <form id="checkout-submit-form" data-du-an="chu-dong-vkinno" class="space-y-4">
+              <input type="hidden" name="du_an" value="chu-dong-vkinno" />
+              <!-- Honeypot anti-bot field -->
+              <div class="hidden" aria-hidden="true">
+                <label for="checkout-hp-trap">Website URL</label>
+                <input type="text" id="checkout-hp-trap" name="website_url_trap" tabindex="-1" autocomplete="off" />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label for="order-name" class="block text-xs font-extrabold text-[#334155] uppercase tracking-wide">Họ và Tên người nhận *</label>
+                  <input
+                    type="text"
+                    id="order-name"
+                    name="customer_name"
+                    required
+                    autocomplete="name"
+                    placeholder="Ví dụ: Anh Minh / Chị Lan"
+                    class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-medium bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white transition-all text-[#0F172A]"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label for="order-phone" class="block text-xs font-extrabold text-[#334155] uppercase tracking-wide">Số điện thoại nhận hàng *</label>
+                  <input
+                    type="tel"
+                    id="order-phone"
+                    name="customer_phone"
+                    required
+                    autocomplete="tel"
+                    placeholder="Ví dụ: 0938791389"
+                    class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-medium bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white transition-all text-[#0F172A] tabular-nums"
+                  />
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label for="order-email" class="block text-xs font-extrabold text-[#334155] uppercase tracking-wide">Email (Tùy chọn - Nhận hóa đơn VAT điện tử)</label>
+                <input
+                  type="email"
+                  id="order-email"
+                  name="customer_email"
+                  autocomplete="email"
+                  placeholder="Nhập email nếu cần nhận hóa đơn điện tử"
+                  class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-medium bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white transition-all text-[#0F172A]"
+                />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label for="order-province" class="block text-xs font-extrabold text-[#334155] uppercase tracking-wide">Tỉnh / Thành phố *</label>
+                  <input
+                    type="text"
+                    id="order-province"
+                    name="shipping_province"
+                    required
+                    placeholder="Ví dụ: TP. Hà Nội"
+                    class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-medium bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white transition-all text-[#0F172A]"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label for="order-ward" class="block text-xs font-extrabold text-[#334155] uppercase tracking-wide">Quận / Huyện, Phường / Xã *</label>
+                  <input
+                    type="text"
+                    id="order-ward"
+                    name="shipping_ward"
+                    required
+                    placeholder="Ví dụ: Hoài Đức, Di Trạch"
+                    class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-medium bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white transition-all text-[#0F172A]"
+                  />
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label for="order-detail-addr" class="block text-xs font-extrabold text-[#334155] uppercase tracking-wide">Số nhà, ngõ, tên đường *</label>
+                <input
+                  type="text"
+                  id="order-detail-addr"
+                  name="shipping_address_detail"
+                  required
+                  placeholder="Ví dụ: Số 24 ngõ 16 Phan Văn Trường"
+                  class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-medium bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white transition-all text-[#0F172A]"
+                />
+              </div>
+
+              <div class="space-y-1.5">
+                <label for="order-note" class="block text-xs font-extrabold text-[#334155] uppercase tracking-wide">Ghi chú giao hàng / Xuất hóa đơn VAT 8% (Tùy chọn)</label>
+                <input
+                  type="text"
+                  id="order-note"
+                  name="customer_note"
+                  placeholder="Ghi giờ nhận hàng hoặc Tên công ty + Mã số thuế nếu cần xuất VAT"
+                  class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-medium bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white transition-all text-[#0F172A]"
+                />
+              </div>
+
+              <h2 class="text-sm font-extrabold text-[#0F172A] uppercase tracking-wider pt-4 pb-3 border-b border-[#E2E8F0] font-montserrat">
+                2. Phương thức thanh toán
+              </h2>
+
+              <div class="space-y-3">
+                <!-- VietQR Option -->
+                <label class="payment-card border-2 border-[#1E2B6B] bg-[#F8FAFC] p-4 rounded-xl flex items-start space-x-3 cursor-pointer transition-all" id="label-vietqr">
+                  <input type="radio" name="payment_method" value="VIETQR" class="mt-1 w-4 h-4 accent-[#1E2B6B]" checked />
+                  <div class="bg-[#ECFDF5] text-[#047857] w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border border-[#A7F3D0]">
+                    <i class="fa-solid fa-qrcode text-lg"></i>
+                  </div>
+                  <div class="space-y-0.5">
+                    <span class="block text-xs sm:text-sm font-extrabold text-[#0F172A]">Chuyển khoản nhanh VietQR 24/7 (Vietcombank pháp nhân)</span>
+                    <span class="block text-xs text-[#475569]">Quét mã QR hoặc tải ảnh QR mở trong App ngân hàng — đối soát tự động tới tài khoản {SITE_CONFIG.bankAccountName}.</span>
+                  </div>
+                </label>
+
+                <!-- COD Option -->
+                <label class="payment-card border border-[#CBD5E1] bg-white p-4 rounded-xl flex items-start space-x-3 cursor-pointer transition-all hover:border-[#1E2B6B]" id="label-cod">
+                  <input type="radio" name="payment_method" value="COD" class="mt-1 w-4 h-4 accent-[#1E2B6B]" />
+                  <div class="bg-[#EEF2FF] text-[#1E2B6B] w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border border-[#C7D2FE]">
+                    <i class="fa-solid fa-hand-holding-dollar text-lg"></i>
+                  </div>
+                  <div class="space-y-0.5">
+                    <span class="block text-xs sm:text-sm font-extrabold text-[#0F172A]">Thanh toán tiền mặt khi nhận hàng (COD)</span>
+                    <span class="block text-xs text-[#475569]">Được kiểm tra ngoại quan kiện hàng cùng bưu tá trước khi thanh toán.</span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Mandatory Unchecked-by-default Personal Data Consent (Luật BVDLCN 91/2025/QH15) -->
+              <div class="p-4 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] space-y-2 mt-2">
+                <label for="order-privacy-consent" class="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="order-privacy-consent"
+                    name="privacy_consent"
+                    required
+                    class="mt-1 w-5 h-5 rounded border-[#94A3B8] accent-[#1E2B6B] shrink-0 cursor-pointer"
+                  />
+                  <span class="text-xs text-[#334155] leading-relaxed">
+                    Tôi đồng ý để <strong>{SITE_CONFIG.legalName}</strong> xử lý thông tin họ tên, số điện thoại và địa chỉ nhằm mục đích xác nhận, đóng gói, giao nhận đơn hàng và bảo hành theo{" "}
+                    <a href="/chinh-sach/chinh-sach-bao-mat" target="_blank" class="font-bold text-[#1E2B6B] underline">
+                      Chính sách bảo vệ dữ liệu cá nhân (Luật 91/2025/QH15)
+                    </a>. *
+                  </span>
+                </label>
+              </div>
+
+              <div id="checkout-form-error" class="hidden p-3.5 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs font-bold text-[#991B1B]"></div>
+
+              <button
+                type="submit"
+                id="btn-submit-order"
+                data-cta="submit-order"
+                class="w-full min-h-[52px] bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] py-3.5 px-6 rounded-xl text-sm font-extrabold tracking-wider uppercase transition-all shadow-md cursor-pointer font-montserrat flex items-center justify-center gap-2"
+              >
+                <i class="fa-solid fa-check-to-slot"></i>
+                <span id="btn-submit-order-text">XÁC NHẬN ĐẶT HÀNG</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: Order Summary + Voucher -->
+          <div class="bg-white p-6 rounded-2xl border border-[#E2E8F0] shadow-xs h-fit space-y-4">
+            <h2 class="text-sm font-extrabold text-[#0F172A] uppercase tracking-wider pb-3 border-b border-[#E2E8F0] font-montserrat">
+              Đơn hàng của bạn
+            </h2>
+
+            <div id="checkout-items-list" class="space-y-3 max-h-80 overflow-y-auto pr-1"></div>
+
+            <!-- Voucher Box on Checkout -->
+            <div class="pt-3 border-t border-[#E2E8F0] space-y-2">
+              <label for="checkout-voucher-input" class="block text-xs font-extrabold text-[#475569] uppercase">
+                Mã ưu đãi (Thẻ cảm ơn: KHACHCU10)
+              </label>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  id="checkout-voucher-input"
+                  placeholder="Nhập mã KHACHCU10"
+                  class="w-full p-2.5 border border-[#CBD5E1] rounded-xl text-base sm:text-xs font-bold uppercase bg-[#F8FAFC] text-[#0F172A]"
+                />
+                <button
+                  type="button"
+                  id="btn-checkout-apply-voucher"
+                  class="min-h-[44px] px-4 rounded-xl bg-[#1E2B6B] hover:bg-[#151E4B] text-white text-xs font-extrabold shrink-0 cursor-pointer"
+                >
+                  Áp mã
+                </button>
+              </div>
+              <p id="checkout-voucher-msg" class="text-xs font-semibold hidden"></p>
+            </div>
+
+            <!-- Totals -->
+            <div class="space-y-2.5 text-sm font-semibold text-[#475569] border-t border-[#E2E8F0] pt-3">
+              <div class="flex justify-between">
+                <span>Tạm tính (gồm VAT 8%)</span>
+                <span class="text-[#0F172A] font-extrabold tabular-nums" id="checkout-subtotal">0 ₫</span>
+              </div>
+              <div id="checkout-discount-row" class="hidden justify-between text-[#047857] font-bold">
+                <span id="checkout-discount-label">Mã ưu đãi (-10%)</span>
+                <span id="checkout-discount" class="tabular-nums">-0 ₫</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Phí vận chuyển</span>
+                <span class="text-[#0F172A] font-extrabold tabular-nums" id="checkout-shipping">25.000 ₫</span>
+              </div>
+              <div class="border-t border-[#E2E8F0] pt-2.5 flex justify-between text-[#0F172A] font-extrabold text-base">
+                <span>Tổng thanh toán</span>
+                <span class="text-[#C81E1E] text-lg font-black tabular-nums" id="checkout-total">0 ₫</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Confirmation & Real-Time Dynamic VietQR View -->
+      <div id="checkout-success-view" class="hidden max-w-2xl mx-auto bg-white rounded-2xl border border-[#E2E8F0] p-6 sm:p-8 shadow-sm space-y-6">
+        <div class="text-center space-y-2">
+          <div class="w-16 h-16 bg-[#ECFDF5] text-[#047857] rounded-full flex items-center justify-center mx-auto text-3xl border border-[#A7F3D0]">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] font-montserrat uppercase">
+            Đặt hàng thành công!
+          </h2>
+          <p class="text-xs sm:text-sm text-[#475569]">
+            Đơn hàng đã được ghi nhận trực tiếp vào hệ thống kho Vĩnh Khang (Di Trạch, Hoài Đức).
+          </p>
+        </div>
+
+        <div class="bg-[#F8FAFC] p-4 sm:p-5 rounded-xl border border-[#E2E8F0] text-sm space-y-2.5">
+          <div class="flex justify-between items-center border-b border-[#E2E8F0] pb-2">
+            <span class="text-[#475569]">Mã đơn hàng:</span>
+            <strong class="text-[#1E2B6B] font-montserrat text-base tabular-nums" id="succ-order-id">VK0000</strong>
+          </div>
+          <div class="flex justify-between items-center border-b border-[#E2E8F0] pb-2">
+            <span class="text-[#475569]">Người nhận:</span>
+            <span class="font-bold text-[#0F172A]" id="succ-order-name"></span>
+          </div>
+          <div class="flex justify-between items-center border-b border-[#E2E8F0] pb-2">
+            <span class="text-[#475569]">Số điện thoại:</span>
+            <span class="font-bold text-[#0F172A] tabular-nums" id="succ-order-phone"></span>
+          </div>
+          <div class="flex justify-between items-start gap-4 border-b border-[#E2E8F0] pb-2">
+            <span class="text-[#475569] shrink-0">Địa chỉ nhận:</span>
+            <span class="font-bold text-[#0F172A] text-right" id="succ-order-address"></span>
+          </div>
+          <div class="flex justify-between items-center pt-1">
+            <span class="text-[#0F172A] font-bold">Tổng thanh toán:</span>
+            <span class="font-black text-lg text-[#C81E1E] tabular-nums" id="succ-order-total"></span>
+          </div>
+        </div>
+
+        <!-- 1-Phone Friendly VietQR Box -->
+        <div id="succ-vietqr-section" class="hidden bg-[#ECFDF5]/60 p-5 rounded-2xl border-2 border-[#10B981] space-y-4">
+          <div id="succ-payment-live-banner" class="p-3 rounded-xl bg-white border border-[#A7F3D0] text-center space-y-1">
+            <span class="inline-block bg-[#047857] text-white text-[11px] font-extrabold uppercase px-3 py-0.5 rounded-full">
+              VietQR Tự Động 24/7
+            </span>
+            <p class="text-xs sm:text-sm font-bold text-[#0F172A]" id="succ-payment-status-msg">
+              Đang chờ nhận chuyển khoản... Hệ thống tự động báo Xanh ngay khi tiền vào tài khoản Công ty!
+            </p>
+          </div>
+
+          <div class="flex flex-col items-center space-y-3">
+            <div class="w-60 h-60 bg-white p-2.5 rounded-2xl shadow-md border border-[#A7F3D0]">
+              <img
+                id="succ-vietqr-img"
+                src="/logo.png"
+                alt="Mã thanh toán VietQR Công ty TNHH Công nghệ Vĩnh Khang"
+                width="240"
+                height="240"
+                class="w-full h-full object-contain"
+              />
+            </div>
+
+            <button
+              type="button"
+              id="btn-download-qr"
+              class="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#1E2B6B] hover:bg-[#151E4B] text-white text-xs font-extrabold uppercase tracking-wide flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <i class="fa-solid fa-download"></i>
+              <span>Tải ảnh mã QR về điện thoại (Dùng 1 máy)</span>
+            </button>
+          </div>
+
+          <!-- Copyable Bank Fields -->
+          <div class="bg-white p-4 rounded-xl border border-[#A7F3D0] space-y-2.5 text-xs sm:text-sm">
+            <div class="flex justify-between items-center border-b border-[#F1F5F9] pb-2">
+              <span class="text-[#475569]">Ngân hàng:</span>
+              <strong class="text-[#0F172A]">Vietcombank (VCB)</strong>
+            </div>
+            <div class="flex justify-between items-center border-b border-[#F1F5F9] pb-2 gap-2">
+              <span class="text-[#475569]">Số tài khoản:</span>
+              <div class="flex items-center gap-2">
+                <strong class="text-[#047857] font-black text-base tabular-nums" id="succ-bank-acc">{SITE_CONFIG.bankAccountNumber}</strong>
+                <button type="button" data-copy-val={SITE_CONFIG.bankAccountNumber} class="copy-qr-btn px-2.5 py-1 rounded-md bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[11px] font-extrabold text-[#0F172A] cursor-pointer">
+                  Sao chép
+                </button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center border-b border-[#F1F5F9] pb-2">
+              <span class="text-[#475569]">Chủ tài khoản:</span>
+              <strong class="text-[#0F172A] text-right">{SITE_CONFIG.bankAccountName}</strong>
+            </div>
+            <div class="flex justify-between items-center border-b border-[#F1F5F9] pb-2 gap-2">
+              <span class="text-[#475569]">Số tiền chuẩn:</span>
+              <div class="flex items-center gap-2">
+                <strong class="text-[#C81E1E] font-black tabular-nums" id="succ-qr-amount-text">0 ₫</strong>
+                <button type="button" id="btn-copy-amount" data-copy-val="" class="copy-qr-btn px-2.5 py-1 rounded-md bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[11px] font-extrabold text-[#0F172A] cursor-pointer">
+                  Sao chép
+                </button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center pt-1 gap-2">
+              <span class="text-[#475569]">Nội dung CK (chính xác):</span>
+              <div class="flex items-center gap-2">
+                <strong class="text-[#1E2B6B] bg-[#EEF2FF] px-2.5 py-1 rounded-md font-black tabular-nums" id="succ-vietqr-memo">VK0000</strong>
+                <button type="button" id="btn-copy-memo" data-copy-val="" class="copy-qr-btn px-2.5 py-1 rounded-md bg-[#FF8A15] text-[#0F1638] text-[11px] font-extrabold cursor-pointer">
+                  Sao chép mã
+                </button>
+              </div>
+            </div>
+            <p class="text-[11px] text-[#475569] pt-1">
+              * Lưu ý bảo mật (Luật 91/2025): Chỉ ghi đúng Mã đơn <strong>VKxxxx</strong> trong nội dung chuyển khoản, <strong>không</strong> ghi kèm Số điện thoại.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <a
+            id="btn-goto-tracking"
+            href="/tai-khoan"
+            class="w-full sm:w-auto min-h-[48px] px-6 py-3 bg-[#1E2B6B] hover:bg-[#151E4B] text-white text-xs font-extrabold uppercase rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer"
+          >
+            Tra cứu trạng thái đơn hàng →
+          </a>
+          <a
+            href="/san-pham"
+            class="w-full sm:w-auto min-h-[48px] px-6 py-3 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F172A] text-xs font-bold uppercase rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer"
+          >
+            Tiếp tục mua sắm
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script define:vars={{ freeshipThreshold, defaultShipping }}>
+    const emptyView = document.getElementById("checkout-empty");
+    const mainView = document.getElementById("checkout-main-view");
+    const successView = document.getElementById("checkout-success-view");
+    const formatVND = (num) => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " ₫";
+
+    let pollTimer = null;
+    let currentQrUrl = "";
+    let currentOrderCode = "";
+
+    function getActiveVoucherCode() {
+      const stored = sessionStorage.getItem("vkinno_cart_voucher");
+      if (!stored) return "";
+      try {
+        const v = JSON.parse(stored);
+        if (v.code === "KHACHCU10" || v.code === "VKINNO10") return v.code;
+      } catch {}
+      return "";
+    }
+
+    function computeTotals(cart) {
+      const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      // Freeship evaluated on subtotal BEFORE voucher discount!
+      const shipping = subtotal >= freeshipThreshold ? 0 : defaultShipping;
+      const voucherCode = getActiveVoucherCode();
+      const discount = voucherCode ? Math.round(subtotal * 0.1) : 0;
+      const total = Math.max(0, subtotal - discount + shipping);
+      return { subtotal, shipping, voucherCode, discount, total };
+    }
+
+    function initCheckout() {
+      const cart = JSON.parse(localStorage.getItem("vkinno_cart") || "[]");
+      if (cart.length === 0) {
+        emptyView?.classList.remove("hidden");
+        mainView?.classList.add("hidden");
+        return;
+      }
+
+      emptyView?.classList.add("hidden");
+      mainView?.classList.remove("hidden");
+
+      const itemsList = document.getElementById("checkout-items-list");
+      if (itemsList) {
+        itemsList.innerHTML = cart
+          .map(
+            (item) => `
+          <div class="flex items-center space-x-3 text-xs">
+            <img src="${item.image && !item.image.startsWith("http") ? item.image : "/logo.png"}" alt="${item.name}" width="44" height="44" class="w-11 h-11 object-contain p-0.5 rounded-lg border border-[#E2E8F0] shrink-0 bg-[#F8FAFC]" />
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-[#0F172A] line-clamp-1">${item.name}</p>
+              <p class="text-[11px] text-[#475569] tabular-nums">SL: ${item.quantity} × ${formatVND(item.price)}</p>
+            </div>
+            <span class="font-extrabold text-[#0F172A] tabular-nums">${formatVND(item.price * item.quantity)}</span>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      const { subtotal, shipping, voucherCode, discount, total } = computeTotals(cart);
+
+      const fsText = document.getElementById("checkout-freeship-text");
+      const fsBtn = document.getElementById("btn-checkout-upsell-glass");
+      if (subtotal >= freeshipThreshold) {
+        if (fsText) fsText.innerHTML = `<span class="text-[#047857]">🎉 Đơn hàng được <strong>Miễn phí vận chuyển toàn quốc (0 ₫)</strong>!</span>`;
+        fsBtn?.classList.add("hidden");
+      } else {
+        const diff = freeshipThreshold - subtotal;
+        if (fsText) fsText.innerHTML = `Mua thêm <strong class="text-[#C81E1E] tabular-nums">${formatVND(diff)}</strong> để được <strong class="text-[#047857]">Miễn phí giao hàng toàn quốc</strong> (tiết kiệm 25.000 ₫)!`;
+        fsBtn?.classList.remove("hidden");
+      }
+
+      const voucherInput = document.getElementById("checkout-voucher-input");
+      if (voucherInput && voucherCode && !voucherInput.value) voucherInput.value = voucherCode;
+
+      const subEl = document.getElementById("checkout-subtotal");
+      const shipEl = document.getElementById("checkout-shipping");
+      const totalEl = document.getElementById("checkout-total");
+      const discRow = document.getElementById("checkout-discount-row");
+      const discLabel = document.getElementById("checkout-discount-label");
+      const discEl = document.getElementById("checkout-discount");
+
+      if (subEl) subEl.textContent = formatVND(subtotal);
+      if (shipEl) {
+        shipEl.textContent = shipping === 0 ? "Miễn phí (0 ₫)" : formatVND(shipping);
+        shipEl.className = shipping === 0 ? "text-[#047857] font-extrabold tabular-nums" : "text-[#0F172A] font-extrabold tabular-nums";
+      }
+      if (totalEl) totalEl.textContent = formatVND(total);
+
+      if (discount > 0 && discRow && discEl) {
+        discRow.classList.remove("hidden");
+        discRow.classList.add("flex");
+        if (discLabel) discLabel.textContent = `Mã ${voucherCode} (-10%)`;
+        discEl.textContent = "-" + formatVND(discount);
+      } else if (discRow) {
+        discRow.classList.add("hidden");
+        discRow.classList.remove("flex");
+      }
+    }
+
+    document.getElementById("btn-empty-quick-bundle")?.addEventListener("click", () => {
+      if (window.vkinnoAddToCart) {
+        window.vkinnoAddToCart(
+          "Chai Xịt Tẩy Cặn Canxi Bossman 500ml — Sạch Vách Kính & Vòi Sen Inox",
+          69000,
+          "/images/products/vk-bossman-descaler-500ml.jpg",
+          "chai-xit-tay-can-canxi-500ml-an-toan-cho-da-tay-dung-dich-tay-can-canxi-lam-sach-voi-sen-va-nha-tam",
+          1,
+          "VK-BOSSMAN-DESCALER-500ML"
+        );
+        window.vkinnoAddToCart(
+          "Chai Xịt Tẩy Dầu Mỡ Đa Năng VKINNO 500ml — Chuyên Dụng Cho Bếp Từ & Máy Hút Mùi",
+          85000,
+          "/images/products/vk-degreaser-500ml.jpg",
+          "tay-dau-mo-da-nang-cao-cap-vkinno-500ml-chuyen-dung-cho-bep-tu-bep-hong-ngoai-an-toan-be-mat-bep",
+          1,
+          "VK-DEGREASER-500ML"
+        );
+        window.vkinnoAddToCart(
+          "Nước lau kính ClearWay GlassPro 500ml sạch trong không vệt cho kính nhà & văn phòng",
+          45000,
+          "/images/products/vk-clearway-glasspro-500ml.jpg",
+          "nuoc-lau-kinh-clearway-glasspro-500ml-sach-nhanh-khong-vet-sang-bong-kinh-nha-van-phong",
+          1,
+          "VK-CLEARWAY-GLASSPRO-500ML"
+        );
+        initCheckout();
+      }
+    });
+
+    document.getElementById("btn-checkout-upsell-glass")?.addEventListener("click", () => {
+      if (window.vkinnoAddToCart) {
+        window.vkinnoAddToCart(
+          "Nước lau kính ClearWay GlassPro 500ml sạch trong không vệt cho kính nhà & văn phòng",
+          45000,
+          "/images/products/vk-clearway-glasspro-500ml.jpg",
+          "nuoc-lau-kinh-clearway-glasspro-500ml-sach-nhanh-khong-vet-sang-bong-kinh-nha-van-phong",
+          1,
+          "VK-CLEARWAY-GLASSPRO-500ML"
+        );
+        initCheckout();
+      }
+    });
+
+    document.getElementById("btn-checkout-apply-voucher")?.addEventListener("click", () => {
+      const input = document.getElementById("checkout-voucher-input");
+      const msg = document.getElementById("checkout-voucher-msg");
+      const code = input?.value?.trim().toUpperCase();
+      if (!code) {
+        sessionStorage.removeItem("vkinno_cart_voucher");
+        if (msg) msg.className = "hidden";
+        initCheckout();
+        return;
+      }
+      if (code === "KHACHCU10" || code === "VKINNO10") {
+        sessionStorage.setItem("vkinno_cart_voucher", JSON.stringify({ code }));
+        if (msg) {
+          msg.textContent = `Đã áp dụng ${code} (-10%, giữ nguyên điều kiện Freeship 199k).`;
+          msg.className = "text-xs font-semibold text-[#047857] block";
+        }
+      } else if (msg) {
+        msg.textContent = "Mã ưu đãi chưa đúng (thử mã KHACHCU10).";
+        msg.className = "text-xs font-semibold text-[#C81E1E] block";
+      }
+      initCheckout();
+    });
+
+    const labelCod = document.getElementById("label-cod");
+    const labelVietqr = document.getElementById("label-vietqr");
+    const codRadio = labelCod?.querySelector("input");
+    const vietqrRadio = labelVietqr?.querySelector("input");
+
+    labelVietqr?.addEventListener("click", () => {
+      if (vietqrRadio) vietqrRadio.checked = true;
+      labelVietqr.className = "payment-card border-2 border-[#1E2B6B] bg-[#F8FAFC] p-4 rounded-xl flex items-start space-x-3 cursor-pointer transition-all";
+      if (labelCod) labelCod.className = "payment-card border border-[#CBD5E1] bg-white p-4 rounded-xl flex items-start space-x-3 cursor-pointer transition-all hover:border-[#1E2B6B]";
+    });
+
+    labelCod?.addEventListener("click", () => {
+      if (codRadio) codRadio.checked = true;
+      labelCod.className = "payment-card border-2 border-[#1E2B6B] bg-[#F8FAFC] p-4 rounded-xl flex items-start space-x-3 cursor-pointer transition-all";
+      if (labelVietqr) labelVietqr.className = "payment-card border border-[#CBD5E1] bg-white p-4 rounded-xl flex items-start space-x-3 cursor-pointer transition-all hover:border-[#1E2B6B]";
+    });
+
+    document.querySelectorAll(".copy-qr-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const val = btn.getAttribute("data-copy-val") || "";
+        if (!val) return;
+        try {
+          await navigator.clipboard.writeText(val);
+          const orig = btn.textContent;
+          btn.textContent = "Đã chép ✓";
+          setTimeout(() => {
+            btn.textContent = orig;
+          }, 1800);
+        } catch {}
+      });
+    });
+
+    document.getElementById("btn-download-qr")?.addEventListener("click", async () => {
+      if (!currentQrUrl) return;
+      try {
+        const resp = await fetch(currentQrUrl);
+        const blob = await resp.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `VietQR-${currentOrderCode || "VKINNO"}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+      } catch {
+        window.open(currentQrUrl, "_blank", "noopener,noreferrer");
+      }
+    });
+
+    function startPaymentPolling(orderCode) {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/orders/status?code=${encodeURIComponent(orderCode)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const statusMsg = document.getElementById("succ-payment-status-msg");
+          const banner = document.getElementById("succ-payment-live-banner");
+          if (data.payment_status === "PAID") {
+            clearInterval(pollTimer);
+            if (banner) banner.className = "p-4 rounded-xl bg-[#047857] text-white text-center space-y-1 shadow-md";
+            if (statusMsg) {
+              statusMsg.className = "text-sm font-extrabold text-white";
+              statusMsg.textContent = "✅ ĐÃ NHẬN ĐỦ TIỀN QUA VIETQR — Kho VKINNO đang tiến hành đóng gói đơn hàng của bạn!";
+            }
+          } else if (data.payment_status === "PARTIAL" && statusMsg) {
+            statusMsg.textContent = `⚠️ Hệ thống đã ghi nhận ${formatVND(data.paid_amount_vnd)} / ${formatVND(data.total_vnd)}. Vui lòng chuyển bổ sung phần còn thiếu với nội dung ${orderCode}.`;
+          }
+        } catch {}
+      }, 4000);
+    }
+
+    const checkoutForm = document.getElementById("checkout-submit-form");
+    checkoutForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById("checkout-form-error");
+      errBox?.classList.add("hidden");
+
+      const consentEl = document.getElementById("order-privacy-consent");
+      if (!consentEl || !consentEl.checked) {
+        if (errBox) {
+          errBox.textContent = "Vui lòng tích chọn đồng ý xử lý dữ liệu cá nhân giao nhận hàng theo Luật BVDLCN 91/2025/QH15 trước khi đặt đơn.";
+          errBox.classList.remove("hidden");
+        }
+        return;
+      }
+
+      const cart = JSON.parse(localStorage.getItem("vkinno_cart") || "[]");
+      if (cart.length === 0) return;
+
+      const name = document.getElementById("order-name")?.value?.trim() || "";
+      const phone = document.getElementById("order-phone")?.value?.trim() || "";
+      const email = document.getElementById("order-email")?.value?.trim() || "";
+      const province = document.getElementById("order-province")?.value?.trim() || "";
+      const ward = document.getElementById("order-ward")?.value?.trim() || "";
+      const detail = document.getElementById("order-detail-addr")?.value?.trim() || "";
+      const note = document.getElementById("order-note")?.value?.trim() || "";
+      const hp = document.getElementById("checkout-hp-trap")?.value || "";
+      const method = document.querySelector("input[name='payment_method']:checked")?.value || "VIETQR";
+      const voucherCode = getActiveVoucherCode();
+
+      const submitBtn = document.getElementById("btn-submit-order");
+      const submitText = document.getElementById("btn-submit-order-text");
+      if (submitBtn) submitBtn.setAttribute("disabled", "true");
+      if (submitText) submitText.textContent = "ĐANG GỬI ĐƠN VỀ KHO...";
+
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            du_an: "chu-dong-vkinno",
+            privacy_consent: true,
+            website_url_trap: hp,
+            customer_name: name,
+            customer_phone: phone,
+            customer_email: email,
+            shipping_province: province,
+            shipping_ward: ward,
+            shipping_address_detail: detail,
+            customer_note: note,
+            payment_method: method,
+            voucher_code: voucherCode,
+            items: cart.map((i) => ({
+              sku: i.sku || "",
+              slug: i.slug || "",
+              name: i.name,
+              quantity: i.quantity,
+            })),
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || "Không thể khởi tạo đơn hàng. Vui lòng kiểm tra lại thông tin hoặc liên hệ Zalo 0938.791.389.");
+        }
+
+        const order = data.order;
+        currentOrderCode = order.order_code;
+
+        // Track purchase conversion in GTM dataLayer
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: "purchase",
+          ecommerce: {
+            transaction_id: order.order_code,
+            value: order.total_vnd,
+            currency: "VND",
+          },
+        });
+
+        localStorage.setItem("vkinno_cart", "[]");
+        sessionStorage.removeItem("vkinno_cart_voucher");
+        if (window.vkinnoUpdateCartUI) window.vkinnoUpdateCartUI();
+
+        mainView?.classList.add("hidden");
+        successView?.classList.remove("hidden");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        const succId = document.getElementById("succ-order-id");
+        const succName = document.getElementById("succ-order-name");
+        const succPhone = document.getElementById("succ-order-phone");
+        const succAddress = document.getElementById("succ-order-address");
+        const succTotal = document.getElementById("succ-order-total");
+        const succTrack = document.getElementById("btn-goto-tracking");
+
+        if (succId) succId.textContent = order.order_code;
+        if (succName) succName.textContent = name;
+        if (succPhone) succPhone.textContent = phone;
+        if (succAddress) succAddress.textContent = `${detail}, ${ward}, ${province}`;
+        if (succTotal) succTotal.textContent = formatVND(order.total_vnd);
+        if (succTrack) succTrack.setAttribute("href", `/tai-khoan?code=${encodeURIComponent(order.order_code)}&phone=${encodeURIComponent(phone)}`);
+
+        const vietqrSec = document.getElementById("succ-vietqr-section");
+        if (order.payment_method === "VIETQR" && order.vietqr) {
+          vietqrSec?.classList.remove("hidden");
+          currentQrUrl = order.vietqr.qr_url;
+          const qrImg = document.getElementById("succ-vietqr-img");
+          const memoEl = document.getElementById("succ-vietqr-memo");
+          const amtEl = document.getElementById("succ-qr-amount-text");
+          const copyAmtBtn = document.getElementById("btn-copy-amount");
+          const copyMemoBtn = document.getElementById("btn-copy-memo");
+
+          if (qrImg) qrImg.setAttribute("src", order.vietqr.qr_url);
+          if (memoEl) memoEl.textContent = order.vietqr.memo;
+          if (amtEl) amtEl.textContent = formatVND(order.total_vnd);
+          if (copyAmtBtn) copyAmtBtn.setAttribute("data-copy-val", String(order.total_vnd));
+          if (copyMemoBtn) copyMemoBtn.setAttribute("data-copy-val", order.vietqr.memo);
+
+          startPaymentPolling(order.order_code);
+        } else {
+          vietqrSec?.classList.add("hidden");
+        }
+      } catch (err) {
+        if (errBox) {
+          errBox.innerHTML = `${err.message || "Có lỗi kết nối tạm thời."} Bạn có thể nhắn trực tiếp qua <a href="https://zalo.me/0938791389" target="_blank" class="underline font-extrabold">Zalo Kho VKINNO (0938.791.389)</a> để đặt đơn ngay.`;
+          errBox.classList.remove("hidden");
+        }
+      } finally {
+        if (submitBtn) submitBtn.removeAttribute("disabled");
+        if (submitText) submitText.textContent = "XÁC NHẬN ĐẶT HÀNG";
+      }
+    });
+
+    initCheckout();
+  </script>
+</Layout>

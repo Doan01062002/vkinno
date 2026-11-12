@@ -1,0 +1,498 @@
+---
+import SEOHead from "../components/SEOHead.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { products } from "../data/products";
+import { SITE_CONFIG } from "../data/siteConfig";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  type?: "website" | "article" | "product";
+  noindex?: boolean;
+  hideFloatingZaloOnMobile?: boolean;
+  schemaData?: Record<string, unknown> | Array<Record<string, unknown>>;
+}
+
+const {
+  title = "VKINNO - Chất Tẩy Rửa Sinh Học & Chăm Sóc Ô Tô Chuyên Dụng",
+  description = "Công ty TNHH Công nghệ Vĩnh Khang (VKINNO) chuyên sản xuất chất tẩy rửa sinh học nền Nước Deion: tẩy cặn canxi Bossman, tẩy dầu mỡ không xút, lau kính ClearWay và vệ sinh pin mặt trời Solar Shield.",
+  ogImage = SITE_CONFIG.defaultOgImage,
+  canonicalUrl,
+  type = "website",
+  noindex = false,
+  hideFloatingZaloOnMobile = false,
+  schemaData,
+} = Astro.props;
+
+const searchCatalog = products.map((p) => ({
+  id: p.id,
+  name: p.name,
+  slug: p.slug,
+  sku: p.sku,
+  price_vnd: p.price_vnd,
+  listed_price_vnd: p.listed_price_vnd,
+  image_url: p.image_url,
+  category_name: p.category_name,
+  brand: p.brand || "VKINNO",
+  is_combo: !!p.is_combo,
+}));
+---
+
+<!doctype html>
+<html lang="vi" class="h-full scroll-smooth">
+  <head>
+    <SEOHead
+      title={title}
+      description={description}
+      image={ogImage}
+      canonicalUrl={canonicalUrl}
+      type={type}
+      noindex={noindex}
+      schema={schemaData}
+    />
+  </head>
+
+  <body class="has-storefront-shell h-full bg-[#F8FAFC] text-[#1E293B] font-inter antialiased overflow-x-hidden flex flex-col justify-between">
+    <Header />
+
+    <main class="flex-grow" id="site-main">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <!-- Floating Zalo Direct Support Pill (Hidden on mobile conversion pages to prevent CTA overlap) -->
+    <a
+      href={SITE_CONFIG.zaloUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Nhắn Zalo tư vấn kỹ thuật VKINNO"
+      class={`${
+        hideFloatingZaloOnMobile ? "hidden lg:inline-flex" : "inline-flex"
+      } fixed right-4 bottom-[76px] lg:bottom-6 lg:right-6 z-[130] items-center gap-2 px-4 min-h-[46px] rounded-full bg-[#0052CC] hover:bg-blue-700 text-white font-display font-bold text-xs shadow-lg transition-transform hover:scale-105`}
+    >
+      <i class="fa-solid fa-comment-dots text-base" aria-hidden="true"></i>
+      <span>Zalo Tư Vấn</span>
+    </a>
+
+    <!-- ==================== SLIDE-OVER CART DRAWER ==================== -->
+    <div class="cart-drawer-backdrop" id="cart-backdrop"></div>
+    <aside class="cart-drawer" id="cart-drawer" aria-label="Giỏ hàng của bạn">
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-[#1E2B6B] text-white flex items-center justify-center font-bold">
+            <i class="fa-solid fa-basket-shopping text-sm" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-extrabold text-slate-900 uppercase tracking-wide font-display">
+              Giỏ hàng của bạn
+            </h2>
+            <p class="text-xs text-slate-500 font-medium">Freeship toàn quốc từ 199.000 ₫</p>
+          </div>
+        </div>
+        <button
+          aria-label="Đóng giỏ hàng"
+          class="text-slate-600 hover:text-slate-900 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+          id="cart-drawer-close"
+          type="button"
+        >
+          <i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <!-- Dynamic Freeship 199k Progress + 1-Tap Upsell -->
+      <div id="cart-drawer-freeship-box" class="px-4 py-3 bg-[#F3F6FC] border-b border-slate-200 text-xs space-y-2">
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50" id="cart-items-container">
+      </div>
+
+      <div class="p-4 sm:p-5 border-t border-slate-200 bg-white space-y-3 shadow-lg">
+        <div class="flex items-center justify-between text-xs text-slate-600 font-semibold">
+          <span>Phí vận chuyển dự kiến:</span>
+          <span class="font-bold tabular-nums" id="cart-drawer-shipping">25.000 ₫</span>
+        </div>
+        <div class="flex items-center justify-between text-sm font-bold text-slate-800">
+          <span>Tạm tính đơn hàng:</span>
+          <span class="text-lg font-extrabold text-[#C81E1E] tabular-nums" id="cart-drawer-total">0 ₫</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <a
+            href="/gio-hang"
+            class="min-h-[46px] rounded-xl border border-slate-300 text-slate-800 hover:bg-slate-100 font-display font-bold text-xs flex items-center justify-center"
+          >
+            Xem giỏ hàng
+          </a>
+          <button
+            type="button"
+            class="min-h-[46px] px-3 btn-cta-orange rounded-xl text-xs font-display font-extrabold uppercase tracking-wide shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+            id="cart-checkout-btn"
+          >
+            <span>Thanh toán</span>
+            <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Global Cart & Live Catalog Sync Script -->
+    <script is:inline define:vars={{ searchCatalog }}>
+      const FREESHIP_THRESHOLD = 199000;
+      const FLAT_SHIPPING = 25000;
+
+      window.vkinnoCatalog = searchCatalog;
+
+      let cart = [];
+      try {
+        const raw = JSON.parse(localStorage.getItem("vkinno_cart") || "[]");
+        if (Array.isArray(raw)) {
+          cart = raw.map((item) => {
+            const matched = searchCatalog.find(
+              (p) => p.sku === item.sku || p.slug === item.slug || p.name === item.name
+            );
+            if (matched) {
+              return {
+                sku: matched.sku,
+                name: matched.name,
+                price: matched.price_vnd,
+                image: matched.image_url,
+                slug: matched.slug,
+                quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+              };
+            }
+            return item;
+          });
+        }
+      } catch {
+        cart = [];
+      }
+
+      function saveCart() {
+        localStorage.setItem("vkinno_cart", JSON.stringify(cart));
+        updateCartUI();
+        window.dispatchEvent(new CustomEvent("vkinno:cart-updated", { detail: { cart } }));
+      }
+
+      window.vkinnoGetCart = function () {
+        return cart;
+      };
+
+      window.vkinnoShowToast = function (msg) {
+        const existing = document.querySelector(".app-toast");
+        if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+        const s = document.createElement("div");
+        s.className =
+          "app-toast fixed top-20 right-4 z-[260] bg-[#0F1638] text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold border border-white/15 max-w-sm";
+        s.innerHTML = `<i class="fa-solid fa-circle-check text-[#FF8A15] text-base shrink-0"></i><span></span>`;
+        s.querySelector("span").textContent = msg;
+        document.body.appendChild(s);
+        setTimeout(() => {
+          if (s.parentNode) s.parentNode.removeChild(s);
+        }, 2800);
+      };
+
+      window.vkinnoApplyBo3ToanGia = function () {
+        const skus = [
+          "VK-BOSSMAN-DESCALER-500ML",
+          "VK-DEGREASER-500ML",
+          "VK-CLEARWAY-GLASSPRO-500ML",
+        ];
+        // Remove single Combo if upgrading from Combo 145k -> Bo 3 Toan Gia 199k
+        cart = cart.filter((it) => it.sku !== "VK-COMBO-BOSSMAN-VKINNO-500ML");
+        skus.forEach((sku) => {
+          const prod = window.vkinnoCatalog.find((p) => p.sku === sku);
+          if (!prod) return;
+          const ex = cart.find((it) => it.sku === sku);
+          if (!ex) {
+            cart.push({
+              sku: prod.sku,
+              name: prod.name,
+              price: prod.price_vnd,
+              image: prod.image_url,
+              slug: prod.slug,
+              quantity: 1,
+            });
+          }
+        });
+        saveCart();
+        window.vkinnoShowToast("Đã nâng lên Bộ 3 Toàn Gia 199.000 ₫ — Mở khóa FREESHIP 0đ!");
+      };
+
+      window.vkinnoQuickAddSku = function (sku, qty = 1) {
+        const prod = window.vkinnoCatalog.find((p) => p.sku === sku);
+        if (!prod) return;
+        window.vkinnoAddToCart(prod.name, prod.price_vnd, prod.image_url, prod.slug, qty, prod.sku);
+      };
+
+      function renderFreeshipBox(subtotal) {
+        const box = document.getElementById("cart-drawer-freeship-box");
+        if (!box) return;
+        const pct = Math.min(100, Math.round((subtotal / FREESHIP_THRESHOLD) * 100));
+        if (subtotal === 0) {
+          box.innerHTML = `
+            <div class="flex items-center justify-between font-semibold text-slate-700">
+              <span>🚚 Đơn từ <strong class="text-[#1E2B6B]">199.000 ₫</strong> miễn phí giao hàng toàn quốc</span>
+            </div>
+            <button type="button" onclick="window.vkinnoApplyBo3ToanGia()" class="w-full min-h-[40px] px-3 py-2 rounded-xl bg-white border border-[#1E2B6B]/20 hover:border-[#FF8A15] text-[#1E2B6B] font-display font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+              <span>⚡ Chọn nhanh Bộ 3 Toàn Gia 199.000 ₫ (Đủ Freeship)</span>
+            </button>
+          `;
+          return;
+        }
+        if (subtotal >= FREESHIP_THRESHOLD) {
+          box.innerHTML = `
+            <div class="flex items-center gap-2 text-[#047857] font-bold">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Tuyệt vời! Đơn hàng đã được MIỄN PHÍ VẬN CHUYỂN (tiết kiệm 25.000 ₫)</span>
+            </div>
+            <div class="w-full h-2 bg-emerald-100 rounded-full overflow-hidden">
+              <div class="h-full bg-[#047857] rounded-full transition-all" style="width: 100%"></div>
+            </div>
+          `;
+          return;
+        }
+        const remain = FREESHIP_THRESHOLD - subtotal;
+        box.innerHTML = `
+          <div class="flex items-center justify-between text-slate-800">
+            <span>Mua thêm <strong class="text-[#C81E1E] tabular-nums">${remain.toLocaleString("vi-VN")} ₫</strong> để được <strong class="text-[#047857]">FREESHIP 0đ</strong></span>
+            <span class="font-bold text-[#1E2B6B] tabular-nums">${pct}%</span>
+          </div>
+          <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div class="h-full bg-[#FF8A15] rounded-full transition-all" style="width: ${pct}%"></div>
+          </div>
+          <div class="pt-1 flex flex-wrap gap-1.5">
+            <button type="button" onclick="window.vkinnoApplyBo3ToanGia()" class="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-lg bg-[#FF8A15] text-[#0F1638] font-display font-bold text-[11px] cursor-pointer">
+              ⚡ Bộ 3 Toàn Gia 199k (Freeship)
+            </button>
+            <button type="button" onclick="window.vkinnoQuickAddSku('VK-CLEARWAY-GLASSPRO-500ML', 1)" class="min-h-[38px] px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-[11px] cursor-pointer">
+              + Lau kính 45k
+            </button>
+            <button type="button" onclick="window.vkinnoQuickAddSku('VK-BOTTLE-SPRAY-500ML', 1)" class="min-h-[38px] px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-[11px] cursor-pointer">
+              + Bình xịt 19k
+            </button>
+          </div>
+        `;
+      }
+
+      function updateCartUI() {
+        const totalCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        const subtotal = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+        const shipFee = subtotal === 0 ? 0 : subtotal >= FREESHIP_THRESHOLD ? 0 : FLAT_SHIPPING;
+
+        ["cart-badge-count", "bottom-cart-badge-count"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (totalCount > 0) {
+            el.textContent = String(totalCount);
+            el.classList.remove("hidden");
+            el.classList.add("flex");
+          } else {
+            el.classList.add("hidden");
+            el.classList.remove("flex");
+          }
+        });
+
+        renderFreeshipBox(subtotal);
+
+        const shipEl = document.getElementById("cart-drawer-shipping");
+        if (shipEl) {
+          shipEl.textContent =
+            subtotal === 0
+              ? "—"
+              : shipFee === 0
+              ? "Miễn phí (0 ₫)"
+              : shipFee.toLocaleString("vi-VN") + " ₫";
+          shipEl.className =
+            shipFee === 0 && subtotal > 0
+              ? "font-extrabold text-[#047857] tabular-nums"
+              : "font-bold text-slate-800 tabular-nums";
+        }
+
+        const totalEl = document.getElementById("cart-drawer-total");
+        if (totalEl) {
+          totalEl.textContent = (subtotal + shipFee).toLocaleString("vi-VN") + " ₫";
+        }
+
+        const container = document.getElementById("cart-items-container");
+        if (!container) return;
+
+        if (cart.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-10 text-slate-500 space-y-3">
+              <i class="fa-solid fa-basket-shopping text-3xl text-slate-300"></i>
+              <p class="text-xs font-semibold">Giỏ hàng của bạn đang trống</p>
+              <a href="/san-pham" class="inline-flex items-center justify-center min-h-[42px] px-4 py-2 bg-[#1E2B6B] text-white text-xs font-display font-bold rounded-xl hover:bg-[#151E4B]">
+                Xem 9 sản phẩm VKINNO
+              </a>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = cart
+          .map(
+            (item, idx) => `
+          <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+            <img src="${item.image || "/logo.png"}" alt="${item.name}" width="56" height="56" class="w-14 h-14 object-cover rounded-lg bg-slate-50 shrink-0 border border-slate-200" />
+            <div class="flex-1 min-w-0">
+              <h3 class="text-xs font-bold text-slate-900 line-clamp-2">${item.name}</h3>
+              <p class="text-xs font-extrabold text-[#C81E1E] mt-0.5 tabular-nums">${Number(item.price).toLocaleString("vi-VN")} ₫</p>
+              <div class="flex items-center space-x-2 mt-1.5">
+                <button type="button" aria-label="Giảm số lượng" onclick="window.vkinnoUpdateCartQty(${idx}, -1)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-sm font-bold text-slate-800 cursor-pointer">−</button>
+                <span class="text-xs font-bold text-slate-900 min-w-[20px] text-center tabular-nums">${item.quantity}</span>
+                <button type="button" aria-label="Tăng số lượng" onclick="window.vkinnoUpdateCartQty(${idx}, 1)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-sm font-bold text-slate-800 cursor-pointer">+</button>
+              </div>
+            </div>
+            <button type="button" aria-label="Xóa khỏi giỏ" onclick="window.vkinnoRemoveCartItem(${idx})" class="text-slate-500 hover:text-[#C81E1E] w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors cursor-pointer" title="Xóa">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      window.vkinnoUpdateCartUI = updateCartUI;
+
+      const drawer = document.getElementById("cart-drawer");
+      const backdrop = document.getElementById("cart-backdrop");
+      const cartClose = document.getElementById("cart-drawer-close");
+
+      function openCartDrawer() {
+        if (!drawer || !backdrop) return;
+        backdrop.classList.add("active");
+        drawer.classList.add("active");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeCartDrawer() {
+        if (!drawer || !backdrop) return;
+        backdrop.classList.remove("active");
+        drawer.classList.remove("active");
+        document.body.style.overflow = "";
+      }
+
+      window.vkinnoOpenCartDrawer = openCartDrawer;
+      window.vkinnoCloseCartDrawer = closeCartDrawer;
+
+      cartClose?.addEventListener("click", closeCartDrawer);
+      backdrop?.addEventListener("click", closeCartDrawer);
+
+      window.vkinnoAddToCart = function (name, price, image, slug, qty = 1, skuHint = null) {
+        const quantity = Math.max(1, parseInt(qty, 10) || 1);
+        const match = window.vkinnoCatalog.find(
+          (p) => p.sku === skuHint || p.slug === slug || p.name === name
+        );
+        const resolvedSku = match ? match.sku : skuHint || slug || name;
+        const resolvedName = match ? match.name : name;
+        const resolvedPrice = match ? match.price_vnd : Number(price) || 0;
+        const resolvedImage = match ? match.image_url : image || "/logo.png";
+        const resolvedSlug = match ? match.slug : slug || "";
+
+        const existing = cart.find((item) => item.sku === resolvedSku || item.name === resolvedName);
+        if (existing) {
+          existing.sku = resolvedSku;
+          existing.price = resolvedPrice;
+          existing.image = resolvedImage;
+          existing.quantity += quantity;
+        } else {
+          cart.push({
+            sku: resolvedSku,
+            name: resolvedName,
+            price: resolvedPrice,
+            image: resolvedImage,
+            slug: resolvedSlug,
+            quantity,
+          });
+        }
+        saveCart();
+        window.vkinnoShowToast(`Đã thêm "${resolvedName}" vào giỏ hàng!`);
+      };
+
+      window.vkinnoUpdateCartQty = function (index, delta) {
+        if (!cart[index]) return;
+        cart[index].quantity += delta;
+        if (cart[index].quantity <= 0) cart.splice(index, 1);
+        saveCart();
+      };
+
+      window.vkinnoRemoveCartItem = function (index) {
+        cart.splice(index, 1);
+        saveCart();
+      };
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-add-cart-btn]");
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const sku = btn.getAttribute("data-sku");
+        const name = btn.getAttribute("data-name");
+        const price = Number(btn.getAttribute("data-price") || 0);
+        const image = btn.getAttribute("data-image");
+        const slug = btn.getAttribute("data-slug");
+        window.vkinnoAddToCart(name, price, image, slug, 1, sku);
+        openCartDrawer();
+      });
+
+      document.getElementById("cart-checkout-btn")?.addEventListener("click", () => {
+        if (cart.length === 0) {
+          window.vkinnoShowToast("Giỏ hàng đang trống. Vui lòng chọn sản phẩm trước.");
+          return;
+        }
+        closeCartDrawer();
+        window.location.href = "/thanh-toan";
+      });
+
+      updateCartUI();
+
+      // Live Price & Stock Sync from D1 Worker (/api/products) when Worker runtime is active
+      (async function syncLiveCatalog() {
+        try {
+          const resp = await fetch("/api/products.json", { headers: { Accept: "application/json" } });
+          if (!resp.ok) return;
+          const ct = resp.headers.get("content-type") || "";
+          if (!ct.includes("application/json")) return;
+          const data = await resp.json();
+          if (!data || !Array.isArray(data.products)) return;
+
+          let cartChanged = false;
+          data.products.forEach((lp) => {
+            const catItem = window.vkinnoCatalog.find((c) => c.sku === lp.sku);
+            if (catItem) {
+              catItem.price_vnd = lp.price_vnd;
+              catItem.listed_price_vnd = lp.listed_price_vnd;
+              catItem.available_stock = lp.available_stock;
+            }
+            document.querySelectorAll(`[data-live-price="${lp.sku}"]`).forEach((el) => {
+              el.textContent = Number(lp.price_vnd).toLocaleString("vi-VN") + " ₫";
+            });
+            document.querySelectorAll(`[data-live-listed="${lp.sku}"]`).forEach((el) => {
+              el.textContent = Number(lp.listed_price_vnd).toLocaleString("vi-VN") + " ₫";
+            });
+            document.querySelectorAll(`[data-live-stock="${lp.sku}"]`).forEach((el) => {
+              el.textContent =
+                lp.available_stock > 0
+                  ? `Còn ${lp.available_stock} sản phẩm tại kho Hoài Đức`
+                  : "Tạm hết hàng";
+            });
+            cart.forEach((ci) => {
+              if (ci.sku === lp.sku && ci.price !== lp.price_vnd) {
+                ci.price = lp.price_vnd;
+                cartChanged = true;
+              }
+            });
+          });
+          if (cartChanged) saveCart();
+          window.dispatchEvent(new CustomEvent("vkinno:catalog-synced", { detail: data.products }));
+        } catch {
+          // Static fallback remains active seamlessly
+        }
+      })();
+    </script>
+  </body>
+</html>

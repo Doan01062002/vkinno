@@ -1,0 +1,14 @@
+/cua-hang /san-pham 301
+/tra-cuu-don-hang /tai-khoan 301
+/don-hang /tai-khoan 301
+/tin-tuc /cam-nang 301
+/tin-tuc/:slug /cam-nang/:slug 301
+/bossman-creator.html /bossman-creator 301
+/chinh-sach-bao-hanh /chinh-sach/chinh-sach-bao-hanh 301
+/chinh-sach-bao-mat /chinh-sach/chinh-sach-bao-mat 301
+/chinh-sach-doi-tra /chinh-sach/chinh-sach-doi-tra 301
+/chinh-sach-van-chuyen /chinh-sach/chinh-sach-van-chuyen 301
+/giai-quyet-khieu-nai /chinh-sach/giai-quyet-khieu-nai 301
+/hang-hoa-gia-ca /chinh-sach/hang-hoa-gia-ca 301
+/huong-dan-thanh-toan /chinh-sach/huong-dan-thanh-toan 301
+/so-huu-dieu-khoan /chinh-sach/so-huu-dieu-khoan 301

@@ -1,0 +1,92 @@
+---
+import type { Product } from "../types";
+
+interface Props {
+  product: Product;
+}
+
+const { product } = Astro.props;
+
+const discountPercent =
+  product.listed_price_vnd && product.listed_price_vnd > product.price_vnd
+    ? Math.round(((product.listed_price_vnd - product.price_vnd) / product.listed_price_vnd) * 100)
+    : 0;
+---
+
+<article
+  class="group relative bg-white rounded-2xl overflow-hidden shadow-xs border border-slate-200 hover:border-[#FF8A15] hover:shadow-lg transition-all duration-200 flex flex-col justify-between"
+  data-product-card
+  data-name={product.name}
+  data-sku={product.sku}
+  data-price={product.price_vnd}
+>
+  <div class="relative">
+    {discountPercent > 0 && (
+      <span class="absolute top-3 left-3 bg-[#C81E1E] text-white text-xs font-extrabold px-2.5 py-1 rounded-full z-10 shadow-xs tabular-nums">
+        -{discountPercent}%
+      </span>
+    )}
+    {product.is_combo && (
+      <span class="absolute top-3 right-3 bg-[#FF8A15] text-[#0F1638] text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-full z-10 shadow-xs">
+        Combo Tiết Kiệm
+      </span>
+    )}
+
+    <a href={`/san-pham/${product.slug}`} class="block relative w-full aspect-square overflow-hidden bg-slate-50">
+      <img
+        alt={product.name}
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        loading="lazy"
+        width="400"
+        height="400"
+        src={product.image_url}
+      />
+    </a>
+  </div>
+
+  <div class="p-4 flex-grow flex flex-col justify-between space-y-3">
+    <div class="space-y-1.5">
+      <span class="text-xs font-bold text-[#A84B00] uppercase tracking-wide block">
+        {product.volume_ml >= 5000 ? "Can 5L Tiết Kiệm • VAT 8%" : product.brand || "VKINNO"}
+      </span>
+      <h3 class="text-slate-900 font-display font-bold text-sm line-clamp-2 leading-snug">
+        <a href={`/san-pham/${product.slug}`} class="hover:text-[#1E2B6B] transition-colors">
+          {product.name}
+        </a>
+      </h3>
+    </div>
+
+    <div class="pt-1 space-y-2.5">
+      <div class="flex items-baseline gap-2 flex-wrap">
+        <span
+          class="text-[#C81E1E] font-display font-extrabold text-base sm:text-lg tabular-nums"
+          data-live-price={product.sku}
+        >
+          {product.price_vnd.toLocaleString("vi-VN")} ₫
+        </span>
+        {product.listed_price_vnd && product.listed_price_vnd > product.price_vnd && (
+          <span
+            class="text-slate-500 line-through text-xs font-medium tabular-nums"
+            data-live-listed={product.sku}
+          >
+            {product.listed_price_vnd.toLocaleString("vi-VN")} ₫
+          </span>
+        )}
+      </div>
+
+      <button
+        type="button"
+        data-add-cart-btn
+        data-sku={product.sku}
+        data-name={product.name}
+        data-price={product.price_vnd}
+        data-image={product.image_url}
+        data-slug={product.slug}
+        class="w-full min-h-[44px] px-3 py-2 rounded-xl bg-[#F3F6FC] hover:bg-[#FF8A15] text-[#1E2B6B] hover:text-[#0F1638] font-display font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer border border-slate-200 hover:border-[#FF8A15]"
+      >
+        <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
+        <span>Thêm vào giỏ</span>
+      </button>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,276 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE_CONFIG } from "../data/siteConfig";
+---
+
+<Layout
+  title="Tra Cứu Đơn Hàng Chính Hãng - VKINNO"
+  description="Kiểm tra trạng thái thanh toán VietQR, tiến độ đóng gói tại kho và vận chuyển đơn hàng VKINNO bằng Mã đơn VKxxxx và Số điện thoại."
+>
+  <div class="w-full min-h-screen bg-[#F8FAFC] py-8 sm:py-12 font-inter">
+    <div class="max-w-4xl mx-auto px-4 sm:px-8 space-y-8">
+      <!-- Breadcrumbs -->
+      <nav class="flex items-center space-x-2 text-xs font-semibold text-[#475569]" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-[#1E2B6B] transition-colors">Trang chủ</a>
+        <span>/</span>
+        <span class="text-[#0F172A] font-bold">Tra cứu đơn hàng</span>
+      </nav>
+
+      <!-- Lookup Card -->
+      <div class="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6 sm:p-8 space-y-6">
+        <div class="space-y-2 text-center max-w-xl mx-auto">
+          <div class="w-14 h-14 rounded-2xl bg-[#EEF2FF] text-[#1E2B6B] flex items-center justify-center mx-auto text-2xl">
+            <i class="fa-solid fa-magnifying-glass-location"></i>
+          </div>
+          <h1 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] uppercase tracking-wide font-montserrat">
+            TRA CỨU TRẠNG THÁI ĐƠN HÀNG VKINNO
+          </h1>
+          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+            Nhập <strong>Mã đơn hàng (VD: VK2408)</strong> và <strong>Số điện thoại nhận hàng</strong> để xem tiến độ đóng gói tại kho Vĩnh Khang và đối soát thanh toán VietQR thời gian thực.
+          </p>
+        </div>
+
+        <form id="track-order-form" data-du-an="chu-dong-vkinno" class="max-w-xl mx-auto space-y-4">
+          <input type="hidden" name="du_an" value="chu-dong-vkinno" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label for="track-code" class="block text-xs font-extrabold text-[#334155] uppercase">Mã đơn hàng *</label>
+              <input
+                type="text"
+                id="track-code"
+                name="order_code"
+                required
+                placeholder="Ví dụ: VK1234"
+                class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-extrabold uppercase bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white text-[#0F172A] tabular-nums"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label for="track-phone" class="block text-xs font-extrabold text-[#334155] uppercase">Số điện thoại nhận hàng *</label>
+              <input
+                type="tel"
+                id="track-phone"
+                name="customer_phone"
+                required
+                placeholder="Ví dụ: 0938791389"
+                class="w-full p-3 border border-[#CBD5E1] rounded-xl text-base font-bold bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white text-[#0F172A] tabular-nums"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            id="btn-track-submit"
+            data-cta="track-order"
+            class="w-full min-h-[48px] bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-sm uppercase tracking-wider rounded-xl py-3.5 px-6 transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-2 font-montserrat"
+          >
+            <i class="fa-solid fa-truck-fast"></i>
+            <span id="btn-track-text">KIỂM TRA ĐƠN HÀNG NGAY</span>
+          </button>
+        </form>
+
+        <div id="track-error-box" class="hidden max-w-xl mx-auto p-4 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs sm:text-sm font-bold text-[#991B1B] text-center"></div>
+      </div>
+
+      <!-- Result Card -->
+      <div id="track-result-card" class="hidden bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6 sm:p-8 space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
+          <div>
+            <span class="text-xs font-bold text-[#475569] uppercase">Mã đơn hàng chính hãng</span>
+            <h2 class="text-xl font-black text-[#1E2B6B] font-montserrat tabular-nums" id="res-order-code">VK0000</h2>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="res-payment-badge" class="px-3 py-1 rounded-full text-xs font-extrabold"></span>
+            <span id="res-status-badge" class="px-3 py-1 rounded-full text-xs font-extrabold"></span>
+          </div>
+        </div>
+
+        <!-- 4-Step Visual Progress -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="res-timeline-steps"></div>
+
+        <!-- Order Details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs sm:text-sm">
+            <h3 class="font-extrabold text-[#0F172A] uppercase text-xs tracking-wider pb-1 border-b border-[#E2E8F0]">Thông tin giao nhận</h3>
+            <p><span class="text-[#475569]">Người nhận:</span> <strong class="text-[#0F172A]" id="res-cust-name"></strong></p>
+            <p><span class="text-[#475569]">Số điện thoại:</span> <strong class="text-[#0F172A] tabular-nums" id="res-cust-phone"></strong></p>
+            <p><span class="text-[#475569]">Địa chỉ:</span> <strong class="text-[#0F172A]" id="res-cust-addr"></strong></p>
+            <p id="res-tracking-row" class="hidden"><span class="text-[#475569]">Mã vận đơn:</span> <strong class="text-[#1E2B6B] tabular-nums" id="res-tracking-code"></strong></p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs sm:text-sm">
+            <h3 class="font-extrabold text-[#0F172A] uppercase text-xs tracking-wider pb-1 border-b border-[#E2E8F0]">Chi tiết thanh toán</h3>
+            <div id="res-items-list" class="space-y-1.5 pb-2 border-b border-[#E2E8F0]"></div>
+            <div class="flex justify-between pt-1">
+              <span class="font-bold text-[#0F172A]">Tổng cộng:</span>
+              <strong class="text-base font-black text-[#C81E1E] tabular-nums" id="res-total-vnd"></strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Unpaid VietQR Reminder if applicable -->
+        <div id="res-vietqr-box" class="hidden p-5 rounded-2xl bg-[#ECFDF5]/60 border border-[#10B981] flex flex-col sm:flex-row items-center gap-6">
+          <img id="res-vietqr-img" src="/logo.png" alt="Mã VietQR thanh toán đơn hàng" width="160" height="160" class="w-40 h-40 rounded-xl bg-white p-2 border border-[#A7F3D0] object-contain shrink-0" />
+          <div class="space-y-1.5 text-xs sm:text-sm text-[#0F172A]">
+            <h3 class="font-extrabold text-[#047857] uppercase">Quét mã VietQR để hoàn tất thanh toán</h3>
+            <p>Ngân hàng: <strong>Vietcombank — STK {SITE_CONFIG.bankAccountNumber}</strong></p>
+            <p>Chủ TK: <strong>{SITE_CONFIG.bankAccountName}</strong></p>
+            <p>Nội dung chuyển khoản chính xác: <strong class="text-[#C81E1E] bg-white px-2 py-0.5 rounded border border-[#FECACA] tabular-nums" id="res-vietqr-memo"></strong></p>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-[#E2E8F0] text-xs text-[#475569] flex flex-wrap items-center justify-between gap-2">
+          <span>Cần hỗ trợ đổi địa chỉ hoặc xuất hóa đơn VAT 8%?</span>
+          <a href={SITE_CONFIG.zaloUrl} target="_blank" rel="noopener noreferrer" class="font-extrabold text-[#1E2B6B] underline">
+            Nhắn Zalo Kho VKINNO ({SITE_CONFIG.hotlinePrimary}) →
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const formatVND = (num: number) => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " ₫";
+
+    const STATUS_MAP: Record<string, { label: string; badgeClass: string; step: number }> = {
+      PENDING: { label: "Chờ đóng gói", badgeClass: "bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]", step: 1 },
+      PACKED: { label: "Đã đóng gói tại kho", badgeClass: "bg-[#EEF2FF] text-[#1E2B6B] border border-[#C7D2FE]", step: 2 },
+      SHIPPING: { label: "Đang giao vận chuyển", badgeClass: "bg-[#E0F2FE] text-[#075985] border border-[#BAE6FD]", step: 3 },
+      COMPLETED: { label: "Giao thành công", badgeClass: "bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]", step: 4 },
+      CANCELLED: { label: "Đã hủy đơn", badgeClass: "bg-[#FEF2F2] text-[#991B1B] border border-[#FECACA]", step: 0 },
+      RETURNED: { label: "Đã hoàn kho", badgeClass: "bg-[#FEF2F2] text-[#991B1B] border border-[#FECACA]", step: 0 },
+    };
+
+    const PAY_MAP: Record<string, { label: string; cls: string }> = {
+      PAID: { label: "✓ Đã thanh toán", cls: "bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]" },
+      PARTIAL: { label: "Thanh toán 1 phần", cls: "bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]" },
+      UNPAID: { label: "Chờ thanh toán / COD", cls: "bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1]" },
+      REFUNDED: { label: "Đã hoàn tiền", cls: "bg-[#FEF2F2] text-[#991B1B] border border-[#FECACA]" },
+    };
+
+    async function lookupOrder(code: string, phone: string) {
+      const errBox = document.getElementById("track-error-box");
+      const resCard = document.getElementById("track-result-card");
+      const btnText = document.getElementById("btn-track-text");
+
+      errBox?.classList.add("hidden");
+      resCard?.classList.add("hidden");
+      if (btnText) btnText.textContent = "ĐANG TRA CỨU...";
+
+      try {
+        const res = await fetch(`/api/orders/track?code=${encodeURIComponent(code)}&phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || "Không tìm thấy đơn hàng khớp Mã đơn và Số điện thoại bạn nhập.");
+        }
+
+        const o = data.order;
+        resCard?.classList.remove("hidden");
+
+        const codeEl = document.getElementById("res-order-code");
+        const statusBadge = document.getElementById("res-status-badge");
+        const payBadge = document.getElementById("res-payment-badge");
+
+        const st = STATUS_MAP[o.order_status] || STATUS_MAP.PENDING;
+        const pm = PAY_MAP[o.payment_status] || PAY_MAP.UNPAID;
+
+        if (codeEl) codeEl.textContent = o.order_code;
+        if (statusBadge) {
+          statusBadge.textContent = st.label;
+          statusBadge.className = `px-3 py-1 rounded-full text-xs font-extrabold ${st.badgeClass}`;
+        }
+        if (payBadge) {
+          payBadge.textContent = o.payment_method === "COD" && o.payment_status === "UNPAID" ? "Thanh toán khi nhận (COD)" : pm.label;
+          payBadge.className = `px-3 py-1 rounded-full text-xs font-extrabold ${pm.cls}`;
+        }
+
+        const stepsWrap = document.getElementById("res-timeline-steps");
+        const stepTitles = ["1. Tiếp nhận đơn", "2. Đóng gói tại kho", "3. Đang vận chuyển", "4. Giao thành công"];
+        if (stepsWrap) {
+          stepsWrap.innerHTML = stepTitles
+            .map((title, idx) => {
+              const active = st.step >= idx + 1;
+              return `
+                <div class="p-3 rounded-xl border text-xs font-bold ${
+                  active ? "bg-[#ECFDF5] border-[#10B981] text-[#047857]" : "bg-[#F8FAFC] border-[#E2E8F0] text-[#64748B]"
+                }">
+                  ${active ? "✓ " : ""}${title}
+                </div>
+              `;
+            })
+            .join("");
+        }
+
+        const cName = document.getElementById("res-cust-name");
+        const cPhone = document.getElementById("res-cust-phone");
+        const cAddr = document.getElementById("res-cust-addr");
+        const tRow = document.getElementById("res-tracking-row");
+        const tCode = document.getElementById("res-tracking-code");
+        const itemsEl = document.getElementById("res-items-list");
+        const totalEl = document.getElementById("res-total-vnd");
+
+        if (cName) cName.textContent = o.customer_name;
+        if (cPhone) cPhone.textContent = o.customer_phone_masked || phone;
+        if (cAddr) cAddr.textContent = [o.shipping_address_detail, o.shipping_ward, o.shipping_province].filter(Boolean).join(", ");
+
+        if (o.shipping_tracking_code && tRow && tCode) {
+          tRow.classList.remove("hidden");
+          tCode.textContent = `${o.shipping_carrier ? o.shipping_carrier + " - " : ""}${o.shipping_tracking_code}`;
+        } else {
+          tRow?.classList.add("hidden");
+        }
+
+        if (itemsEl && Array.isArray(o.items)) {
+          itemsEl.innerHTML = o.items
+            .map(
+              (it: any) => `
+              <div class="flex justify-between gap-2">
+                <span class="text-[#334155] line-clamp-1">${it.quantity}× ${it.product_name}</span>
+                <strong class="text-[#0F172A] shrink-0 tabular-nums">${formatVND(it.line_total_vnd)}</strong>
+              </div>
+            `
+            )
+            .join("");
+        }
+        if (totalEl) totalEl.textContent = formatVND(o.total_vnd);
+
+        const qrBox = document.getElementById("res-vietqr-box");
+        if (o.payment_method === "VIETQR" && o.payment_status !== "PAID" && o.vietqr_url) {
+          qrBox?.classList.remove("hidden");
+          const qrImg = document.getElementById("res-vietqr-img");
+          const qrMemo = document.getElementById("res-vietqr-memo");
+          if (qrImg) qrImg.setAttribute("src", o.vietqr_url);
+          if (qrMemo) qrMemo.textContent = o.order_code;
+        } else {
+          qrBox?.classList.add("hidden");
+        }
+      } catch (err: any) {
+        if (errBox) {
+          errBox.textContent = err.message || "Không tìm thấy đơn hàng. Vui lòng kiểm tra lại Mã đơn VKxxxx và Số điện thoại.";
+          errBox.classList.remove("hidden");
+        }
+      } finally {
+        if (btnText) btnText.textContent = "KIỂM TRA ĐƠN HÀNG NGAY";
+      }
+    }
+
+    const form = document.getElementById("track-order-form");
+    const codeInput = document.getElementById("track-code") as HTMLInputElement | null;
+    const phoneInput = document.getElementById("track-phone") as HTMLInputElement | null;
+
+    form?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const c = codeInput?.value.trim().toUpperCase() || "";
+      const p = phoneInput?.value.trim() || "";
+      if (c && p) lookupOrder(c, p);
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const initCode = (params.get("code") || params.get("id") || "").trim().toUpperCase();
+    const initPhone = (params.get("phone") || "").trim();
+    if (initCode && codeInput) codeInput.value = initCode.startsWith("VK") ? initCode : `VK${initCode}`;
+    if (initPhone && phoneInput) phoneInput.value = initPhone;
+    if (codeInput?.value && phoneInput?.value) {
+      lookupOrder(codeInput.value, phoneInput.value);
+    }
+  </script>
+</Layout>

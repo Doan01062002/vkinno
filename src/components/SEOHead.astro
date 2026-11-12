@@ -1,0 +1,165 @@
+---
+import { SITE_CONFIG } from "../data/siteConfig";
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  canonicalUrl?: string;
+  type?: "website" | "article" | "product";
+  noindex?: boolean;
+  schema?: Record<string, unknown> | Array<Record<string, unknown>>;
+}
+
+const {
+  title,
+  description = "Công ty TNHH Công nghệ Vĩnh Khang (VKINNO) chuyên sản xuất chất tẩy rửa sinh học nền Nước Deion: tẩy cặn canxi Bossman, tẩy dầu mỡ không xút, lau kính ClearWay và vệ sinh pin mặt trời Solar Shield.",
+  image = SITE_CONFIG.defaultOgImage,
+  canonicalUrl = Astro.url.href,
+  type = "website",
+  noindex = false,
+  schema,
+} = Astro.props;
+
+const siteTitle = title.includes("VKINNO")
+  ? title
+  : `${title} | VKINNO - Công Nghệ Làm Sạch Sinh Học`;
+
+const resolvedOgImage = image.startsWith("http")
+  ? image
+  : new URL(image, SITE_CONFIG.siteUrl).toString();
+
+const defaultOrgSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_CONFIG.legalFullDisplay,
+  legalName: SITE_CONFIG.legalName,
+  taxID: SITE_CONFIG.taxId,
+  url: SITE_CONFIG.siteUrl,
+  logo: `${SITE_CONFIG.siteUrl}/logo.png`,
+  description,
+  sameAs: [SITE_CONFIG.shopeeUrl, SITE_CONFIG.facebookUrl, SITE_CONFIG.boCongThuongUrl],
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      telephone: "+84-938-791-389",
+      contactType: "customer service",
+      areaServed: "VN",
+      availableLanguage: ["Vietnamese"],
+    },
+    {
+      "@type": "ContactPoint",
+      telephone: "+84-399-173-777",
+      contactType: "sales",
+      areaServed: "VN",
+      availableLanguage: ["Vietnamese"],
+    },
+  ],
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: SITE_CONFIG.registeredAddress,
+    addressLocality: "Cầu Giấy, Hà Nội",
+    addressCountry: "VN",
+  },
+};
+
+const gtmId = SITE_CONFIG.gtmId;
+const adsId = SITE_CONFIG.googleAdsId;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<meta name="theme-color" content="#1E2B6B" />
+
+<link rel="canonical" href={canonicalUrl} />
+
+<title>{siteTitle}</title>
+<meta name="title" content={siteTitle} />
+<meta name="description" content={description} />
+<meta
+  name="robots"
+  content={
+    noindex
+      ? "noindex, nofollow"
+      : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+  }
+/>
+
+<!-- Open Graph / Zalo / Facebook (1200x630) -->
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:title" content={siteTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={resolvedOgImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:site_name" content="VKINNO" />
+<meta property="og:locale" content="vi_VN" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content={canonicalUrl} />
+<meta name="twitter:title" content={siteTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={resolvedOgImage} />
+
+<!-- Google Fonts: Be Vietnam Pro & Inter (Vietnamese subset) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap&subset=vietnamese"
+  rel="stylesheet"
+/>
+
+<!-- FontAwesome 6 Icons -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+/>
+
+<!-- Schema.org JSON-LD -->
+<script type="application/ld+json" set:html={JSON.stringify(defaultOrgSchema)} />
+{schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
+
+<!-- Google Tag Manager (GTM-K2TSSLGM) & Google Ads (AW-970340726) - Non-blocking CWV Loader -->
+{!noindex && (
+  <script is:inline define:vars={{ gtmId, adsId }}>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      window.dataLayer.push(arguments);
+    }
+    window.gtag = gtag;
+    gtag("js", new Date());
+    gtag("config", adsId);
+
+    (function initTrackingDeferred() {
+      let loaded = false;
+      function loadScripts() {
+        if (loaded) return;
+        loaded = true;
+        if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+          return;
+        }
+        window.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        const gtmScript = document.createElement("script");
+        gtmScript.async = true;
+        gtmScript.src = "https://www.googletagmanager.com/gtm.js?id=" + gtmId;
+        document.head.appendChild(gtmScript);
+
+        const adsScript = document.createElement("script");
+        adsScript.async = true;
+        adsScript.src = "https://www.googletagmanager.com/gtag/js?id=" + adsId;
+        document.head.appendChild(adsScript);
+      }
+      ["pointerdown", "keydown", "scroll", "touchstart"].forEach((evt) =>
+        window.addEventListener(evt, loadScripts, { once: true, passive: true })
+      );
+      window.addEventListener("load", () => setTimeout(loadScripts, 2500), { once: true });
+    })();
+  </script>
+)}

@@ -1,0 +1,434 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE_CONFIG } from "../data/siteConfig";
+
+const wholesaleTiers = [
+  {
+    tier: "Đại Lý Khởi Động",
+    minOrder: "Đơn từ 5.000.000 ₫ (trước CK)",
+    discount: "20% Chiết Khấu",
+    target: "Gara rửa xe chi tiết, xưởng chăm sóc xe vừa và nhỏ",
+    benefits: [
+      "Chiết khấu 20% trực tiếp trên giá bán lẻ hiện hành (đã gồm VAT 8%)",
+      "Ví dụ: Solar Shield 5L còn 236.000 ₫/can · ClearWay 5L còn 124.000 ₫/can",
+      "Tặng kèm 05 vỏ bình xịt định lượng PET 500ml kháng hóa chất",
+      "Miễn phí giao nội thành Hà Nội & hướng dẫn tỷ lệ pha cho thợ",
+    ],
+  },
+  {
+    tier: "Đối Tác Bạc (Silver)",
+    minOrder: "Đơn từ 15.000.000 ₫ (trước CK)",
+    discount: "30% Chiết Khấu",
+    target: "Chuỗi Car Care hoặc đội kỹ thuật O&M điện mặt trời áp mái",
+    benefits: [
+      "Chiết khấu 30% trực tiếp trên giá bán lẻ hiện hành toàn danh mục",
+      "Ví dụ: Solar Shield 5L còn 206.500 ₫/can · Rửa kính ô tô 5L còn 66.500 ₫/can",
+      "Tặng kèm 01 bút đo pH/TDS kiểm tra nguồn nước pha tại xưởng",
+      "Bảng hướng dẫn tỷ lệ pha chuẩn treo xưởng & xuất VAT 8% trong ngày",
+    ],
+    highlight: true,
+  },
+  {
+    tier: "Tổng Thầu EPC & Phân Phối",
+    minOrder: "Đơn từ 50.000.000 ₫ (trước CK)",
+    discount: "40% Chiết Khấu",
+    target: "Tổng thầu O&M Solar Farm, nhà phân phối phụ tùng ô tô tỉnh",
+    benefits: [
+      "Mức chiết khấu 40% trực tiếp trên giá bán lẻ hiện hành",
+      "Hợp đồng nguyên tắc pháp nhân Công ty TNHH Công nghệ Vĩnh Khang",
+      "Cung cấp đầy đủ Phiếu an toàn hóa chất (SDS/MSDS) cho khu công nghiệp",
+      "Hỗ trợ đóng gói quy cách thùng/can lớn theo tiến độ dự án",
+    ],
+  },
+];
+---
+
+<Layout
+  title="Báo Giá Sỉ Gara Ô Tô & Dự Án Điện Mặt Trời Can 5L (VAT 8%) - VKINNO"
+  description="Chính sách chiết khấu sỉ 20% - 40% tính trực tiếp trên giá bán lẻ hiện hành cho Gara ô tô, Car Care và nhà thầu O&M điện mặt trời từ Công ty TNHH Công nghệ Vĩnh Khang."
+>
+  <!-- ==================== HERO HEADER ==================== -->
+  <section class="relative bg-gradient-to-br from-[#0F1638] via-[#1E2B6B] to-[#0369A1] text-white py-14 lg:py-20 border-b border-white/10 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10">
+      <nav class="flex items-center gap-2 text-xs text-slate-200 mb-4 font-semibold" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-[#FF8A15]">Trang chủ</a>
+        <span>/</span>
+        <span class="text-white font-bold">Giải pháp Gara &amp; Điện mặt trời B2B</span>
+      </nav>
+
+      <div class="max-w-3xl space-y-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[#FF8A15] text-xs font-extrabold uppercase tracking-wider">
+          • CHÍNH SÁCH SỈ PHÁP NHÂN TNHH VĨNH KHANG (VAT 8%) •
+        </div>
+        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold font-montserrat tracking-tight leading-tight text-white">
+          GIẢI PHÁP HÓA CHẤT CAN 5L CHO GARA Ô TÔ &amp; NHÀ THẦU ĐIỆN MẶT TRỜI
+        </h1>
+        <p class="text-slate-100 text-sm sm:text-base leading-relaxed">
+          Chiết khấu bậc thang <strong>20% – 30% – 40% tính trực tiếp trên giá bán lẻ hiện hành</strong>. Công thức can 5L đậm đặc pha 1:20 đến 1:30 trên nền nước khử khoáng Deion giúp tối ưu chi phí vật tư, an toàn cho bề mặt sơn xe, lưỡi gạt mưa cao su và lớp phủ chống phản xạ ARC của tấm pin mặt trời khi pha đúng hướng dẫn.
+        </p>
+
+        <div class="pt-2 flex flex-wrap items-center gap-3">
+          <a
+            href="#dang-ky-dai-ly"
+            data-cta="b2b-hero-quote"
+            class="min-h-[48px] px-6 py-3.5 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center transition shadow-lg"
+          >
+            Nhận Báo Giá Sỉ &amp; Tách VAT 8% →
+          </a>
+          <a
+            href={`tel:${SITE_CONFIG.hotlinePrimaryRaw}`}
+            class="min-h-[48px] px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center transition tabular-nums"
+          >
+            Hotline Sỉ &amp; Dự Án: {SITE_CONFIG.hotlinePrimary}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4 CORE B2B VALUES ==================== -->
+  <section class="py-14 bg-white border-b border-[#E2E8F0]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5">
+          <div class="w-11 h-11 rounded-xl bg-[#1E2B6B] text-white flex items-center justify-center font-extrabold text-sm tabular-nums">
+            1:30
+          </div>
+          <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Tối Ưu Định Mức Vật Tư</h2>
+          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+            Can Solar Shield 5L pha được 100–150 lít dung dịch làm việc (~1.300 ₫ – 1.900 ₫/lít sau pha), tiết kiệm chi phí vận chuyển ra công trường.
+          </p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5">
+          <div class="w-11 h-11 rounded-xl bg-[#047857] text-white flex items-center justify-center font-extrabold text-sm">
+            pH 7
+          </div>
+          <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Bảo Vệ Bề Mặt Kỹ Thuật</h2>
+          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+            Nước khử khoáng Deion không để lại đốm vôi gây điểm nóng (hot-spot) trên cell pin; dòng rửa kính ô tô cam kết 0% Methanol bảo vệ cao su gạt mưa.
+          </p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5">
+          <div class="w-11 h-11 rounded-xl bg-[#0F172A] text-white flex items-center justify-center font-extrabold text-sm">
+            VAT
+          </div>
+          <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Hóa Đơn VAT 8% &amp; SDS</h2>
+          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+            Pháp nhân {SITE_CONFIG.legalName} (MST {SITE_CONFIG.taxCode}) xuất hóa đơn điện tử VAT 8% và bảng dữ liệu an toàn hóa chất SDS/MSDS đầy đủ.
+          </p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5">
+          <div class="w-11 h-11 rounded-xl bg-[#FF8A15] text-[#0F1638] flex items-center justify-center font-black text-sm">
+            KHO
+          </div>
+          <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Xuất Kho Nhanh Hoài Đức</h2>
+          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+            Sẵn kho can 5L tại Di Trạch, Hoài Đức, Hà Nội — giao nhanh nội thành và gửi chành xe/vận chuyển toàn quốc trong ngày.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== WHOLESALE TIERS ==================== -->
+  <section class="py-16 bg-[#F8FAFC] border-b border-[#E2E8F0]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-12 space-y-2">
+        <div class="text-xs font-extrabold uppercase tracking-wider text-[#A84B00]">• MINH BẠCH TỪNG ĐỒNG •</div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold font-montserrat text-[#0F172A]">
+          BẢNG CHIẾT KHẤU SỈ TRÊN GIÁ BÁN LẺ HIỆN HÀNH
+        </h2>
+        <p class="text-xs sm:text-sm text-[#475569]">
+          Tính trực tiếp trên giá bán lẻ đang áp dụng trên website (Solar Shield 5L: 295.000 ₫ · ClearWay 5L: 155.000 ₫ · Rửa kính ô tô 5L: 95.000 ₫ — đã gồm VAT 8%)
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+        {wholesaleTiers.map((tier) => (
+          <div
+            class={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all ${
+              tier.highlight
+                ? "bg-[#0F1638] text-white border-2 border-[#FF8A15] shadow-xl relative"
+                : "bg-white text-[#0F172A] border border-[#E2E8F0] shadow-xs"
+            }`}
+          >
+            {tier.highlight && (
+              <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#FF8A15] text-[#0F1638] font-extrabold text-[11px] uppercase tracking-wider shadow-sm whitespace-nowrap">
+                Phổ Biến Nhất Cho Gara &amp; Đội O&amp;M
+              </div>
+            )}
+
+            <div class="space-y-5">
+              <div>
+                <h3 class={`text-lg sm:text-xl font-extrabold font-montserrat uppercase ${tier.highlight ? "text-white" : "text-[#0F172A]"}`}>
+                  {tier.tier}
+                </h3>
+                <p class={`text-xs mt-1 ${tier.highlight ? "text-slate-300" : "text-[#475569]"}`}>
+                  {tier.target}
+                </p>
+              </div>
+
+              <div class={`p-5 rounded-2xl border ${tier.highlight ? "bg-white/5 border-white/15" : "bg-[#F8FAFC] border-[#E2E8F0]"}`}>
+                <span class={`text-xs block font-semibold ${tier.highlight ? "text-slate-300" : "text-[#475569]"}`}>
+                  Mức chiết khấu trực tiếp:
+                </span>
+                <span class={`text-2xl sm:text-3xl font-black font-montserrat block my-1 tabular-nums ${tier.highlight ? "text-[#FF8A15]" : "text-[#1E2B6B]"}`}>
+                  {tier.discount}
+                </span>
+                <span class={`text-xs font-bold tabular-nums ${tier.highlight ? "text-white" : "text-[#0F172A]"}`}>
+                  {tier.minOrder}
+                </span>
+              </div>
+
+              <div class="space-y-2 pt-1">
+                <span class={`text-xs font-extrabold uppercase tracking-wider block ${tier.highlight ? "text-[#FF8A15]" : "text-[#0F172A]"}`}>
+                  Quyền lợi đi kèm:
+                </span>
+                <ul class={`text-xs sm:text-sm space-y-2.5 ${tier.highlight ? "text-slate-200" : "text-[#334155]"}`}>
+                  {tier.benefits.map((b) => (
+                    <li class="flex items-start gap-2">
+                      <span class="font-bold text-[#10B981] shrink-0">✓</span>
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div class="pt-6 mt-6 border-t border-slate-200/20">
+              <a
+                href="#dang-ky-dai-ly"
+                class={`w-full min-h-[48px] flex items-center justify-center py-3 rounded-xl font-extrabold text-xs uppercase tracking-wider transition ${
+                  tier.highlight
+                    ? "bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638]"
+                    : "bg-[#1E2B6B] hover:bg-[#151E4B] text-white"
+                }`}
+              >
+                Yêu Cầu Báo Giá Mức Này →
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== B2B LEAD FORM ==================== -->
+  <section class="py-16 bg-white" id="dang-ky-dai-ly">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        <div class="lg:col-span-5 space-y-5">
+          <div class="text-xs font-extrabold uppercase tracking-wider text-[#A84B00]">• HỢP TÁC PHÂN PHỐI &amp; DỰ ÁN •</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold font-montserrat text-[#0F172A] leading-tight">
+            ĐĂNG KÝ NHẬN BẢNG GIÁ SỈ &amp; HỒ SƠ KỸ THUẬT SDS
+          </h2>
+          <p class="text-sm text-[#475569] leading-relaxed">
+            Để lại thông tin Gara hoặc công suất trạm điện mặt trời. Bộ phận kinh doanh kho Vĩnh Khang sẽ tính toán định mức can 5L, tách thuế GTGT 8% và gửi báo giá qua Zalo trong giờ làm việc.
+          </p>
+
+          <div class="p-5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
+            <span class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Hotline Sỉ &amp; Kho Vĩnh Khang</span>
+            <div class="text-xl sm:text-2xl font-black font-montserrat text-[#1E2B6B] tabular-nums">
+              <a href={`tel:${SITE_CONFIG.hotlinePrimaryRaw}`} class="hover:underline">{SITE_CONFIG.hotlinePrimary}</a>
+              {" / "}
+              <a href={`tel:${SITE_CONFIG.hotlineSecondaryRaw}`} class="hover:underline">{SITE_CONFIG.hotlineSecondary}</a>
+            </div>
+            <p class="text-xs text-[#475569]">
+              Kho xuất hàng: {SITE_CONFIG.warehouseAddress}
+            </p>
+          </div>
+        </div>
+
+        <div class="lg:col-span-7">
+          <div class="bg-[#F8FAFC] rounded-3xl p-6 sm:p-8 border border-[#E2E8F0] shadow-xs">
+            <h3 class="font-montserrat font-extrabold text-lg sm:text-xl text-[#0F172A] mb-1">
+              PHIẾU YÊU CẦU BÁO GIÁ SỈ B2B
+            </h3>
+            <p class="text-xs text-[#475569] mb-6">
+              Áp dụng chiết khấu 20% – 40% trên giá bán lẻ hiện hành · Xuất hóa đơn VAT 8%
+            </p>
+
+            <form id="b2b-lead-form" data-du-an="chu-dong-vkinno" class="space-y-4">
+              <input type="hidden" name="du_an" value="chu-dong-vkinno" />
+              <div class="hidden" aria-hidden="true">
+                <label for="b2b-hp-trap">Website</label>
+                <input type="text" id="b2b-hp-trap" name="website_url_trap" tabindex="-1" autocomplete="off" />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                  <label for="lead-company" class="block text-xs font-extrabold text-[#334155] uppercase">Tên Gara / Doanh nghiệp *</label>
+                  <input
+                    type="text"
+                    id="lead-company"
+                    name="company_name"
+                    required
+                    placeholder="VD: Gara AutoPro / Công ty Solar..."
+                    class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label for="lead-contact" class="block text-xs font-extrabold text-[#334155] uppercase">Họ tên người liên hệ *</label>
+                  <input
+                    type="text"
+                    id="lead-contact"
+                    name="contact_name"
+                    required
+                    placeholder="Nhập họ tên của bạn"
+                    class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                  <label for="lead-phone" class="block text-xs font-extrabold text-[#334155] uppercase">Số điện thoại / Zalo nhận báo giá *</label>
+                  <input
+                    type="tel"
+                    id="lead-phone"
+                    name="phone"
+                    required
+                    placeholder="VD: 0938791389"
+                    class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B] tabular-nums"
+                  />
+                </div>
+                <div class="space-y-1">
+                  <label for="lead-city" class="block text-xs font-extrabold text-[#334155] uppercase">Tỉnh / Thành phố *</label>
+                  <input
+                    type="text"
+                    id="lead-city"
+                    name="city"
+                    required
+                    placeholder="VD: Hà Nội, Bắc Ninh, Ninh Thuận..."
+                    class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]"
+                  />
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <label for="lead-interest" class="block text-xs font-extrabold text-[#334155] uppercase">Nhóm sản phẩm quan tâm</label>
+                <select id="lead-interest" name="interest" class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]">
+                  <option value="Solar Shield Can 5L">Dung dịch vệ sinh tấm pin mặt trời Solar Shield Can 5L</option>
+                  <option value="Gara Ô tô (ClearWay 5L + VisionX)">Nước rửa kính ô tô ClearWay 5L (0% Methanol) + VisionX 500ml</option>
+                  <option value="Vệ sinh Tòa nhà & Khách sạn">Nước lau kính ClearWay GlassPro 5L + Bossman + Tẩy dầu mỡ</option>
+                  <option value="Đại lý phân phối toàn danh mục">Đăng ký Đại lý phân phối toàn bộ danh mục VKINNO</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label for="lead-volume" class="block text-xs font-extrabold text-[#334155] uppercase">Sản lượng dự kiến / Ghi chú xuất VAT</label>
+                <input
+                  type="text"
+                  id="lead-volume"
+                  name="estimated_volume"
+                  placeholder="VD: 20 can 5L/tháng hoặc trạm điện áp mái 3 MWp..."
+                  class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]"
+                />
+              </div>
+
+              <!-- Unchecked-by-default Consent Checkbox (Luật BVDLCN 91/2025/QH15) -->
+              <label for="b2b-privacy-consent" class="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-[#CBD5E1] cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="b2b-privacy-consent"
+                  name="privacy_consent"
+                  required
+                  class="mt-1 w-5 h-5 rounded accent-[#1E2B6B] shrink-0 cursor-pointer"
+                />
+                <span class="text-xs text-[#334155] leading-relaxed">
+                  Tôi đồng ý để <strong>{SITE_CONFIG.legalName}</strong> liên hệ tư vấn kỹ thuật và gửi báo giá sỉ B2B qua Số điện thoại/Zalo đã cung cấp theo{" "}
+                  <a href="/chinh-sach/chinh-sach-bao-mat" target="_blank" class="font-bold text-[#1E2B6B] underline">Chính sách bảo vệ dữ liệu cá nhân (Luật 91/2025/QH15)</a>. *
+                </span>
+              </label>
+
+              <div id="b2b-form-error" class="hidden p-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs font-bold text-[#991B1B]"></div>
+
+              <button
+                type="submit"
+                id="btn-b2b-submit"
+                data-cta="b2b-submit"
+                class="w-full min-h-[50px] py-3.5 px-6 rounded-xl font-extrabold text-xs sm:text-sm uppercase tracking-wider text-[#0F1638] bg-[#FF8A15] hover:bg-[#E57600] shadow-md transition cursor-pointer"
+              >
+                GỬI YÊU CẦU NHẬN BẢNG GIÁ SỈ &amp; HỒ SƠ SDS →
+              </button>
+            </form>
+
+            <div id="lead-success-msg" class="hidden p-5 rounded-2xl bg-[#ECFDF5] border border-[#10B981] text-sm text-center space-y-2 mt-4">
+              <p class="font-extrabold text-base text-[#047857]">✓ Đã tiếp nhận yêu cầu báo giá sỉ B2B!</p>
+              <p class="text-xs sm:text-sm text-[#334155]">
+                Thông tin của quý đối tác đã được chuyển thẳng vào hệ thống quản trị kho Vĩnh Khang. Bộ phận kinh doanh sẽ liên hệ qua Zalo/SĐT sớm nhất!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const form = document.getElementById("b2b-lead-form") as HTMLFormElement | null;
+  const successMsg = document.getElementById("lead-success-msg");
+  const errBox = document.getElementById("b2b-form-error");
+  const submitBtn = document.getElementById("btn-b2b-submit") as HTMLButtonElement | null;
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errBox?.classList.add("hidden");
+
+    const consent = document.getElementById("b2b-privacy-consent") as HTMLInputElement | null;
+    if (!consent?.checked) {
+      if (errBox) {
+        errBox.textContent = "Vui lòng tích đồng ý xử lý dữ liệu liên hệ theo Luật BVDLCN 91/2025/QH15 trước khi gửi yêu cầu.";
+        errBox.classList.remove("hidden");
+      }
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "ĐANG GỬI YÊU CẦU...";
+    }
+
+    try {
+      const payload = {
+        du_an: "chu-dong-vkinno",
+        privacy_consent: true,
+        website_url_trap: (document.getElementById("b2b-hp-trap") as HTMLInputElement)?.value || "",
+        lead_type: "B2B",
+        company_name: (document.getElementById("lead-company") as HTMLInputElement)?.value.trim(),
+        contact_name: (document.getElementById("lead-contact") as HTMLInputElement)?.value.trim(),
+        phone: (document.getElementById("lead-phone") as HTMLInputElement)?.value.trim(),
+        city: (document.getElementById("lead-city") as HTMLInputElement)?.value.trim(),
+        interest: (document.getElementById("lead-interest") as HTMLSelectElement)?.value,
+        estimated_volume: (document.getElementById("lead-volume") as HTMLInputElement)?.value.trim(),
+      };
+
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Không thể gửi biểu mẫu lúc này.");
+      }
+
+      form.classList.add("hidden");
+      successMsg?.classList.remove("hidden");
+    } catch (err: any) {
+      if (errBox) {
+        errBox.innerHTML = `${err.message || "Lỗi kết nối mạng."} Quý đối tác vui lòng liên hệ trực tiếp Zalo Sỉ <a href="https://zalo.me/0938791389" target="_blank" class="underline font-extrabold">0938.791.389</a> để nhận báo giá ngay.`;
+        errBox.classList.remove("hidden");
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "GỬI YÊU CẦU NHẬN BẢNG GIÁ SỈ & HỒ SƠ SDS →";
+      }
+    }
+  });
+</script>

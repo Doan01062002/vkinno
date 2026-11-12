@@ -1,0 +1,24 @@
+# Secrets & Environment Variables
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*service_account*.json
+*.pem
+*.key
+config/
+
+# Build, Dependencies & Cloudflare/Astro Runtime
+node_modules/
+dist/
+.astro/
+.wrangler/
+.vercel/
+
+# OS & Logs
+.DS_Store
+Thumbs.db
+*.log
+qa-screenshots/

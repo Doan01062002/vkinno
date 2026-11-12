@@ -1,0 +1,166 @@
+---
+import { SITE_CONFIG } from "../data/siteConfig";
+---
+
+<footer class="w-full bg-[#151E4B] text-slate-300 text-xs sm:text-sm pt-12 pb-8 border-t border-slate-800 font-inter" id="site-footer">
+  <div class="max-w-7xl mx-auto px-4 sm:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <!-- Column 1: About & Social -->
+    <div class="space-y-4">
+      <a class="inline-block bg-white p-2 rounded-xl shadow-md" href="/" aria-label="Trang chủ VKINNO">
+        <img alt="Logo VKINNO" class="h-9 w-auto object-contain" src="/logo.png" width="132" height="36" />
+      </a>
+      <p class="text-xs text-slate-200 leading-relaxed">
+        {SITE_CONFIG.legalFullDisplay} chuyên nghiên cứu, sản xuất và phân phối dung dịch làm sạch sinh học nền Nước Deion tinh khiết cho gia đình, Gara ô tô và hệ thống điện mặt trời Solar.
+      </p>
+      <div class="flex items-center space-x-3 pt-1">
+        <a
+          aria-label="Facebook chính thức VKINNO"
+          class="w-10 h-10 rounded-xl bg-white/10 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white flex items-center justify-center transition-colors"
+          href={SITE_CONFIG.facebookUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+          title="Facebook VKINNO"
+        >
+          <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
+        </a>
+        <a
+          aria-label="Gian hàng Shopee VKINNO"
+          class="w-10 h-10 rounded-xl bg-white/10 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white flex items-center justify-center transition-colors"
+          href={SITE_CONFIG.shopeeUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+          title="Shopee VKINNO"
+        >
+          <i class="fa-solid fa-store" aria-hidden="true"></i>
+        </a>
+        <a
+          aria-label="Nhắn Zalo VKINNO"
+          class="px-3.5 h-10 rounded-xl bg-[#0052CC] hover:bg-blue-600 text-white font-display font-bold text-xs flex items-center gap-1.5 transition-colors"
+          href={SITE_CONFIG.zaloUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+          <span>Zalo hỗ trợ</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Column 2: Quick Links & B2B -->
+    <div class="space-y-4">
+      <h2 class="text-sm font-extrabold text-white uppercase tracking-wider font-display">
+        Sản phẩm &amp; Hợp tác
+      </h2>
+      <ul class="space-y-2.5 text-xs text-slate-200 font-medium">
+        <li>
+          <a class="hover:text-[#FF8A15] transition-colors" href="/san-pham?category=1">
+            Chất Tẩy Rửa Gia Đình &amp; Solar Shield
+          </a>
+        </li>
+        <li>
+          <a class="hover:text-[#FF8A15] transition-colors" href="/san-pham?category=3">
+            Chăm Sóc Kính &amp; Ô Tô Chuyên Dụng
+          </a>
+        </li>
+        <li>
+          <a class="hover:text-[#FF8A15] transition-colors" href="/san-pham?category=2">
+            Bình Xịt PET Phun Sương Kháng Hóa Chất
+          </a>
+        </li>
+        <li>
+          <a class="hover:text-[#FF8A15] transition-colors font-semibold text-amber-300" href="/giai-phap-gara">
+            Bảng giá Sỉ Gara / Đại lý &amp; Hóa đơn VAT 8%
+          </a>
+        </li>
+        <li>
+          <a class="hover:text-[#FF8A15] transition-colors" href="/bossman-creator">
+            Chương trình Đối tác KOC Bossman
+          </a>
+        </li>
+        <li>
+          <a class="hover:text-[#FF8A15] transition-colors" href="/tai-khoan">
+            Tra cứu trạng thái đơn hàng
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Column 3: Legal Policies -->
+    <div class="space-y-4">
+      <h2 class="text-sm font-extrabold text-white uppercase tracking-wider font-display">
+        Chính sách &amp; Pháp lý
+      </h2>
+      <ul class="space-y-2 text-xs text-slate-200 font-medium">
+        <li><a class="hover:text-[#FF8A15] transition-colors" href="/chinh-sach#so-huu-dieu-khoan">Chủ sở hữu &amp; Điều khoản giao dịch</a></li>
+        <li><a class="hover:text-[#FF8A15] transition-colors" href="/chinh-sach#hang-hoa-gia-ca">Thông tin hàng hóa &amp; Giá đã gồm VAT 8%</a></li>
+        <li><a class="hover:text-[#FF8A15] transition-colors" href="/chinh-sach#huong-dan-thanh-toan">Thanh toán VietQR VCB &amp; COD</a></li>
+        <li><a class="hover:text-[#FF8A15] transition-colors" href="/chinh-sach#chinh-sach-van-chuyen">Freeship đơn từ 199.000đ &amp; Đồng kiểm</a></li>
+        <li><a class="hover:text-[#FF8A15] transition-colors" href="/chinh-sach#chinh-sach-doi-tra">Chính sách đổi trả &amp; Hoàn tiền</a></li>
+        <li><a class="hover:text-[#FF8A15] transition-colors" href="/chinh-sach#chinh-sach-bao-mat">Bảo vệ dữ liệu cá nhân (Luật 91/2025/QH15)</a></li>
+        <li><a class="hover:text-[#FF8A15] transition-colors" href="/chinh-sach#giai-quyet-khieu-nai">Quy trình giải quyết khiếu nại</a></li>
+      </ul>
+    </div>
+
+    <!-- Column 4: Verified Legal Entity & Bank -->
+    <div class="space-y-3.5">
+      <h2 class="text-sm font-extrabold text-white uppercase tracking-wider font-display">
+        Thông tin pháp nhân
+      </h2>
+      <ul class="space-y-2 text-xs text-slate-200">
+        <li class="text-white font-bold">{SITE_CONFIG.legalFullDisplay}</li>
+        <li>
+          <span class="text-slate-300">MST / ĐKKD:</span>{" "}
+          <strong class="text-white tabular-nums">{SITE_CONFIG.taxId}</strong> ({SITE_CONFIG.taxIssuer})
+        </li>
+        <li>
+          <span class="text-slate-300">Đại diện pháp luật:</span>{" "}
+          <strong class="text-white">{SITE_CONFIG.legalRepresentative} ({SITE_CONFIG.legalRepTitle})</strong>
+        </li>
+        <li class="flex items-start gap-2">
+          <i class="fa-solid fa-building text-[#FF8A15] mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span><strong>Trụ sở ĐKKD:</strong> {SITE_CONFIG.registeredAddress}</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <i class="fa-solid fa-warehouse text-[#FF8A15] mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span><strong>Kho xuất hàng:</strong> {SITE_CONFIG.warehouseAddress}</span>
+        </li>
+        <li class="flex items-center gap-2">
+          <i class="fa-solid fa-phone text-[#FF8A15] shrink-0" aria-hidden="true"></i>
+          <span class="tabular-nums">
+            <a href={`tel:${SITE_CONFIG.hotlinePrimaryTel}`} class="text-white font-bold hover:text-[#FF8A15]">{SITE_CONFIG.hotlinePrimary}</a>
+            {" · "}
+            <a href={`tel:${SITE_CONFIG.hotlineSecondaryTel}`} class="text-slate-200 hover:text-[#FF8A15]">{SITE_CONFIG.hotlineSecondary}</a>
+          </span>
+        </li>
+        <li class="flex items-start gap-2">
+          <i class="fa-solid fa-building-columns text-[#FF8A15] mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span class="tabular-nums">
+            <strong>TK Công ty:</strong> {SITE_CONFIG.bank.shortName} – <strong>{SITE_CONFIG.bank.accountNo}</strong>
+          </span>
+        </li>
+      </ul>
+      <div class="pt-1">
+        <a
+          class="inline-block hover:opacity-95 transition-opacity"
+          href={SITE_CONFIG.boCongThuongUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+          title="Hồ sơ đã thông báo Bộ Công Thương của VKINNO"
+        >
+          <img
+            alt="Đã thông báo Bộ Công Thương - Công ty TNHH Công nghệ Vĩnh Khang"
+            src={SITE_CONFIG.boCongThuongBadge}
+            width="148"
+            height="55"
+            class="h-12 w-auto object-contain rounded-lg"
+          />
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-8 mt-10 pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-300">
+    <p>© 2026 {SITE_CONFIG.legalFullDisplay}. Đã thông báo Bộ Công Thương.</p>
+    <p class="tabular-nums">Freeship toàn quốc từ 199.000 ₫ • Xuất hóa đơn GTGT (VAT 8%)</p>
+  </div>
+</footer>

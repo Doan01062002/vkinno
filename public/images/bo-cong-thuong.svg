@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="120" viewBox="0 0 320 120" role="img" aria-label="Đã thông báo Bộ Công Thương">
+  <rect width="320" height="120" rx="16" fill="#005BAA"/>
+  <rect x="4" y="4" width="312" height="112" rx="13" fill="none" stroke="#FFFFFF" stroke-width="2.5" opacity="0.85"/>
+  <circle cx="62" cy="60" r="38" fill="#FFFFFF"/>
+  <path d="M44 61l12 12 24-26" fill="none" stroke="#005BAA" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="116" y="52" font-family="Arial, sans-serif" font-size="21" font-weight="800" fill="#FFFFFF">ĐÃ THÔNG BÁO</text>
+  <text x="116" y="80" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#FFD166">BỘ CÔNG THƯƠNG</text>
+</svg>

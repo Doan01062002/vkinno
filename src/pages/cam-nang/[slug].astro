@@ -1,0 +1,124 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import postsData from "../../data/posts.json";
+
+export function getStaticPaths() {
+  return postsData.map((post) => ({
+    params: { slug: post.slug },
+    props: {
+      post,
+      relatedPosts: postsData.filter((p) => p.slug !== post.slug),
+    },
+  }));
+}
+
+const { post, relatedPosts } = Astro.props;
+const formattedDate = new Date(post.created_at).toLocaleDateString("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+---
+
+<Layout
+  title={`${post.title} - VKINNO`}
+  description={post.summary}
+  ogImage={post.image_url}
+  type="article"
+>
+  <div class="w-full min-h-screen bg-[#F8FAFC] py-10 font-inter">
+    <div class="max-w-4xl mx-auto px-4 sm:px-8 space-y-8">
+      <nav class="text-xs text-[#475569] font-semibold flex items-center space-x-2" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-[#1E2B6B] transition-colors">Trang chủ</a>
+        <span>/</span>
+        <a href="/cam-nang" class="hover:text-[#1E2B6B] transition-colors">Cẩm nang</a>
+        <span>/</span>
+        <span class="text-[#0F172A] font-bold truncate max-w-[220px]">{post.title}</span>
+      </nav>
+
+      <article class="bg-white rounded-3xl border border-[#E2E8F0] shadow-xs p-6 sm:p-10 space-y-6">
+        <div class="space-y-3 pb-6 border-b border-[#E2E8F0]">
+          <div class="text-[11px] font-bold text-[#475569] uppercase tracking-wider flex items-center space-x-2 font-montserrat">
+            <span class="text-[#9A3412] bg-[#FFF7ED] px-3 py-1 rounded-full font-extrabold">
+              <i class="fa-regular fa-calendar-days mr-1"></i> {formattedDate}
+            </span>
+            <span>•</span>
+            <span>Cẩm nang kỹ thuật VKINNO</span>
+          </div>
+
+          <h1 class="text-xl sm:text-3xl font-extrabold text-[#0F172A] leading-snug tracking-wide font-montserrat">
+            {post.title}
+          </h1>
+
+          <p class="text-[#334155] text-xs sm:text-sm leading-relaxed font-medium italic border-l-4 border-[#FF8A15] pl-4 py-1.5 bg-[#F8FAFC] rounded-r-lg">
+            {post.summary}
+          </p>
+        </div>
+
+        {post.image_url && (
+          <div class="rounded-2xl overflow-hidden aspect-[16/9] w-full bg-[#F1F5F9] shadow-xs">
+            <img src={post.image_url} alt={post.title} width="800" height="450" class="w-full h-full object-cover" />
+          </div>
+        )}
+
+        <div class="prose max-w-none text-[#334155] text-sm leading-relaxed space-y-4" set:html={post.content}></div>
+
+        <div class="pt-8 border-t border-[#E2E8F0] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <a
+            href="/cam-nang"
+            class="inline-flex items-center space-x-2 text-xs font-extrabold text-[#1E2B6B] hover:text-[#A84B00] transition-colors font-montserrat"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Quay lại tất cả bài viết</span>
+          </a>
+
+          <div class="flex items-center space-x-3 text-xs text-[#475569]">
+            <span class="font-semibold">Chia sẻ bài viết:</span>
+            <a
+              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://vkinno.vn/cam-nang/" + post.slug)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Chia sẻ bài viết lên Facebook"
+              class="w-10 h-10 rounded-full bg-[#F1F5F9] hover:bg-[#1E2B6B] hover:text-white text-[#0F172A] flex items-center justify-center transition-colors"
+            >
+              <i class="fa-brands fa-facebook-f text-xs"></i>
+            </a>
+            <a
+              href="/san-pham"
+              class="px-4 py-2 rounded-xl bg-[#FF8A15] text-[#0F1638] font-extrabold text-xs uppercase"
+            >
+              Xem sản phẩm liên quan
+            </a>
+          </div>
+        </div>
+      </article>
+
+      {relatedPosts.length > 0 && (
+        <section class="space-y-6 pt-2">
+          <h2 class="text-base sm:text-lg font-extrabold text-[#0F172A] font-montserrat uppercase tracking-wider">
+            Bài viết liên quan
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {relatedPosts.map((related) => (
+              <a
+                href={`/cam-nang/${related.slug}`}
+                class="group bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs hover:shadow-md transition-all flex items-center space-x-4"
+              >
+                <div class="w-20 h-20 rounded-xl overflow-hidden bg-[#F1F5F9] shrink-0">
+                  <img src={related.image_url} alt={related.title} width="80" height="80" class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                </div>
+                <div class="space-y-1.5 min-w-0">
+                  <span class="text-[11px] font-extrabold text-[#A84B00] uppercase font-montserrat">Hướng dẫn</span>
+                  <h3 class="font-montserrat font-bold text-xs sm:text-sm text-[#0F172A] group-hover:text-[#1E2B6B] transition-colors line-clamp-2">
+                    {related.title}
+                  </h3>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  </div>
+</Layout>

@@ -1,0 +1,268 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { SITE_CONFIG } from "../data/siteConfig";
+---
+
+<Layout
+  title="Liên Hệ Kho & Pháp Nhân Công Ty TNHH Công Nghệ Vĩnh Khang - VKINNO"
+  description="Liên hệ trực tiếp Công ty TNHH Công nghệ Vĩnh Khang (VKINNO) tại Cầu Giấy và Kho xuất hàng Di Trạch, Hoài Đức, Hà Nội để nhận tư vấn kỹ thuật và báo giá đại lý."
+>
+  <div class="w-full min-h-screen bg-[#F8FAFC] pb-16 font-inter">
+    <!-- Hero Header Section -->
+    <div class="relative bg-gradient-to-br from-[#1E2B6B] to-[#0F1638] text-white py-14 sm:py-18 overflow-hidden mb-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10 space-y-4">
+        <nav class="text-xs text-slate-300 font-semibold flex items-center space-x-2" aria-label="Breadcrumb">
+          <a href="/" class="hover:text-[#FF8A15] transition-colors">Trang chủ</a>
+          <span>/</span>
+          <span class="text-white font-bold">Liên hệ</span>
+        </nav>
+
+        <div class="max-w-3xl space-y-3">
+          <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
+            Hỗ trợ trực tiếp từ kho Vĩnh Khang
+          </span>
+          <h1 class="text-2xl sm:text-4xl font-extrabold uppercase tracking-wide font-montserrat">
+            LIÊN HỆ VỚI VKINNO
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed max-w-2xl">
+            Cần tư vấn cách xử lý vết cặn canxi, dầu mỡ nhà bếp hay nhận bảng chiết khấu sỉ can 5L xuất hóa đơn VAT 8%? Đội ngũ kỹ thuật kho VKINNO luôn sẵn sàng hỗ trợ.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        <!-- Left: Legal & Warehouse Details -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="space-y-2">
+            <span class="text-xs font-extrabold text-[#A84B00] uppercase tracking-wider font-montserrat">Thông tin pháp nhân &amp; Kho vận</span>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] font-montserrat uppercase">
+              {SITE_CONFIG.legalName}
+            </h2>
+            <p class="text-xs sm:text-sm text-[#475569] font-medium leading-relaxed">
+              Mã số doanh nghiệp: <strong class="text-[#0F172A] tabular-nums">{SITE_CONFIG.taxCode}</strong> · Người đại diện pháp luật: <strong class="text-[#0F172A]">{SITE_CONFIG.legalRepresentative}</strong>
+            </p>
+          </div>
+
+          <ul class="space-y-4">
+            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+              <div class="w-11 h-11 bg-[#FFF7ED] text-[#A84B00] rounded-xl flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-warehouse"></i>
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Kho xuất hàng &amp; Điểm tiếp nhận</h3>
+                <p class="text-xs sm:text-sm text-[#0F172A] font-bold leading-relaxed">
+                  {SITE_CONFIG.warehouseAddress}
+                </p>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Nh%C3%A0+C%C3%B4ng+v%E1%BB%A5+Di+Tr%E1%BA%A1ch+Ho%C3%A0i+%C4%90%E1%BB%A9c+H%C3%A0+N%E1%BB%99i"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1E2B6B] underline pt-1"
+                >
+                  <i class="fa-solid fa-diamond-turn-right"></i>
+                  <span>Mở chỉ đường Google Maps tới Kho Di Trạch</span>
+                </a>
+              </div>
+            </li>
+
+            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+              <div class="w-11 h-11 bg-[#EEF2FF] text-[#1E2B6B] rounded-xl flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-building"></i>
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Trụ sở đăng ký kinh doanh</h3>
+                <p class="text-xs sm:text-sm text-[#0F172A] font-bold leading-relaxed">
+                  {SITE_CONFIG.headquartersAddress}
+                </p>
+              </div>
+            </li>
+
+            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+              <div class="w-11 h-11 bg-[#ECFDF5] text-[#047857] rounded-xl flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-phone-volume"></i>
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Hotline &amp; Zalo Trực Kho</h3>
+                <p class="text-sm text-[#0F172A] font-extrabold tabular-nums">
+                  <a href={`tel:${SITE_CONFIG.hotlinePrimaryRaw}`} class="hover:text-[#1E2B6B] underline">{SITE_CONFIG.hotlinePrimary}</a>
+                  {" / "}
+                  <a href={`tel:${SITE_CONFIG.hotlineSecondaryRaw}`} class="hover:text-[#1E2B6B] underline">{SITE_CONFIG.hotlineSecondary}</a>
+                </p>
+                <p class="text-xs text-[#475569]">Giờ làm việc: {SITE_CONFIG.workingHours}</p>
+              </div>
+            </li>
+
+            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+              <div class="w-11 h-11 bg-[#FFF7ED] text-[#A84B00] rounded-xl flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-envelope"></i>
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Email hỗ trợ &amp; Hóa đơn</h3>
+                <p class="text-xs sm:text-sm text-[#0F172A] font-bold">
+                  <a href={`mailto:${SITE_CONFIG.email}`} class="hover:text-[#1E2B6B] underline">{SITE_CONFIG.email}</a>
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Right: Contact Form -->
+        <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-6">
+          <div class="space-y-1.5">
+            <h2 class="text-lg font-extrabold text-[#0F172A] uppercase tracking-wider font-montserrat">Gửi câu hỏi tư vấn kỹ thuật</h2>
+            <p class="text-xs sm:text-sm text-[#475569]">
+              Điền thông tin bên dưới để đội ngũ VKINNO gọi lại hoặc nhắn Zalo hướng dẫn chi tiết.
+            </p>
+          </div>
+
+          <form id="contact-inquiry-form" data-du-an="chu-dong-vkinno" class="space-y-4">
+            <input type="hidden" name="du_an" value="chu-dong-vkinno" />
+            <div class="hidden" aria-hidden="true">
+              <label for="contact-hp-trap">Website</label>
+              <input type="text" id="contact-hp-trap" name="website_url_trap" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label for="contact-name" class="block text-xs font-extrabold text-[#334155] uppercase">Họ và tên *</label>
+                <input
+                  type="text"
+                  id="contact-name"
+                  name="contact_name"
+                  required
+                  placeholder="Nhập họ và tên của bạn"
+                  class="w-full text-base p-3 border border-[#CBD5E1] rounded-xl bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white text-[#0F172A]"
+                />
+              </div>
+              <div class="space-y-1.5">
+                <label for="contact-phone" class="block text-xs font-extrabold text-[#334155] uppercase">Số điện thoại / Zalo *</label>
+                <input
+                  type="tel"
+                  id="contact-phone"
+                  name="phone"
+                  required
+                  placeholder="VD: 0938791389"
+                  class="w-full text-base p-3 border border-[#CBD5E1] rounded-xl bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white text-[#0F172A] tabular-nums"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="contact-email" class="block text-xs font-extrabold text-[#334155] uppercase">Email (Tùy chọn)</label>
+              <input
+                type="email"
+                id="contact-email"
+                name="email"
+                placeholder="example@gmail.com"
+                class="w-full text-base p-3 border border-[#CBD5E1] rounded-xl bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white text-[#0F172A]"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="contact-message" class="block text-xs font-extrabold text-[#334155] uppercase">Nội dung cần tư vấn *</label>
+              <textarea
+                id="contact-message"
+                name="message"
+                required
+                rows="4"
+                placeholder="Mô tả bề mặt cần làm sạch (vách kính nhà tắm, lưới hút mùi, kính ô tô...) hoặc yêu cầu hợp tác đại lý..."
+                class="w-full text-base p-3 border border-[#CBD5E1] rounded-xl bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white resize-none text-[#0F172A] leading-relaxed"
+              ></textarea>
+            </div>
+
+            <!-- Unchecked-by-default Consent Checkbox (Luật BVDLCN 91/2025/QH15) -->
+            <label for="contact-privacy-consent" class="flex items-start gap-3 p-3.5 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] cursor-pointer">
+              <input
+                type="checkbox"
+                id="contact-privacy-consent"
+                name="privacy_consent"
+                required
+                class="mt-1 w-5 h-5 rounded accent-[#1E2B6B] shrink-0 cursor-pointer"
+              />
+              <span class="text-xs text-[#334155] leading-relaxed">
+                Tôi đồng ý để <strong>{SITE_CONFIG.legalName}</strong> xử lý thông tin liên hệ nhằm phản hồi yêu cầu tư vấn theo{" "}
+                <a href="/chinh-sach/chinh-sach-bao-mat" target="_blank" class="font-bold text-[#1E2B6B] underline">Chính sách bảo vệ dữ liệu cá nhân (Luật 91/2025/QH15)</a>. *
+              </span>
+            </label>
+
+            <div id="contact-form-error" class="hidden p-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs font-bold text-[#991B1B]"></div>
+
+            <button
+              type="submit"
+              id="btn-submit-contact"
+              data-cta="contact-submit"
+              class="w-full min-h-[50px] bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm py-3.5 rounded-xl uppercase tracking-wider transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer font-montserrat"
+            >
+              <span id="btn-submit-text">GỬI YÊU CẦU TƯ VẤN</span>
+            </button>
+          </form>
+
+          <div id="contact-success-box" class="hidden p-5 rounded-2xl bg-[#ECFDF5] border border-[#10B981] text-center space-y-2">
+            <p class="font-extrabold text-base text-[#047857]">✓ Đã gửi tin nhắn tới kho VKINNO!</p>
+            <p class="text-xs sm:text-sm text-[#334155]">
+              Cảm ơn bạn đã liên hệ. Đội ngũ VKINNO sẽ phản hồi qua Số điện thoại hoặc Zalo sớm nhất.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const form = document.getElementById("contact-inquiry-form") as HTMLFormElement | null;
+  const errBox = document.getElementById("contact-form-error");
+  const succBox = document.getElementById("contact-success-box");
+  const submitBtn = document.getElementById("btn-submit-contact") as HTMLButtonElement | null;
+  const submitText = document.getElementById("btn-submit-text");
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errBox?.classList.add("hidden");
+
+    const consent = document.getElementById("contact-privacy-consent") as HTMLInputElement | null;
+    if (!consent?.checked) {
+      if (errBox) {
+        errBox.textContent = "Vui lòng tích đồng ý xử lý dữ liệu liên hệ theo Luật BVDLCN 91/2025/QH15.";
+        errBox.classList.remove("hidden");
+      }
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitText) submitText.textContent = "ĐANG GỬI...";
+
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          du_an: "chu-dong-vkinno",
+          privacy_consent: true,
+          website_url_trap: (document.getElementById("contact-hp-trap") as HTMLInputElement)?.value || "",
+          lead_type: "CONTACT",
+          contact_name: (document.getElementById("contact-name") as HTMLInputElement)?.value.trim(),
+          phone: (document.getElementById("contact-phone") as HTMLInputElement)?.value.trim(),
+          email: (document.getElementById("contact-email") as HTMLInputElement)?.value.trim(),
+          message: (document.getElementById("contact-message") as HTMLTextAreaElement)?.value.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Không thể gửi tin nhắn lúc này.");
+      }
+      form.classList.add("hidden");
+      succBox?.classList.remove("hidden");
+    } catch (err: any) {
+      if (errBox) {
+        errBox.innerHTML = `${err.message || "Lỗi kết nối mạng."} Vui lòng nhắn trực tiếp qua <a href="https://zalo.me/0938791389" target="_blank" class="underline font-extrabold">Zalo 0938.791.389</a>.`;
+        errBox.classList.remove("hidden");
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+      if (submitText) submitText.textContent = "GỬI YÊU CẦU TƯ VẤN";
+    }
+  });
+</script>

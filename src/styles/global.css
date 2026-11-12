@@ -1,0 +1,335 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand Core (DESIGN.md WCAG 2.2 AA Verified) */
+  --vk-navy-950: #0F1638;
+  --vk-navy-900: #151E4B;
+  --vk-navy-800: #1E2B6B;
+  --vk-navy-100: #E8ECF8;
+  --vk-navy-50:  #F3F6FC;
+
+  --vk-orange-500: #FF8A15;
+  --vk-orange-600: #E06B00;
+  --vk-orange-700: #A84B00;
+  --vk-orange-100: #FFEDD5;
+  --vk-orange-50:  #FFF7ED;
+
+  /* Neutrals */
+  --vk-bg-canvas:   #F8FAFC;
+  --vk-bg-surface:  #FFFFFF;
+  --vk-bg-subtle:   #F1F5F9;
+  --vk-border:      #CBD5E1;
+  --vk-border-strong: #64748B;
+  --vk-text-strong: #0F172A;
+  --vk-text-body:   #1E293B;
+  --vk-text-muted:  #475569;
+
+  /* Semantic & Trust */
+  --vk-price-red:   #C81E1E;
+  --vk-danger-bg:   #FEF2F2;
+  --vk-success:     #047857;
+  --vk-success-bg:  #ECFDF5;
+  --vk-warning:     #B45309;
+  --vk-warning-bg:  #FFFBEB;
+  --vk-zalo:        #0052CC;
+}
+
+@theme inline {
+  --color-primary: oklch(0.32 0.11 268);
+  --color-primary-dark: oklch(0.25 0.09 268);
+  --color-navy-ink: oklch(0.21 0.08 268);
+  --color-gold: oklch(0.74 0.18 55);
+  --color-gold-hover: oklch(0.65 0.18 50);
+  --color-gold-text: oklch(0.51 0.14 50);
+  --color-gold-light: oklch(0.98 0.02 75);
+  --color-accent: oklch(0.51 0.20 27);
+  --color-zalo: oklch(0.47 0.19 258);
+
+  --font-display: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-montserrat: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Base resets & Vietnamese typography */
+html {
+  font-family: var(--font-inter);
+  scroll-behavior: smooth;
+  color: var(--vk-text-body);
+  background-color: var(--vk-bg-canvas);
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+/* Tabular numbers for VND prices, SKUs, stock counts */
+.tabular-nums,
+.price-vnd {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Prevent iOS Safari / Android auto-zoom on mobile inputs (< 16px) */
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 1024px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]).desktop-sm-input,
+  select.desktop-sm-input,
+  textarea.desktop-sm-input {
+    font-size: 14px;
+  }
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Brand Utility Classes */
+.bg-primary {
+  background-color: #1E2B6B;
+}
+.bg-primary-dark {
+  background-color: #151E4B;
+}
+.text-primary {
+  color: #1E2B6B;
+}
+.bg-gold {
+  background-color: #FF8A15;
+}
+/* Accessible orange text on light background (5.72:1 contrast) */
+.text-gold {
+  color: #A84B00;
+}
+.hover\:text-gold:hover {
+  color: #A84B00;
+}
+.border-gold {
+  border-color: #FF8A15;
+}
+.bg-gold-light {
+  background-color: #FFF7ED;
+}
+.bg-accent {
+  background-color: #C81E1E;
+}
+.text-accent {
+  color: #C81E1E;
+}
+.font-montserrat,
+.font-display {
+  font-family: var(--font-display);
+}
+.font-inter {
+  font-family: var(--font-inter);
+}
+
+/* Accessible CTA Button helper (#FF8A15 bg + #0F1638 dark navy ink = 7.46:1) */
+.btn-cta-orange {
+  background-color: #FF8A15;
+  color: #0F1638;
+  font-weight: 800;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn-cta-orange:hover {
+  background-color: #FFA03A;
+}
+
+/* Clamping */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Cart Drawer Animation */
+.cart-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 22, 56, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 105;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.cart-drawer-backdrop.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.cart-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  z-index: 110;
+  box-shadow: -10px 0 35px rgba(15, 22, 56, 0.2);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+.cart-drawer.active {
+  transform: translateX(0);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Filter categories list styling */
+.filter-categories-list {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  background: #fff !important;
+  padding: 2px 0 !important;
+  margin-top: 8px !important;
+}
+.filter-categories-list li {
+  margin-top: 0 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+.filter-categories-list li:last-child {
+  border-bottom: none !important;
+}
+.filter-cat-btn {
+  padding: 10px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  background: transparent !important;
+  transition: all 0.2s ease !important;
+  border-left: 3px solid transparent !important;
+}
+.filter-cat-btn:hover {
+  background-color: #f8fafc !important;
+  color: #A84B00 !important;
+  padding-left: 16px !important;
+}
+.filter-cat-btn.text-gold {
+  background-color: #F3F6FC !important;
+  color: #1E2B6B !important;
+  border-left: 3px solid #FF8A15 !important;
+  font-weight: 700 !important;
+}
+
+#site-main {
+  background-color: #f8fafc !important;
+}
+
+/* Homepage Bestsellers & New Arrivals Section Headers */
+#home-section-bestsellers,
+#home-section-newarrivals {
+  background: radial-gradient(circle at 10% 10%, rgba(255, 138, 21, 0.1) 0%, transparent 45%),
+    radial-gradient(circle at 90% 90%, rgba(30, 43, 107, 0.07) 0%, transparent 50%), #f4f6fc !important;
+  padding-top: 48px !important;
+  padding-bottom: 48px !important;
+  border-bottom: 1px solid rgba(30, 43, 107, 0.06) !important;
+}
+
+#home-section-bestsellers .space-y-8 > div:first-child,
+#home-section-bestsellers .space-y-10 > div:first-child,
+#home-section-newarrivals .space-y-8 > div:first-child,
+#home-section-newarrivals .space-y-10 > div:first-child {
+  background: linear-gradient(135deg, #FF8A15, #FFA03A) !important;
+  border: 1px solid rgba(15, 22, 56, 0.12) !important;
+  border-left: 6px solid #1E2B6B !important;
+  border-radius: 12px 16px 16px 12px !important;
+  padding: 18px 28px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: 100% !important;
+  box-shadow: 0 10px 25px -5px rgba(255, 138, 21, 0.2) !important;
+}
+
+@media (max-width: 640px) {
+  #home-section-bestsellers .space-y-8 > div:first-child,
+  #home-section-bestsellers .space-y-10 > div:first-child,
+  #home-section-newarrivals .space-y-8 > div:first-child,
+  #home-section-newarrivals .space-y-10 > div:first-child {
+    flex-direction: column !important;
+    text-align: center !important;
+    align-items: center !important;
+    padding: 20px 16px !important;
+  }
+}
+
+#home-section-bestsellers h2,
+#home-section-newarrivals h2 {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: #0F1638 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.02em !important;
+  margin-bottom: 0 !important;
+}
+
+/* Mobile sticky bottom bar safe space */
+@media (max-width: 1023px) {
+  body.has-storefront-shell {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Accessible Focus Rings (WCAG 2.2 AA) */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #1E2B6B;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

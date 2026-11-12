@@ -1,0 +1,570 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ProductCard from "../../components/ProductCard.astro";
+import { products } from "../../data/products";
+import { SITE_CONFIG } from "../../data/siteConfig";
+
+export function getStaticPaths() {
+  return products.map((product) => ({
+    params: { slug: product.slug },
+    props: { product },
+  }));
+}
+
+const { product } = Astro.props;
+
+const relatedProducts = products
+  .filter((p) => p.id !== product.id && p.category_id === product.category_id)
+  .slice(0, 4);
+
+if (relatedProducts.length < 4) {
+  const others = products.filter((p) => p.id !== product.id && !relatedProducts.includes(p));
+  relatedProducts.push(...others.slice(0, 4 - relatedProducts.length));
+}
+
+const gallery = [product.image_url, ...(product.gallery || [])];
+const isBulk5L = (product.volume_ml || 0) >= 5000;
+const discountPct =
+  product.listed_price_vnd && product.listed_price_vnd > product.price_vnd
+    ? Math.round(((product.listed_price_vnd - product.price_vnd) / product.listed_price_vnd) * 100)
+    : 0;
+
+const productSchema = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: product.name,
+  description: product.short_description || product.description || product.name,
+  sku: product.sku,
+  image: [`${SITE_CONFIG.siteUrl}${product.image_url}`],
+  brand: {
+    "@type": "Brand",
+    name: product.brand || "VKINNO",
+  },
+  offers: {
+    "@type": "Offer",
+    url: `${SITE_CONFIG.siteUrl}/san-pham/${product.slug}`,
+    priceCurrency: "VND",
+    price: product.price_vnd,
+    availability: "https://schema.org/InStock",
+    itemCondition: "https://schema.org/NewCondition",
+    seller: {
+      "@type": "Organization",
+      name: SITE_CONFIG.legalName,
+    },
+  },
+};
+---
+
+<Layout
+  title={`${product.name} - VKINNO`}
+  description={product.short_description || product.name}
+  ogImage={product.image_url}
+  type="product"
+  schemaData={productSchema}
+  hideFloatingZaloOnMobile={true}
+>
+  <style>
+    @media (max-width: 1023px) {
+      #mobile-bottom-nav {
+        display: none !important;
+      }
+    }
+  </style>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 pb-28 lg:pb-12 space-y-8 font-inter">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-xs font-semibold text-[#475569] min-w-0" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-[#1E2B6B] transition-colors shrink-0">Trang chủ</a>
+      <span class="shrink-0">/</span>
+      <a href="/san-pham" class="hover:text-[#1E2B6B] transition-colors shrink-0">Cửa hàng</a>
+      <span class="shrink-0">/</span>
+      <span class="text-[#0F172A] font-bold truncate min-w-0">{product.name}</span>
+    </nav>
+
+    <!-- Product Main Info: 2 Columns -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 bg-white p-5 sm:p-8 rounded-2xl border border-[#E2E8F0] shadow-xs">
+      <!-- Left: Gallery -->
+      <div class="space-y-4">
+        <div class="w-full aspect-square bg-[#F8FAFC] rounded-2xl overflow-hidden border border-[#E2E8F0] relative">
+          {discountPct > 0 && (
+            <span class="absolute top-3 left-3 z-10 bg-[#C81E1E] text-white text-xs font-extrabold px-2.5 py-1 rounded-lg tabular-nums">
+              Tiết kiệm -{discountPct}%
+            </span>
+          )}
+          <img
+            id="main-gallery-img"
+            src={product.image_url}
+            alt={product.name}
+            width="640"
+            height="640"
+            fetchpriority="high"
+            onerror="this.onerror=null; this.src='/logo.png';"
+            class="w-full h-full object-contain p-4 transition-all duration-300"
+          />
+        </div>
+
+        {gallery.length > 1 && (
+          <div class="flex items-center space-x-3 overflow-x-auto pb-2">
+            {gallery.map((imgUrl, idx) => (
+              <button
+                type="button"
+                aria-label={`Xem ảnh sản phẩm số ${idx + 1}`}
+                class={`thumb-btn w-16 h-16 rounded-xl border-2 overflow-hidden bg-[#F8FAFC] shrink-0 cursor-pointer transition-all ${
+                  idx === 0 ? "border-[#FF8A15]" : "border-[#E2E8F0] hover:border-[#64748B]"
+                }`}
+                data-img-url={imgUrl}
+              >
+                <img src={imgUrl} alt={`${product.name} - ảnh ${idx + 1}`} width="64" height="64" class="w-full h-full object-contain p-1" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <!-- Right: Buying Details -->
+      <div class="space-y-5 flex flex-col justify-between">
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-extrabold text-[#A84B00] bg-[#FFF7ED] border border-[#FED7AA] px-2.5 py-1 rounded-full uppercase tracking-wider">
+              {product.brand || "VKINNO"}
+            </span>
+            <span class="text-xs font-bold text-[#475569] bg-[#F1F5F9] px-2.5 py-1 rounded-full tabular-nums">
+              Mã: {product.sku}
+            </span>
+          </div>
+
+          <h1 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] leading-snug font-montserrat">
+            {product.name}
+          </h1>
+
+          {product.short_description && (
+            <p class="text-sm text-[#475569] leading-relaxed">
+              {product.short_description}
+            </p>
+          )}
+
+          <!-- Price Block -->
+          <div class="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex flex-wrap items-baseline gap-3">
+            <span
+              class="text-2xl sm:text-3xl font-black text-[#C81E1E] font-montserrat tabular-nums"
+              data-live-price={product.sku}
+            >
+              {product.price_vnd.toLocaleString("vi-VN")} ₫
+            </span>
+            {product.listed_price_vnd && product.listed_price_vnd > product.price_vnd && (
+              <span class="text-sm text-[#64748B] line-through font-semibold tabular-nums">
+                {product.listed_price_vnd.toLocaleString("vi-VN")} ₫
+              </span>
+            )}
+            <span class="text-xs font-bold text-[#047857] bg-[#ECFDF5] px-2.5 py-1 rounded-md ml-auto">
+              Đã gồm VAT 8%
+            </span>
+          </div>
+
+          <!-- B2B 5L Callout -->
+          {isBulk5L && (
+            <div class="p-3.5 rounded-xl bg-[#EEF2FF] border border-[#C7D2FE] text-xs text-[#1E2B6B] space-y-1">
+              <div class="font-extrabold flex items-center gap-1.5">
+                <i class="fa-solid fa-building"></i>
+                <span>Ưu đãi Gara Ô tô &amp; Nhà thầu Điện mặt trời (Can 5L)</span>
+              </div>
+              <p class="text-[#334155] leading-relaxed">
+                Xuất hóa đơn VAT 8% trong ngày · Cung cấp bảng dữ liệu an toàn hóa chất SDS/MSDS · Chiết khấu sỉ 20%–40% cho đơn từ 5.000.000 ₫.{" "}
+                <a href="/giai-phap-gara" class="font-extrabold underline text-[#1E2B6B]">Xem bảng giá sỉ →</a>
+              </p>
+            </div>
+          )}
+
+          <!-- Freeship 199.000đ Bundle Upsell -->
+          {product.price_vnd < 199000 && (
+            <div class="p-4 rounded-xl bg-[#FFF7ED] border border-[#FED7AA] space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-extrabold text-[#9A3412] uppercase tracking-wide">
+                  🎁 Mẹo mua tiết kiệm phí vận chuyển 25.000 ₫
+                </span>
+                <span class="text-[11px] font-black bg-[#047857] text-white px-2 py-0.5 rounded-full">FREESHIP 199K</span>
+              </div>
+              <p class="text-xs text-[#7C2D12] leading-relaxed">
+                Chọn <strong>Bộ 3 Toàn Gia</strong> (01 Tẩy cặn canxi Bossman 69k + 01 Tẩy dầu mỡ bếp 85k + 01 Lau kính ClearWay 500ml 45k) = <strong class="tabular-nums">199.000 ₫</strong> để được <strong>Miễn phí vận chuyển toàn quốc</strong>!
+              </p>
+              <button
+                type="button"
+                id="btn-upsell-bundle-199k"
+                class="w-full min-h-[44px] px-4 py-2.5 rounded-lg bg-white hover:bg-[#FFEDD5] border border-[#FB923C] text-[#9A3412] font-extrabold text-xs uppercase tracking-wide cursor-pointer transition-colors"
+              >
+                + Chọn ngay Bộ 3 Toàn Gia 199.000 ₫ (Freeship)
+              </button>
+            </div>
+          )}
+
+          <!-- Quantity Stepper & Stock -->
+          <div class="flex flex-wrap items-center gap-4 pt-1">
+            <label for="qty-input" class="text-xs font-extrabold text-[#0F172A] uppercase">Số lượng:</label>
+            <div class="flex items-center border border-[#CBD5E1] rounded-xl overflow-hidden bg-white">
+              <button
+                type="button"
+                id="qty-minus"
+                aria-label="Giảm số lượng"
+                class="w-11 h-11 flex items-center justify-center text-[#0F172A] hover:bg-[#F1F5F9] font-extrabold text-base cursor-pointer transition-colors"
+              >
+                -
+              </button>
+              <input
+                type="text"
+                id="qty-input"
+                value="1"
+                readonly
+                aria-label="Số lượng đặt mua"
+                class="w-12 text-center text-base font-extrabold text-[#0F172A] focus:outline-none tabular-nums"
+              />
+              <button
+                type="button"
+                id="qty-plus"
+                aria-label="Tăng số lượng"
+                class="w-11 h-11 flex items-center justify-center text-[#0F172A] hover:bg-[#F1F5F9] font-extrabold text-base cursor-pointer transition-colors"
+              >
+                +
+              </button>
+            </div>
+            <span
+              class="text-xs font-bold text-[#047857] flex items-center space-x-1.5 tabular-nums"
+              data-live-stock={product.sku}
+            >
+              <i class="fa-solid fa-circle-check text-xs"></i>
+              <span>Sẵn kho ({product.stock || 60} sản phẩm)</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Action CTA Buttons -->
+        <div class="space-y-4 pt-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <button
+              type="button"
+              id="btn-add-to-cart"
+              data-cta="pdp-add-cart"
+              class="w-full py-3.5 px-4 min-h-[48px] border-2 border-[#1E2B6B] hover:bg-[#EEF2FF] text-[#1E2B6B] text-xs sm:text-sm font-extrabold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              <i class="fa-solid fa-basket-shopping"></i>
+              <span>Thêm vào giỏ</span>
+            </button>
+
+            <button
+              type="button"
+              id="btn-buy-now"
+              data-cta="pdp-buy-now"
+              class="w-full py-3.5 px-4 min-h-[48px] bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] text-xs sm:text-sm font-extrabold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-sm"
+            >
+              <i class="fa-solid fa-bolt"></i>
+              <span>Mua ngay</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-[#E2E8F0] text-xs text-[#475569] font-semibold">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-truck-fast text-[#A84B00]"></i>
+              <span>Freeship từ 199.000 ₫ · Đồng kiểm khi nhận</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i class="fa-brands fa-whatsapp text-[#047857]"></i>
+              <a href={SITE_CONFIG.zaloUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-[#1E2B6B]">
+                Gửi ảnh vết ố qua Zalo {SITE_CONFIG.hotlinePrimary}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chemical Dwell-Time & Prohibited Surface Safety Box (Mandatory Technical Transparency) -->
+    {(product.dwell_time_note || product.prohibited_surfaces) && (
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {product.dwell_time_note && (
+          <div class="p-5 rounded-2xl bg-[#FFFBEB] border border-[#FDE68A] space-y-2">
+            <h2 class="text-sm font-extrabold text-[#92400E] uppercase tracking-wide flex items-center gap-2">
+              <i class="fa-solid fa-stopwatch text-base"></i>
+              <span>Lưu ý thời gian chờ ủ hoạt chất</span>
+            </h2>
+            <p class="text-sm text-[#78350F] leading-relaxed font-medium">
+              {product.dwell_time_note}
+            </p>
+          </div>
+        )}
+
+        {product.prohibited_surfaces && (
+          <div class="p-5 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] space-y-2">
+            <h2 class="text-sm font-extrabold text-[#991B1B] uppercase tracking-wide flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-base"></i>
+              <span>Bề mặt kỵ dùng (Cần kiểm tra trước khi xịt)</span>
+            </h2>
+            <p class="text-sm text-[#7F1D1D] leading-relaxed font-medium">
+              {product.prohibited_surfaces}
+            </p>
+          </div>
+        )}
+      </div>
+    )}
+
+    <!-- Product Description & Specs Tabs -->
+    <div class="bg-white p-6 sm:p-8 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-6">
+      <div class="flex items-center space-x-6 border-b border-[#E2E8F0]">
+        <button
+          type="button"
+          id="tab-desc-btn"
+          class="pb-3 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#1E2B6B] border-b-2 border-[#FF8A15] cursor-pointer"
+        >
+          Hướng dẫn sử dụng &amp; Công dụng
+        </button>
+        <button
+          type="button"
+          id="tab-specs-btn"
+          class="pb-3 text-xs sm:text-sm font-bold uppercase tracking-wider text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+        >
+          Thông số kỹ thuật
+        </button>
+      </div>
+
+      <!-- Tab Content: Description -->
+      <div id="tab-desc-content" class="text-sm text-[#334155] leading-relaxed space-y-5">
+        {product.description && <p class="text-[#0F172A] font-medium leading-relaxed">{product.description}</p>}
+
+        {product.benefits && product.benefits.length > 0 && (
+          <div class="space-y-2.5">
+            <h3 class="font-extrabold text-[#0F172A] uppercase text-xs tracking-wider">Đặc điểm nổi bật:</h3>
+            <ul class="list-disc pl-5 space-y-1.5">
+              {product.benefits.map((b) => (
+                <li>{b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {product.usage_instructions && product.usage_instructions.length > 0 && (
+          <div class="space-y-2.5">
+            <h3 class="font-extrabold text-[#0F172A] uppercase text-xs tracking-wider">Quy trình sử dụng chuẩn tại nhà &amp; xưởng:</h3>
+            <ol class="space-y-2 bg-[#F8FAFC] p-4 sm:p-5 rounded-xl border border-[#E2E8F0]">
+              {product.usage_instructions.map((step, index) => (
+                <li class="flex items-start gap-3">
+                  <span class="w-6 h-6 rounded-full bg-[#1E2B6B] text-white text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
+                    {index + 1}
+                  </span>
+                  <span class="text-sm text-[#0F172A] leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {product.safety_notes && (
+          <div class="space-y-2">
+            <h3 class="font-extrabold text-[#0F172A] uppercase text-xs tracking-wider">An toàn &amp; Bảo quản:</h3>
+            {Array.isArray(product.safety_notes) ? (
+              <ul class="list-disc pl-5 space-y-1 text-xs sm:text-sm text-[#475569]">
+                {product.safety_notes.map((note) => (
+                  <li>{note}</li>
+                ))}
+              </ul>
+            ) : (
+              <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">{product.safety_notes}</p>
+            )}
+          </div>
+        )}
+
+        <div class="pt-3 border-t border-[#E2E8F0] text-[#475569] text-xs">
+          <p>
+            <strong>Hóa đơn VAT 8%:</strong> Giá bán công bố đã bao gồm thuế GTGT (VAT 8%) của <strong>{SITE_CONFIG.legalName}</strong> (MST {SITE_CONFIG.taxCode}). Quý khách doanh nghiệp, Gara hoặc nhà thầu cần xuất hóa đơn điện tử vui lòng ghi Tên công ty + MST tại ô Ghi chú khi đặt hàng.
+          </p>
+        </div>
+      </div>
+
+      <!-- Tab Content: Specs -->
+      <div id="tab-specs-content" class="hidden text-sm text-[#334155] space-y-4">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse border border-[#E2E8F0] rounded-xl overflow-hidden">
+            <tbody>
+              <tr class="border-b border-[#E2E8F0]">
+                <td class="p-3.5 font-bold bg-[#F8FAFC] text-[#0F172A] w-1/3">Nhãn hiệu</td>
+                <td class="p-3.5 font-semibold text-[#334155]">{product.brand || "VKINNO"}</td>
+              </tr>
+              <tr class="border-b border-[#E2E8F0]">
+                <td class="p-3.5 font-bold bg-[#F8FAFC] text-[#0F172A]">Đơn vị chịu trách nhiệm</td>
+                <td class="p-3.5 font-semibold text-[#334155]">{SITE_CONFIG.legalName} (MST: {SITE_CONFIG.taxCode})</td>
+              </tr>
+              <tr class="border-b border-[#E2E8F0]">
+                <td class="p-3.5 font-bold bg-[#F8FAFC] text-[#0F172A]">Mã quản lý kho (SKU)</td>
+                <td class="p-3.5 font-semibold text-[#334155] tabular-nums">{product.sku}</td>
+              </tr>
+              <tr class="border-b border-[#E2E8F0]">
+                <td class="p-3.5 font-bold bg-[#F8FAFC] text-[#0F172A]">Dung tích / Quy cách</td>
+                <td class="p-3.5 font-semibold text-[#334155] tabular-nums">
+                  {product.packaging?.type || (product.volume_ml ? `${product.volume_ml} ml` : "Theo quy cách tiêu chuẩn")}
+                </td>
+              </tr>
+              {(product.ph_level || product.biochemical_features?.ph_range) && (
+                <tr class="border-b border-[#E2E8F0]">
+                  <td class="p-3.5 font-bold bg-[#F8FAFC] text-[#0F172A]">Độ pH tiêu chuẩn</td>
+                  <td class="p-3.5 font-semibold text-[#334155]">
+                    {product.ph_level || product.biochemical_features?.ph_range}
+                  </td>
+                </tr>
+              )}
+              {product.ingredients && product.ingredients.length > 0 && (
+                <tr class="border-b border-[#E2E8F0]">
+                  <td class="p-3.5 font-bold bg-[#F8FAFC] text-[#0F172A]">Thành phần chính</td>
+                  <td class="p-3.5 font-semibold text-[#334155]">{product.ingredients.join(", ")}</td>
+                </tr>
+              )}
+              <tr class="border-b border-[#E2E8F0]">
+                <td class="p-3.5 font-bold bg-[#F8FAFC] text-[#0F172A]">Hạn sử dụng</td>
+                <td class="p-3.5 font-semibold text-[#334155]">{product.shelf_life_months || 24} tháng kể từ ngày sản xuất in trên bao bì</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Products -->
+    <div class="space-y-6 pt-2">
+      <div class="flex items-center justify-between border-b border-[#E2E8F0] pb-4">
+        <h2 class="text-base sm:text-lg font-extrabold text-[#0F172A] uppercase tracking-wider font-montserrat">
+          Sản phẩm mua kèm gợi ý
+        </h2>
+        <a href="/san-pham" class="text-xs font-extrabold text-[#A84B00] hover:text-[#1E2B6B] uppercase tracking-wider flex items-center space-x-1">
+          <span>Xem tất cả</span>
+          <i class="fa-solid fa-arrow-right-long"></i>
+        </a>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {relatedProducts.map((p) => (
+          <ProductCard product={p} />
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Sticky Conversion Bar (Clean, Never Overlapped by Floating Zalo) -->
+  <div class="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-[#CBD5E1] px-4 py-2.5 shadow-[0_-6px_20px_rgba(15,23,42,0.08)] flex items-center gap-2.5">
+    <a
+      href={SITE_CONFIG.zaloUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Hỏi kỹ thuật qua Zalo"
+      class="w-12 h-12 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] text-[#1E2B6B] flex flex-col items-center justify-center shrink-0 text-[10px] font-extrabold"
+    >
+      <i class="fa-solid fa-comment-dots text-sm text-[#0068FF]"></i>
+      <span>Zalo</span>
+    </a>
+    <button
+      type="button"
+      id="btn-mobile-sticky-add"
+      class="flex-1 min-h-[48px] px-3 rounded-xl border-2 border-[#1E2B6B] text-[#1E2B6B] font-extrabold text-xs uppercase tracking-wide cursor-pointer"
+    >
+      Thêm giỏ
+    </button>
+    <button
+      type="button"
+      id="btn-mobile-sticky-buy"
+      class="flex-1 min-h-[48px] px-3 rounded-xl bg-[#FF8A15] text-[#0F1638] font-extrabold text-xs uppercase tracking-wide cursor-pointer shadow-xs"
+    >
+      Mua ngay
+    </button>
+  </div>
+</Layout>
+
+<script define:vars={{ product }}>
+  let qty = 1;
+  const qtyInput = document.getElementById("qty-input");
+  const qtyMinus = document.getElementById("qty-minus");
+  const qtyPlus = document.getElementById("qty-plus");
+  const mainImg = document.getElementById("main-gallery-img");
+
+  document.querySelectorAll(".thumb-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const url = btn.getAttribute("data-img-url");
+      if (url && mainImg) mainImg.setAttribute("src", url);
+      document.querySelectorAll(".thumb-btn").forEach((b) => b.classList.remove("border-[#FF8A15]"));
+      btn.classList.add("border-[#FF8A15]");
+    });
+  });
+
+  qtyMinus?.addEventListener("click", () => {
+    if (qty > 1) {
+      qty -= 1;
+      if (qtyInput) qtyInput.value = String(qty);
+    }
+  });
+
+  qtyPlus?.addEventListener("click", () => {
+    qty += 1;
+    if (qtyInput) qtyInput.value = String(qty);
+  });
+
+  const tabDescBtn = document.getElementById("tab-desc-btn");
+  const tabSpecsBtn = document.getElementById("tab-specs-btn");
+  const tabDescContent = document.getElementById("tab-desc-content");
+  const tabSpecsContent = document.getElementById("tab-specs-content");
+
+  tabDescBtn?.addEventListener("click", () => {
+    tabDescBtn.className = "pb-3 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#1E2B6B] border-b-2 border-[#FF8A15] cursor-pointer";
+    if (tabSpecsBtn) tabSpecsBtn.className = "pb-3 text-xs sm:text-sm font-bold uppercase tracking-wider text-[#64748B] hover:text-[#0F172A] cursor-pointer";
+    tabDescContent?.classList.remove("hidden");
+    tabSpecsContent?.classList.add("hidden");
+  });
+
+  tabSpecsBtn?.addEventListener("click", () => {
+    tabSpecsBtn.className = "pb-3 text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#1E2B6B] border-b-2 border-[#FF8A15] cursor-pointer";
+    if (tabDescBtn) tabDescBtn.className = "pb-3 text-xs sm:text-sm font-bold uppercase tracking-wider text-[#64748B] hover:text-[#0F172A] cursor-pointer";
+    tabSpecsContent?.classList.remove("hidden");
+    tabDescContent?.classList.add("hidden");
+  });
+
+  function doAddToCart() {
+    if (window.vkinnoAddToCart) {
+      window.vkinnoAddToCart(product.name, product.price_vnd, product.image_url, product.slug, qty, product.sku);
+    }
+  }
+
+  function doBuyNow() {
+    if (window.vkinnoAddToCart) {
+      window.vkinnoAddToCart(product.name, product.price_vnd, product.image_url, product.slug, qty, product.sku);
+    }
+    window.location.href = "/thanh-toan";
+  }
+
+  document.getElementById("btn-add-to-cart")?.addEventListener("click", doAddToCart);
+  document.getElementById("btn-mobile-sticky-add")?.addEventListener("click", doAddToCart);
+  document.getElementById("btn-buy-now")?.addEventListener("click", doBuyNow);
+  document.getElementById("btn-mobile-sticky-buy")?.addEventListener("click", doBuyNow);
+
+  document.getElementById("btn-upsell-bundle-199k")?.addEventListener("click", () => {
+    if (window.vkinnoAddToCart) {
+      window.vkinnoAddToCart(
+        "Chai Xịt Tẩy Cặn Canxi Bossman 500ml — Sạch Vách Kính & Vòi Sen Inox",
+        69000,
+        "/images/products/vk-bossman-descaler-500ml.jpg",
+        "chai-xit-tay-can-canxi-500ml-an-toan-cho-da-tay-dung-dich-tay-can-canxi-lam-sach-voi-sen-va-nha-tam",
+        1,
+        "VK-BOSSMAN-DESCALER-500ML"
+      );
+      window.vkinnoAddToCart(
+        "Chai Xịt Tẩy Dầu Mỡ Đa Năng VKINNO 500ml — Chuyên Dụng Cho Bếp Từ & Máy Hút Mùi",
+        85000,
+        "/images/products/vk-degreaser-500ml.jpg",
+        "tay-dau-mo-da-nang-cao-cap-vkinno-500ml-chuyen-dung-cho-bep-tu-bep-hong-ngoai-an-toan-be-mat-bep",
+        1,
+        "VK-DEGREASER-500ML"
+      );
+      window.vkinnoAddToCart(
+        "Nước lau kính ClearWay GlassPro 500ml sạch trong không vệt cho kính nhà & văn phòng",
+        45000,
+        "/images/products/vk-clearway-glasspro-500ml.jpg",
+        "nuoc-lau-kinh-clearway-glasspro-500ml-sach-nhanh-khong-vet-sang-bong-kinh-nha-van-phong",
+        1,
+        "VK-CLEARWAY-GLASSPRO-500ML"
+      );
+      window.location.href = "/thanh-toan";
+    }
+  });
+</script>
