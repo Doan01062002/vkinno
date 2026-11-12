@@ -2,6 +2,7 @@
 import type { Env } from "./lib/env";
 import { timingSafeCompare } from "./lib/crypto";
 import { handleAdmin } from "./admin/router";
+import { serveFile } from "./admin/uploads";
 import "./admin/routes";
 import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
 
@@ -299,6 +300,10 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
+
+    if (path.startsWith("/files/") && (request.method === "GET" || request.method === "HEAD")) {
+      return serveFile(env, path.slice("/files/".length), request.method);
+    }
 
     if (!path.startsWith("/api")) {
       return env.ASSETS.fetch(request);
