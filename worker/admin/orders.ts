@@ -379,7 +379,7 @@ export async function createOrder(
   }
 
   const row = await db.prepare('SELECT id FROM orders WHERE order_code = ?').bind(orderCode).first<{ id: number }>();
-  // Đơn nhập từ sàn không đẩy sự kiện từng đơn (tránh fetch ra ngoài mỗi đơn); đồng bộ Sheets cho nhập file thuộc Task 14.
+  // Đơn nhập từ sàn không đẩy sự kiện từng đơn (tránh fetch ra ngoài mỗi đơn); runImport đẩy một sự kiện import.batch cho cả request.
   if (ctx && !isImport) {
     mirrorEvent(env, ctx, 'order.created', {
       order_code: orderCode,

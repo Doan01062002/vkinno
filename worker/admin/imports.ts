@@ -7,6 +7,7 @@ import { DEFAULT_COLUMN_MAPS, columnMapSchema, importOrdersSchema, type Channel,
 import { pageQuerySchema } from '../../src/shared/schemas';
 import type { Env } from '../lib/env';
 import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
+import { mirrorEvent } from '../lib/notify';
 import { auditStmt } from './audit';
 import { createOrder } from './orders';
 import { route } from './router';
@@ -123,6 +124,7 @@ export async function runImport(
 
   let created = 0;
   let skipped = 0;
+  const createdCodes: string[] = [];
   const errors: ImportError[] = [];
   for (const o of real) {
     if (existing.has(o.external_order_id)) {
@@ -135,7 +137,8 @@ export async function runImport(
       continue;
     }
     try {
-      await createOrder(env, toCreateInput(channel, o, resolved), { source: 'IMPORT', userId, status: o.status as 'PENDING' | 'SHIPPING' | 'COMPLETED', createdAt: o.created_at || undefined }, ctx);
+      const made = await createOrder(env, toCreateInput(channel, o, resolved), { source: 'IMPORT', userId, status: o.status as 'PENDING' | 'SHIPPING' | 'COMPLETED', createdAt: o.created_at || undefined }, ctx);
+      createdCodes.push(made.order_code);
       created++;
     } catch (e) {
       if (e instanceof ApiError && e.code === 'DUPLICATE_ORDER') skipped++;
@@ -148,6 +151,9 @@ export async function runImport(
   }
 
   const batch = await saveBatch(env.DB, userId, input, prevBatch, { created, skipped, errors });
+  if (ctx && createdCodes.length > 0) {
+    mirrorEvent(env, ctx, 'import.batch', { channel, batch_id: batch.batch_id, order_codes: createdCodes });
+  }
   return { created, skipped_duplicates: skipped, errors, ...batch };
 }
 

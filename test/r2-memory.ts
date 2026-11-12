@@ -71,8 +71,10 @@ export function createMemoryR2(): R2Bucket {
       const prefix = options?.prefix ?? '';
       const limit = options?.limit ?? 1000;
       const all = [...store.keys()].filter((k) => k.startsWith(prefix)).sort();
-      const objects = all.slice(0, limit).map((k) => meta(k, store.get(k)!));
-      return { objects, truncated: all.length > limit, delimitedPrefixes: [] as string[] };
+      const start = options?.cursor ? Number(options.cursor) : 0;
+      const objects = all.slice(start, start + limit).map((k) => meta(k, store.get(k)!));
+      const truncated = all.length > start + limit;
+      return { objects, truncated, cursor: truncated ? String(start + limit) : undefined, delimitedPrefixes: [] as string[] };
     },
   };
   return bucket as unknown as R2Bucket;

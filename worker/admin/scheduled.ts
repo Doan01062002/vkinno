@@ -1,0 +1,111 @@
+import type { Env } from '../lib/env';
+import { sendTelegramAlert } from '../lib/notify';
+import { inventoryAlerts } from './products';
+
+const BACKUP_PREFIX = 'backups/';
+const BACKUP_KEEP_DAYS = 90;
+const DAY_MS = 86400000;
+const KEY_RE = /^backups\/(\d{4}-\d{2}-\d{2})\.json\.gz$/;
+
+/** Ngày hiện tại theo giờ Việt Nam (UTC+7), dạng YYYY-MM-DD. */
+function vnToday(now = Date.now()): string {
+  return new Date(now + 7 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+async function gzip(text: string): Promise<Uint8Array> {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/** Xoá các bản `backups/` cũ hơn 90 ngày (bản đúng 90 ngày tuổi còn giữ). Trả số khoá đã xoá. */
+export async function pruneBackups(env: Env, now = Date.now()): Promise<number> {
+  const cutoff = Date.parse(`${vnToday(now)}T00:00:00Z`) - BACKUP_KEEP_DAYS * DAY_MS;
+  const stale: string[] = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await env.FILES.list({ prefix: BACKUP_PREFIX, cursor });
+    for (const obj of page.objects) {
+      const m = KEY_RE.exec(obj.key);
+      if (m && Date.parse(`${m[1]}T00:00:00Z`) < cutoff) stale.push(obj.key);
+    }
+    if (!page.truncated) break;
+    cursor = page.cursor;
+  }
+  for (let i = 0; i < stale.length; i += 1000) await env.FILES.delete(stale.slice(i, i + 1000));
+  return stale.length;
+}
+
+/** Sao lưu mọi bảng D1 thành JSON nén gzip vào R2 `backups/YYYY-MM-DD.json.gz`, rồi dọn bản cũ. */
+export async function runBackup(env: Env): Promise<{ key: string; bytes: number }> {
+  const names = await env.DB.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND substr(name, 1, 4) <> '_cf_' ORDER BY name",
+  ).all<{ name: string }>();
+  const tables = names.results.map((r) => r.name);
+  const results = tables.length
+    ? await env.DB.batch(tables.map((t) => env.DB.prepare(`SELECT * FROM "${t.replace(/"/g, '""')}"`)))
+    : [];
+  const data: Record<string, unknown[]> = {};
+  tables.forEach((t, i) => {
+    data[t] = results[i].results;
+  });
+  const body = await gzip(JSON.stringify({ created_at: new Date().toISOString(), tables: data }));
+  const key = `${BACKUP_PREFIX}${vnToday()}.json.gz`;
+  await env.FILES.put(key, body, { httpMetadata: { contentType: 'application/gzip' } });
+  try {
+    await pruneBackups(env);
+  } catch (e) {
+    console.error('Dọn bản sao lưu cũ thất bại', e);
+  }
+  return { key, bytes: body.byteLength };
+}
+
+async function telegramEnabled(env: Env): Promise<boolean> {
+  const row = await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'telegram.enabled'").first<{
+    value: string;
+  }>();
+  return row?.value === 'true';
+}
+
+async function sendInventoryAlerts(env: Env): Promise<void> {
+  if (!(await telegramEnabled(env))) return;
+  const { low_stock, expiring } = await inventoryAlerts(env.DB);
+  if (low_stock.length === 0 && expiring.length === 0) return;
+  const lines: string[] = ['Cảnh báo kho VKINNO'];
+  if (low_stock.length > 0) {
+    lines.push('', `Tồn thấp (${low_stock.length}):`);
+    for (const r of low_stock) lines.push(`- ${r.name} (${r.sku}): còn ${r.available}, tối thiểu ${r.min_stock}`);
+  }
+  if (expiring.length > 0) {
+    lines.push('', `Lô sắp hết hạn (${expiring.length}):`);
+    for (const e of expiring as unknown as { name: string; sku: string; batch_code: string; expiry_date: string; qty: number }[]) {
+      lines.push(`- ${e.name} (${e.sku}) lô ${e.batch_code || '-'}: ${e.qty} hết hạn ${e.expiry_date}`);
+    }
+  }
+  await sendTelegramAlert(env, lines.join('\n'));
+}
+
+/** Tác vụ hằng ngày; mỗi bước độc lập, một bước lỗi không chặn các bước còn lại. */
+export async function runDaily(env: Env): Promise<void> {
+  try {
+    await runBackup(env);
+  } catch (e) {
+    console.error('Sao lưu hằng ngày thất bại', e);
+    try {
+      await sendTelegramAlert(env, 'Sao lưu D1 hằng ngày THẤT BẠI. Vui lòng kiểm tra nhật ký Worker.');
+    } catch (e2) {
+      console.error(e2);
+    }
+  }
+  try {
+    await env.DB.prepare(
+      "DELETE FROM login_attempts WHERE (CAST(strftime('%s','now') AS INTEGER) - CAST(strftime('%s', window_start) AS INTEGER)) >= 900",
+    ).run();
+  } catch (e) {
+    console.error('Dọn login_attempts thất bại', e);
+  }
+  try {
+    await sendInventoryAlerts(env);
+  } catch (e) {
+    console.error('Gửi cảnh báo tồn kho thất bại', e);
+  }
+}

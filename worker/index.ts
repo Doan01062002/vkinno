@@ -9,6 +9,7 @@ import { availability } from "./admin/inventory";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
 import "./admin/routes";
+import { runDaily } from "./admin/scheduled";
 import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
 
 export type { Env };
@@ -276,6 +277,9 @@ function csvEscape(val: unknown): string {
 }
 
 export default {
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runDaily(env));
+  },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
