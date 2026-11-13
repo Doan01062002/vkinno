@@ -15,6 +15,10 @@ import {
 import type { ReactNode } from 'react';
 import { Inventory } from './pages/Inventory';
 import { Ledger } from './pages/Ledger';
+import { OrderCreate } from './pages/OrderCreate';
+import { OrderDetail } from './pages/OrderDetail';
+import { OrderImport } from './pages/OrderImport';
+import { Orders } from './pages/Orders';
 import { Placeholder } from './pages/Placeholder';
 import { ProductEdit } from './pages/ProductEdit';
 import { Products } from './pages/Products';
@@ -68,12 +72,16 @@ const placeholder = (slug: string, label: string): ScreenRoute => ({
  * Route của mục `adminOnly` tự được bọc RequireAdmin.
  */
 const SCREENS: Record<string, ReactNode> = {
+  'don-hang': <Orders />,
   'san-pham': <Products />,
   kho: <Inventory />,
 };
 
 export const ROUTES: ScreenRoute[] = [
   ...MENU.map((m) => ({ ...placeholder(m.slug, m.label), element: SCREENS[m.slug] ?? <Placeholder title={m.label} /> })),
+  { path: 'don-hang/moi', title: 'Tạo đơn', section: 'don-hang', element: <OrderCreate /> },
+  { path: 'don-hang/nhap-file', title: 'Nhập file sàn', section: 'don-hang', element: <OrderImport /> },
+  { path: 'don-hang/:id', title: 'Chi tiết đơn', section: 'don-hang', element: <OrderDetail /> },
   { path: 'san-pham/moi', title: 'Thêm sản phẩm', section: 'san-pham', element: <ProductEdit /> },
   { path: 'san-pham/:sku', title: 'Sửa sản phẩm', section: 'san-pham', element: <ProductEdit /> },
   { path: 'kho/so-kho/:sku', title: 'Sổ kho', section: 'kho', element: <Ledger /> },
