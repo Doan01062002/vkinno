@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { applyMigrations, createTestD1 } from './d1-sqlite';
 import { seedProducts } from './helpers';
@@ -134,6 +136,9 @@ describe('migration 0003', () => {
     );
     expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
     expect(await db.prepare("SELECT COUNT(*) AS n FROM orders WHERE order_code='OLD1'").first('n')).toBe(1);
+    expect(
+      (await db.prepare("SELECT name FROM sqlite_master WHERE substr(name, 1, 7) = '_m0003_'").all()).results,
+    ).toEqual([]);
 
     const idx = (await db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'").all()).results.map(
       (r) => r.name,
@@ -152,6 +157,15 @@ describe('migration 0003', () => {
     ]) {
       expect(idx).toContain(name);
     }
+  });
+
+  it('0003 không dùng bảng TEMP (D1 từ xa), bảng trung gian _m0003_* bị xoá hết', async () => {
+    const sql = readFileSync(join(process.cwd(), 'migrations', '0003_admin.sql'), 'utf8');
+    expect(sql).not.toMatch(/\bTEMP(ORARY)?\s+TABLE\b/i);
+    const created = [...sql.matchAll(/CREATE TABLE (_m0003_\w+)/g)].map((m) => m[1]);
+    expect(created.length).toBeGreaterThanOrEqual(3);
+    const db = await freshDb();
+    expect((await db.prepare("SELECT name FROM sqlite_master WHERE substr(name, 1, 7) = '_m0003_'").all()).results).toEqual([]);
   });
 
   it('seedProducts đặt tồn 100, giá vốn 50.000', async () => {

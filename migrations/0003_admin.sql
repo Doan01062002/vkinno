@@ -13,13 +13,14 @@
 -- ============================================================================
 
 -- D1 luôn bật khoá ngoại và bỏ qua PRAGMA foreign_keys. DROP TABLE cha sẽ xoá
--- (CASCADE) hoặc chặn các dòng con, nên các bảng con được chép ra bảng tạm,
--- xoá khỏi bảng gốc trước khi dựng lại cha, rồi khôi phục nguyên giá trị.
+-- (CASCADE) hoặc chặn các dòng con, nên các bảng con được chép ra bảng trung gian
+-- _m0003_* (bảng thường: D1 từ xa không hỗ trợ ổn định bảng TEMP), xoá khỏi bảng gốc trước
+-- khi dựng lại cha, rồi khôi phục nguyên giá trị và DROP các bảng _m0003_*.
 PRAGMA defer_foreign_keys = true;
 
-CREATE TEMP TABLE tmp_bom_items AS SELECT * FROM bom_items;
-CREATE TEMP TABLE tmp_order_items AS SELECT * FROM order_items;
-CREATE TEMP TABLE tmp_inventory_logs AS SELECT * FROM inventory_logs;
+CREATE TABLE _m0003_bom_items AS SELECT * FROM bom_items;
+CREATE TABLE _m0003_order_items AS SELECT * FROM order_items;
+CREATE TABLE _m0003_inventory_logs AS SELECT * FROM inventory_logs;
 DELETE FROM order_items;
 DELETE FROM bom_items;
 DELETE FROM inventory_logs;
@@ -149,14 +150,14 @@ CREATE INDEX IF NOT EXISTS idx_orders_customer_created ON orders(customer_id, cr
 
 -- Khôi phục các bảng con (giữ nguyên id và giá trị)
 INSERT INTO bom_items (combo_sku, component_sku, qty_per_combo)
-  SELECT combo_sku, component_sku, qty_per_combo FROM tmp_bom_items;
+  SELECT combo_sku, component_sku, qty_per_combo FROM _m0003_bom_items;
 INSERT INTO order_items (id, order_id, sku, product_name, unit_price, quantity, line_total)
-  SELECT id, order_id, sku, product_name, unit_price, quantity, line_total FROM tmp_order_items;
+  SELECT id, order_id, sku, product_name, unit_price, quantity, line_total FROM _m0003_order_items;
 INSERT INTO inventory_logs (id, sku, delta, stock_after, reason, ref_order_code, created_at)
-  SELECT id, sku, delta, stock_after, reason, ref_order_code, created_at FROM tmp_inventory_logs;
-DROP TABLE tmp_bom_items;
-DROP TABLE tmp_order_items;
-DROP TABLE tmp_inventory_logs;
+  SELECT id, sku, delta, stock_after, reason, ref_order_code, created_at FROM _m0003_inventory_logs;
+DROP TABLE _m0003_bom_items;
+DROP TABLE _m0003_order_items;
+DROP TABLE _m0003_inventory_logs;
 
 -- ---------------------------------------------------------------------------
 -- Cột thêm vào bảng có sẵn
