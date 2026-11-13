@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Package, Plus, Search, X } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { apiFetch, type ListResult } from '../lib/api';
 import { formatNumber, formatVnd } from '../lib/format';
 import { Button } from './Button';
 import { inputClass } from './Field';
+import { useDebounced } from '../lib/useDebounced';
 
 export type PriceTier = 'RETAIL' | 'WHOLESALE';
 
@@ -47,15 +48,6 @@ interface ProductRow {
   sku: string;
   price_vnd: number;
   wholesale_price_vnd: number | null;
-}
-
-function useDebounced<T>(value: T, delay: number): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return v;
 }
 
 /** Tìm sản phẩm (GET /inventory + /products), hiện số có thể bán và giá; chặn chọn quá số có thể bán. */

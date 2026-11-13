@@ -177,6 +177,62 @@ describe('Tạo đơn', () => {
     expect(await screen.findByRole('heading', { name: /VK261113-AB12/ })).toBeTruthy();
   });
 
+  const typeInto = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  const customers: Record<string, unknown> = {
+    '0912345678': { id: 1, phone: '0912345678', name: 'Khách A', address: 'Địa chỉ A', email: '', price_tier: 'RETAIL' },
+    '0987654321': { id: 2, phone: '0987654321', name: 'Khách B', address: 'Địa chỉ B', email: '', price_tier: 'RETAIL' },
+  };
+  const customerRoutes = (): Record<string, Handler> => ({
+    'GET /customers': (c) => list(customers[c.query.get('q') ?? ''] ? [customers[c.query.get('q') ?? '']] : []),
+  });
+  const val = (label: RegExp) => (screen.getByLabelText(label) as HTMLInputElement).value;
+
+  it('đổi SĐT A sang B thì thay tên/địa chỉ tự điền; B không có thì xoá', async () => {
+    stubApi('STAFF', customerRoutes());
+    open('/don-hang/moi');
+    await screen.findByLabelText(/^Số điện thoại/);
+    typeInto(/^Số điện thoại/, '0912345678');
+    await waitFor(() => expect(val(/^Tên khách/)).toBe('Khách A'));
+    expect(val(/^Địa chỉ giao hàng/)).toBe('Địa chỉ A');
+    typeInto(/^Số điện thoại/, '0987654321');
+    await waitFor(() => expect(val(/^Tên khách/)).toBe('Khách B'));
+    expect(val(/^Địa chỉ giao hàng/)).toBe('Địa chỉ B');
+    typeInto(/^Số điện thoại/, '0900000000');
+    await waitFor(() => expect(val(/^Tên khách/)).toBe(''));
+    expect(val(/^Địa chỉ giao hàng/)).toBe('');
+  });
+
+  it('không ghi đè chữ người dùng đã gõ khi tra cứu khách', async () => {
+    stubApi('STAFF', customerRoutes());
+    open('/don-hang/moi');
+    await screen.findByLabelText(/^Số điện thoại/);
+    typeInto(/^Tên khách/, 'Tên tự gõ');
+    typeInto(/^Số điện thoại/, '0912345678');
+    await waitFor(() => expect(val(/^Địa chỉ giao hàng/)).toBe('Địa chỉ A'));
+    expect(val(/^Tên khách/)).toBe('Tên tự gõ');
+    typeInto(/^Số điện thoại/, '0987654321');
+    await waitFor(() => expect(val(/^Địa chỉ giao hàng/)).toBe('Địa chỉ B'));
+    expect(val(/^Tên khách/)).toBe('Tên tự gõ');
+  });
+
+  it('SĐT bị che hoặc quá ngắn không gửi request tra cứu', async () => {
+    const calls = stubApi('STAFF', customerRoutes());
+    open('/don-hang/moi');
+    await screen.findByLabelText(/^Số điện thoại/);
+    typeInto(/^Số điện thoại/, '09123****5678');
+    await new Promise((r) => setTimeout(r, 600));
+    typeInto(/^Số điện thoại/, '091234');
+    await new Promise((r) => setTimeout(r, 600));
+    expect(calls.some((c) => c.path === '/customers')).toBe(false);
+  });
+
+  it('giảm giá 0 hiện "0 ₫", không có dấu trừ', async () => {
+    stubApi('STAFF', customerRoutes());
+    open('/don-hang/moi');
+    const row = (await screen.findByText('Giảm giá', { selector: 'dt' })).parentElement!;
+    expect(row.textContent).toBe(`Giảm giá${formatVnd(0)}`);
+  });
+
   it('409 STOCK_CONFLICT hiện thông báo của máy chủ', async () => {
     const message = 'Không đủ hàng: Nước tăng lực (cần 2, có thể bán 1).';
     stubApi('STAFF', {
@@ -313,6 +369,36 @@ describe('Chi tiết đơn', () => {
     expect(calls.find((c) => c.path === '/orders/5/payments')?.body).toMatchObject({ kind: 'REFUND', amount_vnd: 70000 });
   });
 
+  it('giảm giá 0 trong chi tiết đơn không hiện dấu trừ', async () => {
+    stubApi('STAFF', { 'GET /orders/5': () => order() });
+    open('/don-hang/5');
+    const row = (await screen.findByText('Giảm giá', { selector: 'dt' })).parentElement!;
+    expect(row.textContent).toBe(`Giảm giá${formatVnd(0)}`);
+  });
+
+  it('lỗi máy chủ khi thu tiền hiện ngay trong hộp thoại', async () => {
+    stubApi('STAFF', {
+      'GET /orders/5': () => order(),
+      'POST /orders/5/payments': () => apiError(409, 'ORDER_CLOSED', 'Đơn đã đóng, không ghi nhận thêm.'),
+    });
+    open('/don-hang/5');
+    fireEvent.click(await screen.findByRole('button', { name: 'Thu tiền' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Thu tiền' }));
+    expect(await within(dialog).findByText('Đơn đã đóng, không ghi nhận thêm.')).toBeTruthy();
+  });
+
+  it('hoàn tiền vượt số đã thu bị chặn ở client', async () => {
+    const calls = stubApi('STAFF', { 'GET /orders/5': () => order({ paid_amount: 100000, payment_status: 'PARTIAL' }) });
+    open('/don-hang/5');
+    fireEvent.click(await screen.findByRole('button', { name: 'Hoàn tiền' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/^Số tiền/), { target: { value: '150000' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Hoàn tiền' }));
+    expect(await within(dialog).findByText(/không được lớn hơn số đã thu/)).toBeTruthy();
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
+  });
+
   it('lưu thông tin giao hàng gọi PUT /orders/:id/shipping', async () => {
     const calls = stubApi('STAFF', {
       'GET /orders/5': () => order({ order_status: 'PACKED' }),
@@ -446,6 +532,71 @@ describe('Nhập file sàn', () => {
     });
     await waitFor(() => expect(screen.queryByRole('list', { name: 'SKU chưa gán' })).toBeNull());
     expect(calls.filter((c) => c.path === '/orders/import/preview')).toHaveLength(2);
+  });
+
+  it('xem trước gộp đơn mới, trùng và SKU chưa gán từ nhiều nhóm', async () => {
+    xlsx.rows = Array.from({ length: 23 }, (_, i) => shopeeRow(i + 1));
+    const answers = [
+      { new: 8, duplicates: ['SP1', 'SP2'], skipped_status: 0, unmapped_skus: ['A', 'B'] },
+      { new: 10, duplicates: [], skipped_status: 0, unmapped_skus: ['B', 'C'] },
+      { new: 3, duplicates: ['SP21'], skipped_status: 1, unmapped_skus: [] },
+    ];
+    let n = 0;
+    stubApi('ADMIN', {
+      'GET /orders/import/columns': () => DEFAULT_COLUMN_MAPS.SHOPEE,
+      'POST /orders/import/preview': () => answers[n++],
+    });
+    open('/don-hang/nhap-file');
+    await pickFile();
+    const region = await screen.findByRole('region', { name: 'Xem trước' });
+    const text = region.textContent ?? '';
+    expect(text).toContain('Đơn mới21');
+    expect(text).toContain('Đơn trùng3');
+    expect(text).toContain('Đã huỷ/hoàn (bỏ qua)1');
+    expect(text).toContain('SKU chưa gán3');
+    expect(within(within(region).getByRole('list', { name: 'SKU chưa gán' })).getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('file rỗng giữ thông báo cụ thể', async () => {
+    xlsx.rows = [];
+    stubApi('ADMIN', { 'GET /orders/import/columns': () => DEFAULT_COLUMN_MAPS.SHOPEE });
+    open('/don-hang/nhap-file');
+    await pickFile();
+    expect((await screen.findAllByText('File không có dòng dữ liệu nào.')).length).toBeGreaterThan(0);
+  });
+
+  it('nhóm thứ hai lỗi: hiện trạng thái dở dang rồi tiếp tục với cùng batch_id', async () => {
+    xlsx.rows = Array.from({ length: 23 }, (_, i) => shopeeRow(i + 1));
+    const imports: Call[] = [];
+    let failSecond = true;
+    stubApi('ADMIN', {
+      'GET /orders/import/columns': () => DEFAULT_COLUMN_MAPS.SHOPEE,
+      'POST /orders/import/preview': (c) => ({ new: c.body.orders.length, duplicates: [], skipped_status: 0, unmapped_skus: [] }),
+      'POST /orders/import': (c) => {
+        imports.push(c);
+        if (imports.length === 2 && failSecond) {
+          failSecond = false;
+          return apiError(500, 'INTERNAL', 'Lỗi máy chủ tạm thời.');
+        }
+        return { batch_id: 77, created: c.body.orders.length, skipped_duplicates: 0, errors: [] };
+      },
+    });
+    open('/don-hang/nhap-file');
+    await pickFile();
+    await screen.findByRole('region', { name: 'Xem trước' });
+    fireEvent.click(screen.getByRole('button', { name: 'Nhập 23 đơn' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Nhập đơn' }));
+
+    const partial = await screen.findByRole('region', { name: 'Nhập dở dang' });
+    expect(partial.textContent).toContain('Đã nhập 1/3 nhóm (đợt #77), 10 đơn đã tạo; lỗi ở nhóm 2: Lỗi máy chủ tạm thời.');
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(within(partial).getByRole('button', { name: 'Tiếp tục nhập' }));
+    const result = await screen.findByRole('region', { name: 'Kết quả nhập' });
+    expect(imports.map((c) => c.body.orders.length)).toEqual([10, 10, 10, 3]);
+    expect(imports[2].body.batch_id).toBe(77);
+    expect(imports[3].body.batch_id).toBe(77);
+    expect(result.textContent).toContain('Đơn đã tạo23');
   });
 
   it('lỗi đọc file hiện số dòng', async () => {

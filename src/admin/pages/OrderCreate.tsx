@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Button, buttonClass } from '../components/Button';
 import { Field, inputClass } from '../components/Field';
@@ -12,6 +12,7 @@ import { ApiClientError, apiFetch, fieldErrors, type ListResult } from '../lib/a
 import { formatNumber, formatVnd } from '../lib/format';
 import { CHANNEL_LABELS, MANUAL_CHANNELS, MANUAL_PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../lib/orderFlow';
 import type { OrderDetailData } from './orders/types';
+import { useDebounced } from '../lib/useDebounced';
 
 interface CustomerRow {
   id: number;
@@ -37,15 +38,6 @@ export function normalizePhone(raw: string): string {
   return digits;
 }
 
-function useDebounced<T>(value: T, delay: number): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return v;
-}
-
 /** Tạo đơn tay (Zalo, điện thoại, Facebook, B2B): tìm khách theo SĐT, chọn hàng theo hạng giá của khách. */
 export function OrderCreate() {
   const toast = useToast();
@@ -65,20 +57,27 @@ export function OrderCreate() {
   const [formError, setFormError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const wanted = normalizePhone(useDebounced(phone, 300));
+  const debouncedPhone = useDebounced(phone, 300);
+  const wanted = normalizePhone(debouncedPhone);
+  // Chỉ tra cứu SĐT đầy đủ: không có ký tự che (*) và đủ 10 số.
+  const lookable = /^[\d\s+().-]+$/.test(debouncedPhone.trim()) && wanted.length >= 10;
   const lookup = useQuery({
     queryKey: ['/customers', 'lookup', wanted],
-    enabled: wanted.length >= 9,
+    enabled: lookable,
     queryFn: () => apiFetch<ListResult<CustomerRow>>('/customers', { query: { q: wanted, page_size: 5 } }),
   });
-  const found = wanted.length >= 9 ? (lookup.data?.items.find((c) => c.phone === wanted) ?? null) : null;
+  const found = lookable ? (lookup.data?.items.find((c) => c.phone === wanted) ?? null) : null;
 
-  // Khách cũ: tự điền tên/địa chỉ (không ghi đè ô người dùng đã nhập) và lấy hạng giá.
+  // Khách cũ: tự điền tên/địa chỉ và lấy hạng giá. Chỉ thay/xoá chữ do chính lần tự điền trước đặt;
+  // chữ người dùng đã gõ (khác giá trị tự điền) không bao giờ bị ghi đè.
+  const auto = useRef({ name: '', address: '' });
   useEffect(() => {
     setCustomer(found);
-    if (!found) return;
-    setName((cur) => cur || found.name);
-    setAddress((cur) => cur || found.address);
+    const prev = auto.current;
+    const next = { name: found?.name ?? '', address: found?.address ?? '' };
+    setName((cur) => (cur === '' || cur === prev.name ? next.name : cur));
+    setAddress((cur) => (cur === '' || cur === prev.address ? next.address : cur));
+    auto.current = next;
   }, [found]);
 
   const tier: PriceTier = customer?.price_tier ?? 'RETAIL';
@@ -283,7 +282,7 @@ export function OrderCreate() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted">Giảm giá</dt>
-              <dd>-{formatVnd(discount ?? 0)}</dd>
+              <dd>{(discount ?? 0) > 0 ? `-${formatVnd(discount ?? 0)}` : formatVnd(0)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted">Phí vận chuyển</dt>

@@ -53,6 +53,7 @@ function OrderView({ order }: { order: OrderDetailData }) {
   const [payKind, setPayKind] = useState<'RECEIPT' | 'REFUND' | null>(null);
   const [printing, setPrinting] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [payError, setPayError] = useState('');
 
   const closed = order.order_status === 'CANCELLED' || order.order_status === 'RETURNED';
   const due = Math.max(0, order.total_amount - order.paid_amount);
@@ -99,14 +100,23 @@ function OrderView({ order }: { order: OrderDetailData }) {
       apiFetch<{ overpaid_vnd?: number }>(`/orders/${order.id}/payments`, { method: 'POST', json: body }),
     onSuccess: (res, body) => {
       setPayKind(null);
+      setPayError('');
       setActionError('');
       void qc.invalidateQueries({ queryKey: orderKey(order.id) });
       void qc.invalidateQueries({ queryKey: ['/orders'] });
       toast.success(body.kind === 'REFUND' ? 'Đã ghi nhận hoàn tiền.' : 'Đã ghi nhận thu tiền.');
       if (res?.overpaid_vnd) toast.info(`Đơn đang thu dư ${formatVnd(res.overpaid_vnd)}.`);
     },
-    onError: (e, body) => onError(e, () => payment.mutate(body)),
+    onError: (e, body) => {
+      setPayError(e instanceof ApiClientError ? e.message : '');
+      onError(e, () => payment.mutate(body));
+    },
   });
+
+  const openPay = (kind: 'RECEIPT' | 'REFUND') => {
+    setPayError('');
+    setPayKind(kind);
+  };
 
   const nexts = nextStatuses(order.order_status);
 
@@ -198,7 +208,7 @@ function OrderView({ order }: { order: OrderDetailData }) {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted">Giảm giá</dt>
-                  <dd>-{formatVnd(order.discount_vnd)}</dd>
+                  <dd>{order.discount_vnd > 0 ? `-${formatVnd(order.discount_vnd)}` : formatVnd(0)}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted">Phí vận chuyển</dt>
@@ -220,12 +230,12 @@ function OrderView({ order }: { order: OrderDetailData }) {
               actions={
                 <div className="flex gap-2">
                   {!closed && (
-                    <Button size="sm" disabled={payment.isPending} onClick={() => setPayKind('RECEIPT')}>
+                    <Button size="sm" disabled={payment.isPending} onClick={() => openPay('RECEIPT')}>
                       Thu tiền
                     </Button>
                   )}
                   {order.paid_amount > 0 && (
-                    <Button size="sm" variant="secondary" disabled={payment.isPending} onClick={() => setPayKind('REFUND')}>
+                    <Button size="sm" variant="secondary" disabled={payment.isPending} onClick={() => openPay('REFUND')}>
                       Hoàn tiền
                     </Button>
                   )}
@@ -310,6 +320,8 @@ function OrderView({ order }: { order: OrderDetailData }) {
         defaultAmount={payKind === 'REFUND' ? order.paid_amount : due}
         defaultMethod={order.payment_method}
         submitting={payment.isPending}
+        error={payError}
+        maxRefund={order.paid_amount}
         onClose={() => setPayKind(null)}
         onSubmit={(body) => payment.mutate(body)}
       />

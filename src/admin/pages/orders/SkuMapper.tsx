@@ -1,21 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../../components/Button';
 import { inputClass } from '../../components/Field';
 import { apiFetch, type ListResult } from '../../lib/api';
+import { useDebounced } from '../../lib/useDebounced';
 
 interface ProductHit {
   sku: string;
   name: string;
-}
-
-function useDebounced<T>(value: T, delay: number): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return v;
 }
 
 interface Props {

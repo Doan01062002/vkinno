@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Field, inputClass } from '../../components/Field';
 import { FormDialog } from '../../components/FormDialog';
 import { MoneyInput } from '../../components/MoneyInput';
+import { formatVnd } from '../../lib/format';
 import { MANUAL_PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../../lib/orderFlow';
 
 export interface PaymentBody {
@@ -19,12 +20,16 @@ interface Props {
   defaultAmount: number;
   defaultMethod: string;
   submitting: boolean;
+  /** Lỗi từ máy chủ, hiện ngay trong hộp thoại. */
+  error?: string;
+  /** Hoàn tiền không được vượt số này (số đã thu). */
+  maxRefund: number;
   onClose: () => void;
   onSubmit: (body: PaymentBody) => void;
 }
 
 /** Hộp thoại "Thu tiền" / "Hoàn tiền" của đơn. */
-export function PaymentDialog({ kind, defaultAmount, defaultMethod, submitting, onClose, onSubmit }: Props) {
+export function PaymentDialog({ kind, defaultAmount, defaultMethod, submitting, error: serverError, maxRefund, onClose, onSubmit }: Props) {
   const [amount, setAmount] = useState<number | null>(defaultAmount);
   const [method, setMethod] = useState(defaultMethod);
   const [reference, setReference] = useState('');
@@ -57,10 +62,20 @@ export function PaymentDialog({ kind, defaultAmount, defaultMethod, submitting, 
           setError('Số tiền phải lớn hơn 0.');
           return;
         }
+        if (kind === 'REFUND' && amount > maxRefund) {
+          setError(`Số tiền hoàn không được lớn hơn số đã thu (${formatVnd(maxRefund)}).`);
+          return;
+        }
+        setError('');
         onSubmit({ kind, amount_vnd: amount, method, reference: reference.trim(), note: note.trim() });
       }}
     >
       <div className="space-y-4">
+        {serverError && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+            {serverError}
+          </p>
+        )}
         <Field label="Số tiền" htmlFor="pay-amount" required error={error}>
           <MoneyInput id="pay-amount" value={amount} onChange={setAmount} invalid={!!error} />
         </Field>

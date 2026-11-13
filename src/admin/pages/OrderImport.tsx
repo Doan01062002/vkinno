@@ -32,6 +32,17 @@ const CHANNELS: { value: Channel; label: string }[] = [
 
 const MAX_SHOWN_ERRORS = 50;
 
+/** Đợt nhập dừng giữa chừng: số nhóm đã xong, tổng cộng dồn và lỗi của nhóm kế tiếp. */
+interface Stalled {
+  done: number;
+  total: number;
+  batchId: number | null;
+  created: number;
+  skipped: number;
+  errors: number;
+  message: string;
+}
+
 function ProgressBar({ label, progress }: { label: string; progress: Progress }) {
   const pct = progress.total === 0 ? 0 : Math.round((progress.done / progress.total) * 100);
   return (
@@ -63,6 +74,7 @@ export function OrderImport() {
   const [result, setResult] = useState<ImportTotals | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [failure, setFailure] = useState('');
+  const [stalled, setStalled] = useState<Stalled | null>(null);
 
   const reset = () => {
     setFileName('');
@@ -71,15 +83,15 @@ export function OrderImport() {
     setPreview(null);
     setResult(null);
     setFailure('');
+    setStalled(null);
     runRef.current = null;
     if (fileInput.current) fileInput.current.value = '';
   };
 
   const showError = (e: unknown, retry?: () => void) => {
     setFailure(e instanceof ApiClientError ? e.message : e instanceof Error ? e.message : '');
-    if (e instanceof ApiClientError && e.status === 0 && retry) {
-      toast.error(e, { action: { label: 'Thử lại', onClick: retry } });
-    } else toast.error(e instanceof Error && !(e instanceof ApiClientError) ? e.message : e);
+    const shown = e instanceof Error && !(e instanceof ApiClientError) ? e.message : e;
+    toast.error(shown, retry ? { action: { label: 'Thử lại', onClick: retry } } : undefined);
   };
 
   const runPreview = useMutation({
@@ -91,7 +103,12 @@ export function OrderImport() {
 
   const readFile = useMutation({
     mutationFn: async (file: File) => {
-      const [rows, columns] = await Promise.all([readSheetRows(file), loadColumns(channel)]);
+      const [rows, columns] = await Promise.all([
+        readSheetRows(file).catch(() => {
+          throw new Error('Không đọc được file. Hãy chọn file .xlsx hoặc .csv xuất từ sàn.');
+        }),
+        loadColumns(channel),
+      ]);
       if (rows.length === 0) throw new Error('File không có dòng dữ liệu nào.');
       return parseFile(channel, rows, columns);
     },
@@ -100,7 +117,7 @@ export function OrderImport() {
       setParseErrors(parsed.errors);
       if (parsed.orders.length > 0) runPreview.mutate(parsed.orders);
     },
-    onError: (e) => showError(e instanceof ApiClientError ? e : new Error('Không đọc được file. Hãy chọn file .xlsx hoặc .csv xuất từ sàn.')),
+    onError: (e) => showError(e),
   });
 
   const mapSku = useMutation({
@@ -126,6 +143,7 @@ export function OrderImport() {
     onSuccess: (totals) => {
       setConfirming(false);
       setFailure('');
+      setStalled(null);
       runRef.current = null;
       setResult({ ...totals, errors: [...totals.errors] });
       void qc.invalidateQueries({ queryKey: ['/orders'] });
@@ -138,14 +156,26 @@ export function OrderImport() {
     },
     onError: (e) => {
       setConfirming(false);
-      showError(e, () => doImport.mutate());
+      const run = runRef.current;
+      const message = e instanceof Error ? e.message : 'Lỗi không xác định.';
+      if (run) {
+        setStalled({
+          done: run.next,
+          total: run.groups.length,
+          batchId: run.totals.batch_id,
+          created: run.totals.created,
+          skipped: run.totals.skipped_duplicates,
+          errors: run.totals.errors.length,
+          message,
+        });
+      }
+      toast.error(e, { action: { label: 'Thử lại', onClick: () => doImport.mutate() } });
     },
     onSettled: () => setImportProgress(null),
   });
 
   const busy = readFile.isPending || runPreview.isPending || mapSku.isPending || doImport.isPending;
   const unmapped = preview?.unmapped_skus ?? [];
-  const partial = runRef.current !== null && runRef.current.next > 0;
 
   return (
     <>
@@ -236,6 +266,7 @@ export function OrderImport() {
                     setPreview(null);
                     setFailure('');
                     runRef.current = null;
+                    setStalled(null);
                     setFileName(file.name);
                     readFile.mutate(file);
                   }}
@@ -258,6 +289,23 @@ export function OrderImport() {
                   ))}
                   {parseErrors.length > MAX_SHOWN_ERRORS && <li className="text-muted">… và {parseErrors.length - MAX_SHOWN_ERRORS} lỗi khác.</li>}
                 </ul>
+              </section>
+            )}
+
+            {stalled && (
+              <section aria-label="Nhập dở dang" className="space-y-3 rounded-xl border border-danger/40 bg-surface p-4">
+                <p role="alert" className="text-sm text-danger">
+                  Đã nhập {stalled.done}/{stalled.total} nhóm{stalled.batchId !== null ? ` (đợt #${stalled.batchId})` : ''},{' '}
+                  {stalled.created} đơn đã tạo; lỗi ở nhóm {stalled.done + 1}: {stalled.message}
+                </p>
+                <p className="text-sm text-muted">
+                  Tổng cộng dồn: {formatNumber(stalled.created)} đơn đã tạo, {formatNumber(stalled.skipped)} đơn trùng bỏ qua,{' '}
+                  {formatNumber(stalled.errors)} đơn lỗi. Có thể tiếp tục từ nhóm bị lỗi với cùng đợt nhập.
+                </p>
+                {doImport.isPending && importProgress && <ProgressBar label="Đang nhập" progress={importProgress} />}
+                <Button disabled={busy} loading={doImport.isPending} onClick={() => doImport.mutate()}>
+                  Tiếp tục nhập
+                </Button>
               </section>
             )}
 
@@ -310,9 +358,11 @@ export function OrderImport() {
                   <Button variant="secondary" disabled={busy} onClick={reset}>
                     Chọn file khác
                   </Button>
-                  <Button disabled={busy || (preview.new === 0 && !partial)} onClick={() => setConfirming(true)}>
-                    {partial ? 'Tiếp tục nhập' : `Nhập ${formatNumber(preview.new)} đơn`}
-                  </Button>
+                  {!stalled && (
+                    <Button disabled={busy || preview.new === 0} onClick={() => setConfirming(true)}>
+                      {`Nhập ${formatNumber(preview.new)} đơn`}
+                    </Button>
+                  )}
                 </div>
               </section>
             )}
