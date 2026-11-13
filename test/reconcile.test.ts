@@ -79,6 +79,19 @@ describe('matchProducts', () => {
     expect(d.description.live).toBe('A\nB & C');
   });
 
+  it('giá trên web rỗng hoặc không phải số → không tạo chênh lệch số, SQL không có NaN hay chuỗi rỗng', () => {
+    const r = rec.matchProducts(seeds, [
+      live({ slug: 'slug-a', price: null, sale_price: null }),
+      live({ slug: 'slug-b', price: 'abc', sale_price: '' }),
+    ]);
+    for (const m of r.matches) {
+      expect(m.diffs).not.toHaveProperty('price_vnd');
+      expect(m.diffs).not.toHaveProperty('listed_price_vnd');
+    }
+    const sql: string = rec.buildSql(r.matches);
+    expect(sql).not.toMatch(/NaN|price_vnd = ''|price_vnd = NULL/);
+  });
+
   it('không chênh lệch thì diffs rỗng', () => {
     const r = rec.matchProducts(
       [{ sku: 'S', name: 'n', slug: 's', price_vnd: 10, listed_price_vnd: 20, image_url: 'u', description: '' }],

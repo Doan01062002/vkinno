@@ -65,12 +65,15 @@ export function CustomerFormDialog({ open, customer, onClose, onSaved }: Props) 
   const toast = useToast();
   const qc = useQueryClient();
   const [v, setV] = useState<Values>(toValues(customer));
+  // Khách mới chưa tự chọn bảng giá: đổi sang khách sỉ thì mặc định giá sỉ.
+  const [tierChosen, setTierChosen] = useState(customer !== null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState('');
 
   useEffect(() => {
     if (!open) return;
     setV(toValues(customer));
+    setTierChosen(customer !== null);
     setErrors({});
     setServerError('');
     // Khởi tạo lại mỗi lần mở hộp thoại.
@@ -153,7 +156,15 @@ export function CustomerFormDialog({ open, customer, onClose, onSaved }: Props) 
           </p>
         )}
         <Field label="Loại khách hàng" htmlFor="cus-type">
-          <select id="cus-type" value={v.type} onChange={(e) => set('type', e.target.value)} className={inputClass}>
+          <select
+            id="cus-type"
+            value={v.type}
+            onChange={(e) => {
+              const type = e.target.value;
+              setV((cur) => ({ ...cur, type, price_tier: tierChosen ? cur.price_tier : type === 'B2B' ? 'WHOLESALE' : 'RETAIL' }));
+            }}
+            className={inputClass}
+          >
             {Object.entries(CUSTOMER_TYPE_LABELS).map(([k, l]) => (
               <option key={k} value={k}>
                 {l}
@@ -162,7 +173,15 @@ export function CustomerFormDialog({ open, customer, onClose, onSaved }: Props) 
           </select>
         </Field>
         <Field label="Bảng giá" htmlFor="cus-tier">
-          <select id="cus-tier" value={v.price_tier} onChange={(e) => set('price_tier', e.target.value)} className={inputClass}>
+          <select
+            id="cus-tier"
+            value={v.price_tier}
+            onChange={(e) => {
+              setTierChosen(true);
+              set('price_tier', e.target.value);
+            }}
+            className={inputClass}
+          >
             {Object.entries(PRICE_TIER_LABELS).map(([k, l]) => (
               <option key={k} value={k}>
                 {l}

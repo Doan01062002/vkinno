@@ -164,6 +164,37 @@ describe('Khách hàng', () => {
     await waitFor(() => expect(window.location.pathname).toBe('/quan-tri/khach-hang/9'));
   });
 
+  it('chọn khách sỉ mà chưa chọn bảng giá → mặc định giá sỉ (WHOLESALE)', async () => {
+    const calls = stubApi('STAFF', {
+      'GET /customers': () => list([]),
+      'POST /customers': () => b2bCustomer({ id: 9 }),
+      'GET /customers/9': () => b2bCustomer({ id: 9 }),
+      'GET /customers/9/orders': () => list([]),
+    });
+    open('/khach-hang');
+    fireEvent.click(await screen.findByRole('button', { name: 'Thêm khách hàng' }));
+    const dialog = await screen.findByRole('dialog');
+    expect((within(dialog).getByLabelText('Bảng giá') as HTMLSelectElement).value).toBe('RETAIL');
+    fireEvent.change(within(dialog).getByLabelText('Loại khách hàng'), { target: { value: 'B2B' } });
+    expect((within(dialog).getByLabelText('Bảng giá') as HTMLSelectElement).value).toBe('WHOLESALE');
+    fireEvent.change(within(dialog).getByLabelText(/^Số điện thoại/), { target: { value: '0987654321' } });
+    fireEvent.change(within(dialog).getByLabelText(/^Tên khách/), { target: { value: 'Anh Hùng' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Lưu' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/customers')).toBe(true));
+    expect(calls.find((c) => c.method === 'POST')?.body.price_tier).toBe('WHOLESALE');
+  });
+
+  it('đã tự chọn bảng giá thì đổi sang khách sỉ không ghi đè', async () => {
+    stubApi('STAFF', { 'GET /customers': () => list([]) });
+    open('/khach-hang');
+    fireEvent.click(await screen.findByRole('button', { name: 'Thêm khách hàng' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Bảng giá'), { target: { value: 'WHOLESALE' } });
+    fireEvent.change(within(dialog).getByLabelText('Bảng giá'), { target: { value: 'RETAIL' } });
+    fireEvent.change(within(dialog).getByLabelText('Loại khách hàng'), { target: { value: 'B2B' } });
+    expect((within(dialog).getByLabelText('Bảng giá') as HTMLSelectElement).value).toBe('RETAIL');
+  });
+
   it('lỗi trùng SĐT của máy chủ hiện ngay trong hộp thoại', async () => {
     stubApi('STAFF', {
       'GET /customers': () => list([]),

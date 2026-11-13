@@ -8,8 +8,8 @@ if (!email || !name || !password) {
   console.error('Dùng: node scripts/create-admin.mjs <email> <name> <password>');
   process.exit(1);
 }
-if (password.length < 8) {
-  console.error('Mật khẩu tối thiểu 8 ký tự.');
+if (password.length < 10) {
+  console.error('Mật khẩu tối thiểu 10 ký tự.');
   process.exit(1);
 }
 

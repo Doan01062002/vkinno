@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../worker/index';
 import { addPaymentStmts } from '../worker/admin/payments';
 import { api, callWorker, createUser, makeEnv, seedProducts } from './helpers';
@@ -141,6 +141,24 @@ describe('thanh toán', () => {
 });
 
 describe('SePay', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('tin Telegram trỏ tới trang quản trị mới, không còn AppSheet / "Tab 4"', async () => {
+    const sent: string[] = [];
+    vi.stubGlobal('fetch', async (_u: unknown, init: RequestInit) => {
+      sent.push(JSON.parse(String(init.body)).text);
+      return new Response('{}');
+    });
+    env = { ...env, TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: 'c' };
+    const o = await makeOrder();
+    await sepay({ id: 9101, transferAmount: 1000, content: 'CK khong ro ma' });
+    await sepay({ id: 9102, transferAmount: o.total_amount, content: `CK ${o.order_code}` });
+    expect(sent).toHaveLength(2);
+    expect(sent[0]).toContain('/quan-tri/tong-quan');
+    expect(sent[1]).toContain(`/quan-tri/don-hang/${o.id}`);
+    for (const t of sent) expect(t).not.toMatch(/AppSheet|Tab 4/);
+  });
+
   it('webhook SePay khớp mã đơn → có payment kind RECEIPT method VIETQR, gửi lại cùng tx → không nhân đôi', async () => {
     const o = await makeOrder();
     const payload = { id: 9001, transferAmount: 1000, content: `CK ${o.order_code} cam on` };

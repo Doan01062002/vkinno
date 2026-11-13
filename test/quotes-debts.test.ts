@@ -150,6 +150,10 @@ describe('convert báo giá → đơn', () => {
     expect(item).toMatchObject({ sku: DG, unit_price: 60000, quantity: 10 });
     expect(await product(DG)).toMatchObject({ stock_qty: 100, reserved_qty: 10 });
     expect((await quoteRow(q.id)).status).toBe('CONVERTED');
+    const audit = await env.DB.prepare("SELECT detail_json FROM audit_logs WHERE action = 'order.create' AND entity_id = ?")
+      .bind(order.order_code)
+      .first<{ detail_json: string }>();
+    expect(JSON.parse(audit!.detail_json)).toMatchObject({ source: 'QUOTE', quote_id: q.id, quote_code: q.code });
   });
 
   it('convert lần 2 → 409 QUOTE_NOT_CONVERTIBLE, không tạo thêm đơn/giữ thêm hàng', async () => {

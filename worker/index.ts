@@ -15,9 +15,6 @@ import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
 
 export type { Env };
 
-const DEFAULT_GOOGLE_SHEET_ID = "1Q2JtTSh63BWD0znOVNLkpXfR1aPqswc9y7u8l-Xaxvo";
-const DEFAULT_APPSHEET_URL =
-  "https://www.appsheet.com/start/ced98270-b154-4be5-ada2-33887d06ea1f";
 const VIETQR_BANK_BIN = "970436";
 const VIETQR_ACCOUNT_NO = "0491000082331";
 const VIETQR_ACCOUNT_NAME = "CONG TY TNHH CONG NGHE VINH KHANG";
@@ -272,17 +269,6 @@ function mapFuzzySku(rawText: string, bySku: Map<string, ProductRow>): ProductRo
   return undefined;
 }
 
-function csvEscape(val: unknown): string {
-  let s = String(val ?? "");
-  if (/^[=+\-@]/.test(s)) {
-    s = "'" + s; // Prevent CSV Formula Injection in Excel/Sheets
-  }
-  if (/[",\r\n]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
 /**
  * Trang quản trị là SPA: GET/HEAD tới đường dẫn không có phần mở rộng đều trả `/quan-tri/`
  * (để tải lại trang sâu vẫn đúng). Mọi phản hồi dưới /quan-tri không được lập chỉ mục hay lưu đệm.
@@ -299,6 +285,8 @@ async function serveAdminShell(request: Request, env: Env, url: URL, path: strin
   const out = new Response(res.body, res);
   out.headers.set("X-Robots-Tag", "noindex, nofollow");
   out.headers.set("Cache-Control", "no-store");
+  out.headers.set("X-Frame-Options", "DENY");
+  out.headers.set("Referrer-Policy", "same-origin");
   return out;
 }
 
@@ -944,7 +932,7 @@ export default {
           ctx.waitUntil(
             sendTelegramAlert(
               env,
-              `⚠️ TIỀN VÀO CHƯA RÕ MÃ ĐƠN: +${transferAmount.toLocaleString("vi-VN")}đ\nNội dung: ${content}\nKiểm tra ngay tại /quan-tri Tab 4.`
+              `⚠️ TIỀN VÀO CHƯA RÕ MÃ ĐƠN: +${transferAmount.toLocaleString("vi-VN")}đ\nNội dung: ${content}\nGán đơn tại /quan-tri/tong-quan (Giao dịch SePay chưa khớp).`
             )
           );
           return jsonResponse({ success: true, match_status: "UNMATCHED" });
@@ -1026,7 +1014,7 @@ export default {
           sendTelegramAlert(
             env,
             nextStatus === "PAID"
-              ? `✅ ĐÃ NHẬN ĐỦ TIỀN ĐƠN #${targetOrder.order_code}: +${transferAmount.toLocaleString("vi-VN")}đ (Tổng nhận: ${newPaidAmount.toLocaleString("vi-VN")}đ) — Đóng gói ngay trên AppSheet!`
+              ? `✅ ĐÃ NHẬN ĐỦ TIỀN ĐƠN #${targetOrder.order_code}: +${transferAmount.toLocaleString("vi-VN")}đ (Tổng nhận: ${newPaidAmount.toLocaleString("vi-VN")}đ) — Đóng gói: /quan-tri/don-hang/${matchedOrder.id}`
               : `⚠️ CHUYỂN THIẾU ĐƠN #${targetOrder.order_code}: Nhận ${newPaidAmount.toLocaleString("vi-VN")}đ / Cần ${Number(targetOrder.total_amount).toLocaleString("vi-VN")}đ`
           )
         );

@@ -174,6 +174,7 @@ export function normalizeLive(p) {
 }
 
 const FIELDS = ['price_vnd', 'listed_price_vnd', 'image_url', 'description'];
+const NUMERIC_FIELDS = new Set(['price_vnd', 'listed_price_vnd']);
 
 /**
  * Khớp theo slug, sau đó theo tên chuẩn hoá. Trả { matches:[{seed, live, by, diffs}], unmatchedSeed, unmatchedLive }.
@@ -202,6 +203,8 @@ export function matchProducts(seeds, lives) {
   for (const m of matches) {
     m.diffs = {};
     for (const f of FIELDS) {
+      // Giá trên web thiếu/hỏng: không đề xuất đổi (không bao giờ ghi NaN hay '' vào cột số).
+      if (NUMERIC_FIELDS.has(f) && !Number.isFinite(m.live[f] ?? NaN)) continue;
       const s = m.seed[f] ?? '';
       const l = m.live[f] ?? '';
       if (s !== l) m.diffs[f] = { seed: s, live: l };

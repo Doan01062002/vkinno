@@ -1,4 +1,5 @@
 import { stockDocInput, stockDocListQuery, idSchema, type StockDocInput } from '../../src/shared/schemas';
+import { isCheckError } from '../lib/db-errors';
 import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
 import { docCode } from '../lib/codes';
 import { mirrorEvent } from '../lib/notify';
@@ -28,7 +29,6 @@ interface DocRow {
 
 const PREFIX = { RECEIPT: 'PN', ISSUE: 'PX', ADJUST: 'DC', STOCKTAKE: 'KK' } as const;
 
-const isCheckError = (e: unknown): boolean => e instanceof Error && e.message.includes('CHECK constraint failed');
 
 function invalidState(status: string): ApiError {
   const label = status === 'POSTED' ? 'đã ghi sổ' : status === 'CANCELLED' ? 'đã huỷ' : status;

@@ -85,7 +85,13 @@ function readCookie(req: Request, name: string): string | null {
   const header = req.headers.get('Cookie') || '';
   for (const part of header.split(';')) {
     const p = part.trim();
-    if (p.startsWith(`${name}=`)) return decodeURIComponent(p.slice(name.length + 1));
+    if (p.startsWith(`${name}=`)) {
+      try {
+        return decodeURIComponent(p.slice(name.length + 1));
+      } catch {
+        return null; // % sai → coi như không có cookie (401), không để lỗi thành 500
+      }
+    }
   }
   return null;
 }

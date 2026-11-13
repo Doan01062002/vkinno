@@ -236,7 +236,7 @@ route('POST', '/quotes/:id/convert', async (c) => {
       discount_vnd: q.discount_vnd,
       payment_method: 'BANK_B2B',
     },
-    { source: 'QUOTE', userId: user.id, quoteId: id },
+    { source: 'QUOTE', userId: user.id, quoteId: id, quoteCode: stored.code },
     ctx,
   );
   return ok({ quote: await quoteDetail(env.DB, id), order }, 201);

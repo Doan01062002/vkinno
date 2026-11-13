@@ -294,6 +294,8 @@ export interface CreateOrderOpts {
   userId: number | null;
   status?: 'PENDING' | 'SHIPPING' | 'COMPLETED';
   quoteId?: number;
+  /** Mã báo giá (kèm quoteId) để ghi vào nhật ký order.create. */
+  quoteCode?: string;
   /** Chỉ dùng khi source = 'IMPORT': thời điểm đặt hàng của sàn, UTC `YYYY-MM-DD HH:MM:SS`. */
   createdAt?: string;
 }
@@ -372,6 +374,7 @@ export async function createOrder(
           channel: input.channel,
           status,
           total_amount: p.total,
+          ...(opts.quoteId === undefined ? {} : { quote_id: opts.quoteId, quote_code: opts.quoteCode }),
         }),
       ]);
       break;

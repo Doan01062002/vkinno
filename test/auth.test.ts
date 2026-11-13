@@ -1,3 +1,5 @@
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { hashPassword, signSession, verifyPassword } from '../worker/admin/auth';
 import { redact } from '../worker/admin/redact';
@@ -199,11 +201,30 @@ describe('redaction cho STAFF ngoài phản hồi thành công', () => {
   });
 });
 
+describe('mã hoá % sai', () => {
+  it('cookie phiên có % sai → 401 (không phải 500)', async () => {
+    const env = await makeEnv();
+    const res = await callWorker(
+      new Request('https://test.local/api/admin/auth/me', { headers: { Cookie: 'vk_admin=%E0%A4%A' } }),
+      env,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('tham số đường dẫn có % sai → 404 (không phải 500)', async () => {
+    const env = await makeEnv();
+    const u = await createUser(env.DB, 'ADMIN');
+    const res = await api(env, '/products/%E0%A4%A', {}, u);
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('đổi mật khẩu', () => {
-  it('đúng mật khẩu hiện tại thì đổi được; next < 8 ký tự → 422', async () => {
+  it('đúng mật khẩu hiện tại thì đổi được; next < 10 ký tự → 422', async () => {
     const env = await makeEnv();
     const u = await createUser(env.DB, 'STAFF');
     expect((await post(env, '/auth/change-password', { current: u.password, next: '1234567' }, u)).status).toBe(422);
+    expect((await post(env, '/auth/change-password', { current: u.password, next: '123456789' }, u)).status).toBe(422);
     expect((await post(env, '/auth/change-password', { current: 'sai', next: 'mat-khau-moi-1' }, u)).status).toBe(401);
     expect((await post(env, '/auth/change-password', { current: u.password, next: 'mat-khau-moi-1' }, u)).status).toBe(200);
     expect((await login(env, u.email, 'mat-khau-moi-1')).status).toBe(200);
@@ -222,6 +243,21 @@ describe('redact', () => {
     expect(redact(data, 'STAFF')).toEqual({ items: [{ sku: 'A', lines: [{ qty: 1 }] }], name: 'x' });
     expect(redact(data, 'ADMIN')).toEqual(data);
     expect(data.items[0]).toHaveProperty('cost_avg_vnd');
+  });
+});
+
+describe('scripts/create-admin.mjs', () => {
+  const run = (pw: string) =>
+    spawnSync(process.execPath, [join(process.cwd(), 'scripts', 'create-admin.mjs'), 'a@b.vn', 'Quản trị', pw], {
+      encoding: 'utf8',
+    });
+  it('mật khẩu dưới 10 ký tự bị từ chối; đủ 10 thì in câu INSERT', () => {
+    const short = run('123456789');
+    expect(short.status).toBe(1);
+    expect(short.stderr).toContain('10');
+    const good = run('1234567890');
+    expect(good.status).toBe(0);
+    expect(good.stdout).toMatch(/^INSERT INTO users .*'pbkdf2\$100000\$/);
   });
 });
 

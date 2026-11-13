@@ -32,6 +32,8 @@ describe('SPA /quan-tri', () => {
     expect(await res.text()).toBe(INDEX_HTML);
     expect(res.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
     expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(res.headers.get('Referrer-Policy')).toBe('same-origin');
     expect(seen).toEqual(['/quan-tri/']);
   });
 

@@ -54,8 +54,13 @@ function match(method: string, path: string): { def: RouteDef; params: Record<st
     let hit = true;
     for (let i = 0; i < segs.length; i++) {
       const p = def.segments[i];
-      if (p.startsWith(':')) params[p.slice(1)] = decodeURIComponent(segs[i]);
-      else if (p !== segs[i]) {
+      if (p.startsWith(':')) {
+        try {
+          params[p.slice(1)] = decodeURIComponent(segs[i]);
+        } catch {
+          return null; // % sai trong đường dẫn → 404
+        }
+      } else if (p !== segs[i]) {
         hit = false;
         break;
       }
@@ -182,7 +187,7 @@ route('GET', '/auth/me', async ({ user }) => ok(user));
 route('POST', '/auth/change-password', async ({ env, req, user }) => {
   const { current, next } = await parseBody(
     req,
-    z.object({ current: z.string().min(1).max(200), next: z.string().min(8).max(200) }),
+    z.object({ current: z.string().min(1).max(200), next: z.string().min(10).max(200) }),
     4096,
   );
   const row = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
