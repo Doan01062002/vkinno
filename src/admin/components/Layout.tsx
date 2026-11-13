@@ -1,5 +1,5 @@
 import { ChevronRight, LogOut, Menu as MenuIcon, Moon, Sun, Warehouse, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, matchPath, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useLogout, useMe } from '../lib/auth';
 import { useTheme } from '../lib/theme';
@@ -68,7 +68,27 @@ export function Layout() {
   const location = useLocation();
   const crumbs = useCrumbs();
 
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
+  const wasDrawerOpen = useRef(false);
+
   useEffect(() => setDrawerOpen(false), [location.pathname]);
+
+  // Ngăn kéo: mở thì focus vào trong + Esc để đóng; đóng thì trả focus về nút mở menu.
+  useEffect(() => {
+    if (!drawerOpen) {
+      if (wasDrawerOpen.current) menuButtonRef.current?.focus();
+      wasDrawerOpen.current = false;
+      return;
+    }
+    wasDrawerOpen.current = true;
+    drawerCloseRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
 
   const onLogout = () =>
     logout.mutate(undefined, {
@@ -96,6 +116,7 @@ export function Layout() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-hidden onClick={() => setDrawerOpen(false)} />
           <aside className="absolute inset-y-0 left-0 w-64 border-r border-line bg-surface shadow-xl">
             <button
+              ref={drawerCloseRef}
               type="button"
               aria-label="Đóng menu"
               onClick={() => setDrawerOpen(false)}
@@ -111,8 +132,10 @@ export function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="vk-no-print sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-surface/90 px-3 backdrop-blur sm:px-5">
           <button
+            ref={menuButtonRef}
             type="button"
             aria-label="Mở menu"
+            aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen(true)}
             className="rounded-lg p-2 text-muted hover:bg-subtle hover:text-fg md:hidden"
           >

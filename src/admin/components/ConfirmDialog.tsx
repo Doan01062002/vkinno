@@ -20,7 +20,7 @@ export interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-/** Hộp thoại xác nhận trước thao tác không hoàn tác được. */
+/** Hộp thoại xác nhận trước thao tác không hoàn tác được. `danger`: focus ban đầu ở nút Huỷ. */
 export function ConfirmDialog({
   open,
   title,
@@ -41,10 +41,15 @@ export function ConfirmDialog({
       dismissible={!busy}
       footer={
         <>
-          <Button variant="secondary" onClick={onCancel} disabled={busy}>
+          <Button variant="secondary" onClick={onCancel} disabled={busy} data-autofocus={danger || undefined}>
             {cancelLabel}
           </Button>
-          <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} loading={busy} data-autofocus>
+          <Button
+            variant={danger ? 'danger' : 'primary'}
+            onClick={onConfirm}
+            loading={busy}
+            data-autofocus={!danger || undefined}
+          >
             {confirmLabel}
           </Button>
         </>

@@ -4,7 +4,7 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
-const DEV_API = 'http://localhost:8787'; // npm run dev:api
+const DEV_API = 'http://127.0.0.1:8787'; // npm run dev:api (chỉ nghe trên 127.0.0.1)
 
 /**
  * Dev: mọi đường dẫn /quan-tri/* không có phần mở rộng đều trả trang /quan-tri/ (SPA),

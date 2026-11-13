@@ -170,8 +170,9 @@ async function main(): Promise<void> {
     });
   });
 
-  server.listen(PORT, () => {
-    console.log(`[dev-api] Worker chạy tại http://localhost:${PORT} (DB: ${resolve(DEV_DIR, 'local.sqlite')})`);
+  // Chỉ nghe trên 127.0.0.1: máy khác trong mạng không gọi được API dev.
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`[dev-api] Worker chạy tại http://127.0.0.1:${PORT} (DB: ${resolve(DEV_DIR, 'local.sqlite')})`);
   });
 }
 

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DataTable, type Column } from '../../src/admin/components/DataTable';
 
 interface Row {
@@ -14,6 +14,10 @@ const columns: Column<Row>[] = [
 ];
 
 describe('DataTable', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('DataTable hiển thị trạng thái rỗng và chuyển trang', () => {
     const onPageChange = vi.fn();
     const { rerender } = render(
@@ -68,6 +72,30 @@ describe('DataTable', () => {
     expect(onChange).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(400);
     expect(onChange).toHaveBeenCalledWith('abc');
-    vi.useRealTimers();
+  });
+
+  it('dòng bấm được có thể focus và mở bằng Enter/Space', () => {
+    const onRowClick = vi.fn();
+    const rows: Row[] = [{ id: 1, name: 'Đơn A', total_vnd: 1000 }];
+    render(
+      <DataTable columns={columns} rows={rows} total={1} page={1} onPageChange={() => {}} onRowClick={onRowClick} />,
+    );
+    const tr = screen.getByText('Đơn A').closest('tr') as HTMLTableRowElement;
+    expect(tr.tabIndex).toBe(0);
+    fireEvent.keyDown(tr, { key: 'Enter' });
+    fireEvent.keyDown(tr, { key: ' ' });
+    fireEvent.keyDown(tr, { key: 'a' });
+    expect(onRowClick).toHaveBeenCalledTimes(2);
+    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+  });
+
+  it('trang vượt quá số trang thì về trang cuối (không làm khi đang tải)', () => {
+    const onPageChange = vi.fn();
+    const { rerender } = render(
+      <DataTable columns={columns} rows={[]} total={60} page={3} pageSize={50} onPageChange={onPageChange} loading />,
+    );
+    expect(onPageChange).not.toHaveBeenCalled();
+    rerender(<DataTable columns={columns} rows={[]} total={60} page={3} pageSize={50} onPageChange={onPageChange} />);
+    expect(onPageChange).toHaveBeenCalledWith(2);
   });
 });

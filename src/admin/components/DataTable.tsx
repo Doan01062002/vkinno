@@ -45,6 +45,7 @@ export interface DataTableProps<T> {
   loading?: boolean;
   /** Nội dung khi không có dòng nào (mặc định "Chưa có dữ liệu"). */
   empty?: ReactNode;
+  /** Bấm dòng (hoặc Enter/Space khi dòng đang focus) — dòng tự có `tabIndex=0`. */
   onRowClick?: (row: T) => void;
 }
 
@@ -121,6 +122,13 @@ export function DataTable<T>({
     rowKey ? rowKey(row, i) : ((row as { id?: string | number }).id ?? i);
   const showToolbar = search || filters || actions;
 
+  // Trang hiện tại vượt quá số trang (vd. vừa xoá dòng cuối, đổi bộ lọc) → về trang cuối.
+  const onPageChangeRef = useRef(onPageChange);
+  onPageChangeRef.current = onPageChange;
+  useEffect(() => {
+    if (!loading && page > pageCount) onPageChangeRef.current(pageCount);
+  }, [loading, page, pageCount]);
+
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
       {showToolbar && (
@@ -153,7 +161,17 @@ export function DataTable<T>({
               <tr
                 key={keyOf(row, i)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={`border-b border-line last:border-b-0 ${onRowClick ? 'cursor-pointer hover:bg-subtle' : ''} ${loading ? 'opacity-60' : ''}`}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    : undefined
+                }
+                className={`border-b border-line last:border-b-0 ${onRowClick ? 'cursor-pointer hover:bg-subtle focus-visible:bg-subtle focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary' : ''} ${loading ? 'opacity-60' : ''}`}
               >
                 {columns.map((c) => (
                   <td key={c.key} className={`px-4 py-3 align-middle text-fg ${ALIGN[c.align ?? 'left']} ${c.className ?? ''}`}>

@@ -59,4 +59,43 @@ describe('App quản trị', () => {
     expect(window.location.pathname).toBe('/quan-tri/cai-dat');
     expect(screen.getByRole('heading', { name: 'Cài đặt' })).toBeTruthy();
   });
+
+  it('mất mạng khi tải /auth/me: không về đăng nhập, hiện "Thử lại"; thử lại được thì vào app', async () => {
+    let online = false;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (!online) throw new TypeError('Failed to fetch');
+      if (url.startsWith('/api/admin/auth/me')) {
+        return json(200, { ok: true, data: { id: 1, email: 'a@vkinno.local', name: 'Người dùng A', role: 'ADMIN' } });
+      }
+      return json(404, { ok: false, error: { code: 'NOT_FOUND', message: 'Không tìm thấy.' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.pushState({}, '', '/quan-tri/don-hang');
+    render(<App />);
+
+    const retry = await screen.findByRole('button', { name: 'Thử lại' }, { timeout: 4000 });
+    expect(screen.getByRole('alert').textContent).toMatch(/kết nối/);
+    expect(window.location.pathname).toBe('/quan-tri/don-hang');
+    expect(fetchMock.mock.calls.length).toBe(2); // shouldRetry: thử lại 1 lần với lỗi mạng
+
+    online = true;
+    fireEvent.click(retry);
+    expect(await screen.findByRole('navigation', { name: 'Menu chính' })).toBeTruthy();
+    expect(window.location.pathname).toBe('/quan-tri/don-hang');
+  });
+
+  it('ngăn kéo menu: mở thì focus vào trong, Esc đóng và trả focus về nút mở menu', async () => {
+    stubMe({ role: 'ADMIN' });
+    window.history.pushState({}, '', '/quan-tri/tong-quan');
+    render(<App />);
+
+    const menuButton = await screen.findByRole('button', { name: 'Mở menu' });
+    fireEvent.click(menuButton);
+    const closeButton = screen.getByRole('button', { name: 'Đóng menu' });
+    expect(document.activeElement).toBe(closeButton);
+
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Đóng menu' })).toBeNull());
+    expect(document.activeElement).toBe(menuButton);
+  });
 });

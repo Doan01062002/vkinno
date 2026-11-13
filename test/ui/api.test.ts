@@ -69,6 +69,24 @@ describe('apiFetch', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/admin/orders?page=2&q=Nguy%E1%BB%85n');
   });
 
+  it('mất kết nối → ApiClientError NETWORK (status 0), không điều hướng', async () => {
+    const navigate = vi.fn();
+    setUnauthorizedHandler(navigate);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+
+    const err = (await apiFetch('/auth/me').catch((e: unknown) => e)) as ApiClientError;
+
+    expect(err).toBeInstanceOf(ApiClientError);
+    expect(err).toMatchObject({ status: 0, code: 'NETWORK' });
+    expect(err.message).toMatch(/kết nối/);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('phản hồi không phải JSON vẫn ném ApiClientError tiếng Việt', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('Bad gateway', { status: 502 })));
 
