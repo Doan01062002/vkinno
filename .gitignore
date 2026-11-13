@@ -26,3 +26,6 @@ qa-screenshots/
 
 # Dev cục bộ (SQLite file)
 .dev/
+
+# Dau ra cua script doi chieu san pham (anh tai ve, reconcile.sql)
+scripts/out/
