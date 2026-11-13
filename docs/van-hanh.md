@@ -72,6 +72,18 @@ Ghi chú:
 
 ## 4. Migration
 
+### Kiểm tra trước khi áp 0003 lên DB đã có dữ liệu
+
+`0003_admin.sql` dựng lại bảng `products` và `orders`. Đơn cũ chưa từng giữ hàng hay trừ kho theo cách mới, nên nếu lúc áp còn đơn đang mở hoặc đơn đã thu tiền thì tồn kho, công nợ sẽ lệch. Với DB đã chạy website (production hiện tại), chạy câu kiểm tra này trước; kết quả **phải là 0**:
+
+```powershell
+npx wrangler d1 execute vkinno-db --remote --command "SELECT COUNT(*) FROM orders WHERE order_status IN ('PENDING','PACKED','SHIPPING') OR paid_amount > 0;"
+```
+
+Khác 0: **dừng lại, không áp migration**, gửi kết quả câu lệnh (số đơn và mã đơn: thay `COUNT(*)` bằng `order_code, order_status, paid_amount`) cho người phát triển để xử lý các đơn đó trước. DB mới tạo (staging) thì luôn ra 0.
+
+### Áp migration
+
 ```powershell
 # Staging
 npx wrangler d1 migrations apply vkinno-db-staging --remote --env staging
@@ -88,7 +100,7 @@ npx wrangler d1 execute vkinno-db-staging --remote --env staging --command "SELE
 
 ## 5. Tạo ADMIN đầu tiên
 
-Cú pháp: `node scripts/create-admin.mjs <email> <tên> <mật khẩu>` (mật khẩu tối thiểu 8 ký tự). Script chỉ in câu lệnh `INSERT` (mật khẩu đã băm PBKDF2), anh chạy câu lệnh đó lên D1:
+Cú pháp: `node scripts/create-admin.mjs <email> <tên> <mật khẩu>` (mật khẩu tối thiểu 10 ký tự). Script chỉ in câu lệnh `INSERT` (mật khẩu đã băm PBKDF2), anh chạy câu lệnh đó lên D1:
 
 ```powershell
 node scripts/create-admin.mjs admin@congty.vn "Tên Admin" "MatKhauManh!2026"
@@ -135,7 +147,7 @@ Khi có `--upload-images`, `reconcile.sql` được kèm `image_url = '/files/pr
 
 Tồn kho seed của website có giá vốn bằng 0. Nếu cộng nhập kho thật lên trên số tồn đó, giá vốn bình quân bị kéo thấp và biên lãi hiển thị cao hơn thực tế. Vì vậy phải đưa kho về 0 rồi nhập lại bằng số đếm thật. ADMIN làm đúng hai bước, theo thứ tự:
 
-1. **Kiểm kê về 0.** Mục Kho: tạo phiếu kiểm kê (`KK`) với số đếm thực tế bằng **0** cho mọi sản phẩm, rồi ghi sổ. Hệ thống ghi giảm tồn về 0 (lý do `STOCKTAKE`).
+1. **Kiểm kê về 0.** Mục Kho: tạo phiếu kiểm kê (`KK`) với số đếm thực tế bằng **0** cho mọi sản phẩm **trừ combo** (combo không có tồn riêng nên không kiểm kê được), rồi ghi sổ. Hệ thống ghi giảm tồn về 0 (lý do `STOCKTAKE`).
 2. **Nhập đầu kỳ.** Mục Kho: tạo một phiếu nhập (`PN`) ghi chú "Nhập đầu kỳ", với **số lượng đếm thật** và **giá vốn thật trên mỗi đơn vị** cho từng sản phẩm, rồi ghi sổ. Giá vốn bình quân của từng sản phẩm bắt đầu từ các giá này.
 
 Lưu ý: chỉ ADMIN lập được phiếu nhập (`RECEIPT`). Không có đơn nào đang mở khi làm bước 1 (tồn có thể bán không được âm). Combo không có tồn riêng, tồn combo tính từ các thành phần.
@@ -148,6 +160,8 @@ Lưu ý: chỉ ADMIN lập được phiếu nhập (`RECEIPT`). Không có đơn
 - **Phiếu nhập kho (`RECEIPT`) chỉ ADMIN** được lập và ghi sổ. STAFF xem được tồn nhưng không thấy giá vốn, lãi gộp.
 - **Sửa thành phần của combo** bị chặn khi combo đó đang nằm trong đơn mở. Muốn đổi công thức, tạo mã combo (SKU) mới và ngừng bán mã cũ.
 - Cảnh báo sắp hết hạn: 60 ngày. Cảnh báo tồn thấp gửi qua Telegram nếu bật ở Cài đặt, Telegram.
+- **Giới hạn đơn website**: mỗi đơn đặt trên website tối đa **20 đơn vị cho mỗi sản phẩm** và **100 đơn vị cả đơn** (vượt thì khách thấy thông báo liên hệ Zalo/Hotline). Đơn số lượng lớn: nhân viên tạo đơn tay (kênh "Website (nhập tay)" hoặc B2B / báo giá).
+- **Đơn web chờ thanh toán quá 48 giờ**: thẻ trên Tổng quan đếm đơn kênh Website đang chờ xử lý, chưa thu đồng nào, tạo quá 48 giờ; bấm vào để xem danh sách. Mỗi ngày rà thẻ này: gọi khách, hoặc huỷ đơn để trả hàng đang giữ về kho. Hệ thống **không tự huỷ** đơn.
 
 ## 9. Sao lưu và khôi phục
 
@@ -155,7 +169,9 @@ Lưu ý: chỉ ADMIN lập được phiếu nhập (`RECEIPT`). Không có đơn
 
 Cron `0 19 * * *` (UTC), tức 02:00 giờ Việt Nam, ghi toàn bộ các bảng D1 vào R2 tại `backups/YYYY-MM-DD.json.gz`, giữ 90 ngày, tự xoá bản cũ hơn. Chạy tay: Cài đặt, Sao lưu (ADMIN). Nội dung tệp sau khi giải nén là JSON `{ "created_at": "...", "tables": { "<tên bảng>": [ { ...dòng }, ... ] } }`.
 
-Kiểm tra cron đã được đăng ký sau khi deploy: Cloudflare Dashboard, Workers, vkinno-web, Settings, Triggers (staging có thể cần khai báo `triggers` riêng nếu muốn thử).
+`triggers.crons` khai báo ở cấp ngoài cùng của `wrangler.jsonc`, nên cũng áp cho Worker staging (`vkinno-web-staging`) khi deploy `--env staging`: staging tự sao lưu vào bucket `vkinno-files-staging` của nó, vô hại. Kiểm tra cron đã được đăng ký sau mỗi lần deploy: Cloudflare Dashboard, Workers & Pages, chọn `vkinno-web` (và `vkinno-web-staging`), Settings, Triggers, mục Cron Triggers phải có `0 19 * * *`.
+
+Thứ tự tác vụ hằng ngày: dọn `login_attempts` → cảnh báo kho → kiểm tra bản sao lưu hôm qua → sao lưu (chạy cuối, nếu sao lưu làm Worker vượt giới hạn CPU thì các bước trước đã xong). Nếu không thấy `backups/<ngày hôm qua>.json.gz`, Telegram nhận tin "Không thấy bản sao lưu ngày …" (cần `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`). Cài đặt, Sao lưu hiện "Bản sao lưu gần nhất" (tên tệp, thời điểm, dung lượng) để kiểm tra bằng mắt.
 
 ### Khôi phục nhanh: D1 Time Travel (vài ngày gần nhất)
 
@@ -196,10 +212,16 @@ npx wrangler d1 execute vkinno-db-restore-tmp --remote --command "SELECT sku, st
 
 (Với staging, thêm `--env staging` ở lệnh R2 nếu bucket là `vkinno-files-staging`: dùng tên bucket tương ứng thay cho `vkinno-files`.)
 
-Khi đã chắc chắn bản sao lưu đúng, khôi phục vào DB thật bằng chính `restore.sql` (câu lệnh đã có `DELETE` toàn bộ rồi `INSERT`, bảng `d1_migrations` được bỏ qua):
+Khi đã chắc chắn bản sao lưu đúng, khôi phục vào DB thật bằng chính `restore.sql` (câu lệnh đã có `DELETE` toàn bộ rồi `INSERT`, bảng `d1_migrations` được bỏ qua).
+
+**Trước khi ghi vào DB thật, ghi lại bookmark Time Travel** để có thể hoàn tác nếu khôi phục nhầm:
 
 ```powershell
+npx wrangler d1 time-travel info vkinno-db
+# Chép lại dòng bookmark in ra (lưu vào ghi chú), rồi mới chạy:
 npx wrangler d1 execute vkinno-db --remote --file restore.sql
+# Nếu cần quay lại trạng thái trước khi khôi phục:
+npx wrangler d1 time-travel restore vkinno-db --bookmark <bookmark đã chép>
 ```
 
 Dọn dẹp: `npx wrangler d1 delete vkinno-db-restore-tmp`, xoá `backup.json*` và `restore.sql` (chứa dữ liệu khách hàng và mật khẩu đã băm, không commit, không gửi đi).
@@ -241,6 +263,13 @@ Danh sách nghiệm thu (anh đánh dấu từng mục):
 - [ ] Chạy sao lưu tay (Cài đặt, Sao lưu), thấy tệp `backups/<ngày>.json.gz` trong R2.
 - [ ] Khôi phục bản sao lưu đó vào D1 tạm theo mục 9, số dòng khớp, xoá D1 tạm.
 - [ ] Giao diện dùng được trên điện thoại.
+- [ ] Rủi ro gói Workers Free (xem ngay bên dưới) đã kiểm tra trên staging.
+
+Rủi ro gói Workers Free cần thử trên staging (gói miễn phí giới hạn 10 ms CPU mỗi yêu cầu và 50 truy vấn D1 mỗi lần gọi):
+
+- [ ] **CPU khi đăng nhập.** Mật khẩu băm PBKDF2 100.000 vòng. Đăng nhập vài lần liên tiếp; nếu gặp trang lỗi Cloudflare **1102** (Worker exceeded resource limits) hoặc đăng nhập thất bại ngẫu nhiên → nâng Workers Paid (5 USD/tháng). Không giảm số vòng băm.
+- [ ] **CPU khi sao lưu** tăng theo lượng dữ liệu. Sau vài tuần dùng thật, xem Cài đặt, Sao lưu: "Bản sao lưu gần nhất" phải là ngày hôm nay/hôm qua. Bản sao lưu bị thiếu đã có tin Telegram "Không thấy bản sao lưu ngày …"; trong lúc đó D1 Time Travel (mục 9) vẫn là đường lùi. Thiếu lặp lại → nâng Workers Paid.
+- [ ] **Số truy vấn D1 mỗi yêu cầu.** Nhập một file sàn có ít nhất 10 đơn (một lô đầy, `MAX_IMPORT_ORDERS_PER_REQUEST = 10`) và tạo một đơn tay 20 dòng hàng; cả hai phải thành công. Nếu lỗi kiểu "Too many API requests by single Worker invocation": giảm `MAX_IMPORT_ORDERS_PER_REQUEST` trong `src/shared/marketplace.ts` (ví dụ 5), build và deploy lại; đơn tay 20 dòng vẫn lỗi → nâng Workers Paid.
 
 Giao dịch SePay thử (thay `<khoá>`, `<địa chỉ>`, mã đơn `VK...` của một đơn chuyển khoản đang chờ; tài khoản nhận phải đúng `0491000082331`):
 
@@ -267,7 +296,7 @@ Windows Application Control chặn `workerd`, nên không dùng `wrangler dev`. 
 
 ```powershell
 Copy-Item .dev.vars.example .dev.vars
-# Sửa .dev.vars: đặt DEV_ADMIN_EMAIL, DEV_ADMIN_PASSWORD (tối thiểu 8 ký tự), ADMIN_SESSION_SECRET
+# Sửa .dev.vars: đặt DEV_ADMIN_EMAIL, DEV_ADMIN_PASSWORD (tối thiểu 10 ký tự), ADMIN_SESSION_SECRET
 npm run dev:api     # cổng 8787, tự áp migration và tạo ADMIN khi bảng users trống
 npm run dev         # cổng 4321, proxy /api và /files sang 8787
 ```
