@@ -39,6 +39,7 @@ interface ProductRow {
   stock_qty: number;
   min_stock: number;
   is_combo: number;
+  is_active: number;
   shelf_zone: string;
   shelf_label: string;
   batch_code: string;
@@ -128,7 +129,7 @@ async function loadCatalogWithBom(db: D1Database) {
     db
       .prepare(
         `SELECT sku, product_id, name, slug, price_vnd, listed_price_vnd, stock_qty, min_stock,
-                is_combo, shelf_zone, shelf_label, batch_code, expiry_date, image_url, updated_at
+                is_combo, is_active, shelf_zone, shelf_label, batch_code, expiry_date, image_url, updated_at
          FROM products ORDER BY is_combo DESC, product_id ASC`
       )
       .all<ProductRow>(),
@@ -152,6 +153,8 @@ async function loadCatalogWithBom(db: D1Database) {
     bomByCombo.set(b.combo_sku, arr);
   }
 
+  // Sản phẩm ngừng bán vẫn trả về (trang sản phẩm không vỡ) nhưng không còn hàng để đặt.
+  const availableStock = (p: ProductRow) => (p.is_active === 1 ? (avail.get(p.sku)?.available ?? 0) : 0);
   const enriched = prodRows.map((p) => {
     if (p.is_combo === 1) {
       const comps = bomByCombo.get(p.sku) || [];
@@ -169,13 +172,13 @@ async function loadCatalogWithBom(db: D1Database) {
       });
       return {
         ...p,
-        available_stock: avail.get(p.sku)?.available ?? 0,
+        available_stock: availableStock(p),
         bom_components: compDetails,
       };
     }
     return {
       ...p,
-      available_stock: avail.get(p.sku)?.available ?? 0,
+      available_stock: availableStock(p),
       bom_components: [] as Array<{
         sku: string;
         component_sku: string;

@@ -175,4 +175,15 @@ describe('GET /api/products.json', () => {
     expect(after.get(DG)).toBe(97);
     expect(after.get(COMBO)).toBe(97);
   });
+
+  it('sản phẩm ngừng bán (is_active = 0) vẫn có trong danh sách nhưng available_stock = 0', async () => {
+    await env.DB.prepare('UPDATE products SET is_active = 0 WHERE sku IN (?, ?)').bind(DG, COMBO).run();
+    const res = await callWorker(new Request('https://test.local/api/products.json'), env);
+    const json = (await res.json()) as any;
+    const bySku = new Map<string, any>(json.products.map((p: any) => [p.sku, p]));
+    expect(bySku.get(DG).available_stock).toBe(0);
+    expect(bySku.get(COMBO).available_stock).toBe(0);
+    expect(bySku.get('VK-BOSSMAN-DESCALER-500ML').available_stock).toBe(100);
+    expect(json.products).toHaveLength(9);
+  });
 });
