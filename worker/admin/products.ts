@@ -6,6 +6,7 @@ import {
   productListQuery,
   productUpdateInput,
 } from '../../src/shared/schemas';
+import { isCheckError } from '../lib/db-errors';
 import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
 import { auditStmt } from './audit';
 import { availability } from './inventory';
@@ -27,6 +28,44 @@ interface ProductRow {
 }
 
 const notFound = () => new ApiError(404, 'NOT_FOUND', 'Không tìm thấy sản phẩm.');
+
+async function openOrderCount(db: D1Database, sku: string): Promise<number> {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM orders o JOIN order_items i ON i.order_id = o.id
+       WHERE i.sku = ? AND o.order_status IN ('PENDING', 'PACKED', 'SHIPPING')`,
+    )
+    .bind(sku)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+/**
+ * Câu lệnh đầu batch: SKU còn trong đơn chưa hoàn tất (PENDING/PACKED/SHIPPING) thì gán is_combo = 2
+ * (ngoài CHECK) → cả batch rollback. Chặn cả yêu cầu chen vào giữa bước kiểm tra trước và batch.
+ */
+const openOrderGuard = (db: D1Database, sku: string) =>
+  db
+    .prepare(
+      `UPDATE products SET is_combo = CASE WHEN EXISTS (
+         SELECT 1 FROM orders o JOIN order_items i ON i.order_id = o.id
+         WHERE i.sku = ?1 AND o.order_status IN ('PENDING', 'PACKED', 'SHIPPING')
+       ) THEN 2 ELSE is_combo END WHERE sku = ?1`,
+    )
+    .bind(sku);
+
+const productInUse = (n?: number) =>
+  new ApiError(
+    409,
+    'PRODUCT_IN_USE',
+    'Sản phẩm đang có trong đơn chưa hoàn tất (đã giữ hàng hoặc đang giao), chưa thể chuyển thành combo.',
+    { pending_orders: n },
+  );
+
+const bomInUse = (n?: number) =>
+  new ApiError(409, 'BOM_IN_USE', 'Combo đang có đơn chưa hoàn tất (đã giữ hàng hoặc đang giao), chưa thể đổi thành phần.', {
+    pending_orders: n,
+  });
 const isUnique = (e: unknown) => e instanceof Error && e.message.includes('UNIQUE constraint failed');
 
 async function loadProduct(db: D1Database, sku: string) {
@@ -123,6 +162,7 @@ route('PUT', '/products/:sku', async ({ env, req, user, params }) => {
     throw new ApiError(422, 'VALIDATION', 'Không được đổi SKU sau khi tạo.', { sku: ['Không được đổi SKU'] });
   }
   const { sku: _sku, ...changes } = body;
+  const toCombo = changes.is_combo === 1 && current.is_combo === 0;
   if (changes.is_combo !== undefined && changes.is_combo !== current.is_combo) {
     const links = await env.DB.prepare(
       'SELECT COUNT(*) AS n FROM bom_items WHERE combo_sku = ?1 OR component_sku = ?1',
@@ -134,6 +174,11 @@ route('PUT', '/products/:sku', async ({ env, req, user, params }) => {
         is_combo: ['Không đổi được'],
       });
     }
+    // Đơn đang mở đã giữ/xuất chính SKU này; thành combo thì bỏ giữ/nhập lại sẽ tách theo BOM → lệch kho.
+    if (toCombo) {
+      const n = await openOrderCount(env.DB, current.sku);
+      if (n > 0) throw productInUse(n);
+    }
   }
   const entries = Object.entries(changes).filter(([, v]) => v !== undefined);
   if (entries.length === 0) throw new ApiError(422, 'VALIDATION', 'Không có trường nào để cập nhật.');
@@ -141,6 +186,7 @@ route('PUT', '/products/:sku', async ({ env, req, user, params }) => {
   const sets = entries.map(([k], i) => `${k} = ?${i + 2}`).join(', ');
   try {
     await env.DB.batch([
+      ...(toCombo ? [openOrderGuard(env.DB, current.sku)] : []),
       env.DB.prepare(`UPDATE products SET ${sets}, updated_at = datetime('now') WHERE sku = ?1`).bind(
         current.sku,
         ...entries.map(([, v]) => v ?? null),
@@ -149,6 +195,7 @@ route('PUT', '/products/:sku', async ({ env, req, user, params }) => {
     ]);
   } catch (e) {
     if (isUnique(e)) throw new ApiError(409, 'CONFLICT', 'Slug đã được dùng cho sản phẩm khác.');
+    if (toCombo && isCheckError(e)) throw productInUse();
     throw e;
   }
   return ok(await productDetail(env.DB, current.sku));
@@ -174,29 +221,27 @@ route('PUT', '/products/:sku/bom', async ({ env, req, user, params }) => {
     if (!c) throw invalid(`Thành phần ${sku} không tồn tại.`, { sku });
     if (c.is_combo === 1) throw invalid(`${sku} là combo, không được lồng combo trong combo.`, { sku });
   }
-  const pending = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM orders o JOIN order_items i ON i.order_id = o.id
-     WHERE i.sku = ? AND o.order_status IN ('PENDING', 'PACKED', 'SHIPPING')`,
-  )
-    .bind(combo.sku)
-    .first<{ n: number }>();
-  if ((pending?.n ?? 0) > 0) {
-    throw new ApiError(409, 'BOM_IN_USE', 'Combo đang có đơn chưa hoàn tất (đã giữ hàng hoặc đang giao), chưa thể đổi thành phần.', {
-      pending_orders: pending?.n,
-    });
-  }
-  await env.DB.batch([
-    env.DB.prepare('DELETE FROM bom_items WHERE combo_sku = ?').bind(combo.sku),
-    ...items.map((it) =>
-      env.DB.prepare('INSERT INTO bom_items (combo_sku, component_sku, qty_per_combo) VALUES (?, ?, ?)').bind(
-        combo.sku,
-        it.component_sku,
-        it.qty_per_combo,
+  // Kiểm tra trước để báo lỗi sớm; guard đầu batch chặn đơn chen vào sau bước này.
+  const pending = await openOrderCount(env.DB, combo.sku);
+  if (pending > 0) throw bomInUse(pending);
+  try {
+    await env.DB.batch([
+      openOrderGuard(env.DB, combo.sku),
+      env.DB.prepare('DELETE FROM bom_items WHERE combo_sku = ?').bind(combo.sku),
+      ...items.map((it) =>
+        env.DB.prepare('INSERT INTO bom_items (combo_sku, component_sku, qty_per_combo) VALUES (?, ?, ?)').bind(
+          combo.sku,
+          it.component_sku,
+          it.qty_per_combo,
+        ),
       ),
-    ),
-    env.DB.prepare("UPDATE products SET updated_at = datetime('now') WHERE sku = ?").bind(combo.sku),
-    auditStmt(env.DB, user.id, 'product.bom_update', 'product', combo.sku, { items }),
-  ]);
+      env.DB.prepare("UPDATE products SET updated_at = datetime('now') WHERE sku = ?").bind(combo.sku),
+      auditStmt(env.DB, user.id, 'product.bom_update', 'product', combo.sku, { items }),
+    ]);
+  } catch (e) {
+    if (isCheckError(e)) throw bomInUse();
+    throw e;
+  }
   return ok(await productDetail(env.DB, combo.sku));
 });
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../worker/index';
 import { api, callWorker, createUser, makeEnv, seedProducts } from './helpers';
 
@@ -163,7 +163,100 @@ describe('BOM combo', () => {
     await comboOrder('VKTEST2', 'COMPLETED');
     expect((await putBom()).status).toBe(200);
   });
+
+  it('đơn mới chen vào sau bước kiểm tra trước → guard trong batch chặn, 409 BOM_IN_USE, BOM giữ nguyên', async () => {
+    const before = (await env.DB.prepare('SELECT * FROM bom_items WHERE combo_sku = ? ORDER BY component_sku').bind(COMBO).all())
+      .results;
+    const spy = raceAfterPrecheck(/FROM orders o JOIN order_items i/, () => comboOrder('VKRACE1', 'PENDING'));
+    const r = await putBom();
+    spy.mockRestore();
+    expect(r.status, JSON.stringify(r.json)).toBe(409);
+    expect(r.json.error?.code).toBe('BOM_IN_USE');
+    const after = (await env.DB.prepare('SELECT * FROM bom_items WHERE combo_sku = ? ORDER BY component_sku').bind(COMBO).all())
+      .results;
+    expect(after).toEqual(before);
+    expect((await row(COMBO)).is_combo).toBe(1);
+  });
 });
+
+describe('đổi sản phẩm lẻ thành combo', () => {
+  const NEW = 'VK-NEW-100';
+  const orderWith = async (code: string, status: string) => {
+    const o = await env.DB.prepare(
+      `INSERT INTO orders (order_code, customer_name, customer_phone, shipping_address, subtotal_vnd, shipping_fee_vnd, total_amount, order_status)
+       VALUES (?, 'A', '0900000000', 'x', 1, 0, 1, ?)`,
+    )
+      .bind(code, status)
+      .run();
+    await env.DB.prepare(
+      'INSERT INTO order_items (order_id, sku, product_name, unit_price, quantity, line_total) VALUES (?, ?, ?, 1, 1, 1)',
+    )
+      .bind(o.meta.last_row_id, NEW, 'n')
+      .run();
+  };
+  beforeEach(async () => {
+    expect((await send('/products', 'POST', newProduct())).status).toBe(201);
+  });
+
+  it.each(['PENDING', 'PACKED', 'SHIPPING'])('SKU nằm trong đơn %s → 409, is_combo giữ 0', async (status) => {
+    await orderWith('VKCB1', status);
+    const r = await send(`/products/${NEW}`, 'PUT', { is_combo: 1 });
+    expect(r.status, JSON.stringify(r.json)).toBe(409);
+    expect(r.json.error?.code).toBe('PRODUCT_IN_USE');
+    expect((await row(NEW)).is_combo).toBe(0);
+  });
+
+  it('chỉ còn trong đơn COMPLETED → đổi được', async () => {
+    await orderWith('VKCB2', 'COMPLETED');
+    expect((await send(`/products/${NEW}`, 'PUT', { is_combo: 1 })).status).toBe(200);
+    expect((await row(NEW)).is_combo).toBe(1);
+  });
+
+  it('đơn chen vào sau bước kiểm tra trước → guard trong batch chặn (409), không ghi gì', async () => {
+    const audits = async () =>
+      (await env.DB.prepare("SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'product.update'").first<{ n: number }>())!.n;
+    const n0 = await audits();
+    const spy = raceAfterPrecheck(/FROM orders o JOIN order_items i/, () => orderWith('VKCB3', 'PENDING'));
+    const r = await send(`/products/${NEW}`, 'PUT', { is_combo: 1, name: 'Tên mới' });
+    spy.mockRestore();
+    expect(r.status, JSON.stringify(r.json)).toBe(409);
+    expect(r.json.error?.code).toBe('PRODUCT_IN_USE');
+    expect(await row(NEW)).toMatchObject({ is_combo: 0, name: 'Sản phẩm mới' });
+    expect(await audits()).toBe(n0);
+  });
+});
+
+/**
+ * Giả lập tranh chấp: câu SELECT kiểm tra trước (khớp `match`) trả kết quả thật, rồi `act` chạy ngay
+ * sau đó — trước batch ghi — như một yêu cầu khác chen vào.
+ */
+function raceAfterPrecheck(match: RegExp, act: () => Promise<unknown>) {
+  const db = env.DB as any;
+  const real = db.prepare.bind(db);
+  let fired = false;
+  const wrap = (stmt: any): any =>
+    new Proxy(stmt, {
+      get(t, k) {
+        if (k === 'bind') return (...a: unknown[]) => wrap(t.bind(...a));
+        if (k === 'first') {
+          return async (...a: unknown[]) => {
+            const out = await t.first(...a);
+            if (!fired) {
+              fired = true;
+              await act();
+            }
+            return out;
+          };
+        }
+        const v = t[k];
+        return typeof v === 'function' ? v.bind(t) : v;
+      },
+    });
+  return vi.spyOn(db, 'prepare').mockImplementation((sql: unknown) => {
+    const stmt = real(sql);
+    return !fired && /^\s*SELECT/i.test(String(sql)) && match.test(String(sql)) ? wrap(stmt) : stmt;
+  });
+}
 
 describe('upload ảnh', () => {
   it('file 6 MB → 413', async () => {
