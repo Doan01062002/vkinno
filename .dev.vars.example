@@ -15,3 +15,7 @@ TELEGRAM_CHAT_ID=
 # 3. DỰ PHÒNG NỘI BỘ (TÙY CHỌN)
 ADMIN_PASSWORD=thay_bang_mat_khau_quan_tri_manh_12_ky_tu
 ADMIN_SESSION_SECRET=thay_bang_chuoi_ngau_nhien_32_byte_hex
+
+# 4. DEV KHÔNG CẦN WORKERD (`npm run dev:api`): tạo ADMIN đầu tiên khi bảng users trống
+DEV_ADMIN_EMAIL=admin@vkinno.local
+DEV_ADMIN_PASSWORD=thay_bang_mat_khau_dev_toi_thieu_8_ky_tu

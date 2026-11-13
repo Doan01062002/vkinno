@@ -1,0 +1,28 @@
+---
+// Vỏ SPA quản trị. Worker (và Vite dev) trả trang này cho mọi đường dẫn /quan-tri/*.
+import '../../admin/admin.css';
+import AdminRoot from '../../admin/main';
+---
+
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Quản trị · VKINNO</title>
+    <link rel="icon" href="/favicon.ico" />
+    <script is:inline>
+      try {
+        var t = localStorage.getItem('vk_admin_theme');
+        if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <noscript>Trang quản trị cần bật JavaScript.</noscript>
+    <AdminRoot client:only="react" />
+  </body>
+</html>

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Lớp của trang quản trị nằm trong src/admin/admin.css, không đưa vào CSS công khai. */
+@source not "../admin";
 
 :root {
   /* Brand Core (DESIGN.md WCAG 2.2 AA Verified) */

@@ -10,22 +10,34 @@
     "dev:all": "npm run build && wrangler d1 migrations apply vkinno-db --local && wrangler dev --port 8787",
     "astro": "astro",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.worker.json"
+    "typecheck": "tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.admin.json",
+    "test:ui": "vitest run -c vitest.ui.config.mts",
+    "dev:api": "tsx scripts/dev-api.ts"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.2",
     "@astrojs/sitemap": "^3.7.4",
+    "@hookform/resolvers": "^7.0.6",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.107.1",
     "astro": "^7.4.4",
     "lucide-react": "^1.65.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.92.0",
+    "react-router": "^8.5.1",
+    "recharts": "^3.10.1",
     "tailwindcss": "^4.3.3",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261107.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.6",
+    "jsdom": "^31.0.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^4.1.12",
     "wrangler": "^4.158.0"

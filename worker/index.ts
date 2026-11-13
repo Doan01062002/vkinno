@@ -277,6 +277,25 @@ function csvEscape(val: unknown): string {
   return s;
 }
 
+/**
+ * Trang quản trị là SPA: GET/HEAD tới đường dẫn không có phần mở rộng đều trả `/quan-tri/`
+ * (để tải lại trang sâu vẫn đúng). Mọi phản hồi dưới /quan-tri không được lập chỉ mục hay lưu đệm.
+ */
+async function serveAdminShell(request: Request, env: Env, url: URL, path: string): Promise<Response> {
+  const lastSegment = path.slice(path.lastIndexOf("/") + 1);
+  const isPage = (request.method === "GET" || request.method === "HEAD") && !lastSegment.includes(".");
+  let assetRequest = request;
+  if (isPage) {
+    const shellUrl = new URL("/quan-tri/", url);
+    assetRequest = new Request(shellUrl.toString(), { method: request.method, headers: request.headers });
+  }
+  const res = await env.ASSETS.fetch(assetRequest);
+  const out = new Response(res.body, res);
+  out.headers.set("X-Robots-Tag", "noindex, nofollow");
+  out.headers.set("Cache-Control", "no-store");
+  return out;
+}
+
 export default {
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runDaily(env));
@@ -287,6 +306,10 @@ export default {
 
     if (path.startsWith("/files/") && (request.method === "GET" || request.method === "HEAD")) {
       return serveFile(env, path.slice("/files/".length), request.method);
+    }
+
+    if (path === "/quan-tri" || path.startsWith("/quan-tri/")) {
+      return serveAdminShell(request, env, url, path);
     }
 
     if (!path.startsWith("/api")) {

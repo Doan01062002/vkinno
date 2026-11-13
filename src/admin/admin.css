@@ -1,0 +1,112 @@
+/* Giao diện quản trị: chỉ nạp ở /quan-tri, chỉ quét lớp trong src/admin. */
+@import "tailwindcss" source(none);
+@source "./";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --vk-canvas: #f8fafc;
+  --vk-surface: #ffffff;
+  --vk-subtle: #f1f5f9;
+  --vk-line: #e2e8f0;
+  --vk-fg: #0f172a;
+  --vk-muted: #64748b;
+  --vk-primary: #4f46e5;
+  --vk-primary-fg: #ffffff;
+  --vk-danger: #dc2626;
+  --vk-success: #059669;
+  --vk-warning: #d97706;
+  color-scheme: light;
+}
+
+.dark {
+  --vk-canvas: #0b1222;
+  --vk-surface: #111a2e;
+  --vk-subtle: #18233d;
+  --vk-line: #22304f;
+  --vk-fg: #f1f5f9;
+  --vk-muted: #a0abbf;
+  --vk-primary: #6d64f0;
+  --vk-primary-fg: #ffffff;
+  --vk-danger: #f87171;
+  --vk-success: #34d399;
+  --vk-warning: #fbbf24;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-canvas: var(--vk-canvas);
+  --color-surface: var(--vk-surface);
+  --color-subtle: var(--vk-subtle);
+  --color-line: var(--vk-line);
+  --color-fg: var(--vk-fg);
+  --color-muted: var(--vk-muted);
+  --color-primary: var(--vk-primary);
+  --color-primary-fg: var(--vk-primary-fg);
+  --color-danger: var(--vk-danger);
+  --color-success: var(--vk-success);
+  --color-warning: var(--vk-warning);
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  background: var(--vk-canvas);
+  color: var(--vk-fg);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Trang giấy của PrintFrame luôn nền trắng chữ đen, kể cả ở chế độ tối. */
+.vk-print-area {
+  --vk-surface: #ffffff;
+  --vk-subtle: #f3f4f6;
+  --vk-line: #d1d5db;
+  --vk-fg: #000000;
+  --vk-muted: #374151;
+  color-scheme: light;
+}
+
+/* In: chỉ hiện vùng .vk-print-area (PrintFrame). */
+@media print {
+  :root,
+  .dark {
+    --vk-canvas: #ffffff;
+    --vk-surface: #ffffff;
+    --vk-subtle: #f3f4f6;
+    --vk-line: #9ca3af;
+    --vk-fg: #000000;
+    --vk-muted: #374151;
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .vk-print-area,
+  .vk-print-area * {
+    visibility: visible;
+  }
+  .vk-print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .vk-no-print {
+    display: none !important;
+  }
+}
