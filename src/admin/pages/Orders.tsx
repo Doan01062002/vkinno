@@ -1,6 +1,6 @@
 import { FileUp, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { buttonClass } from '../components/Button';
 import { DataTable, listProps, type Column } from '../components/DataTable';
 import { inputClass } from '../components/Field';
@@ -46,7 +46,8 @@ export function Orders() {
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [channel, setChannel] = useState('');
-  const [status, setStatus] = useState('');
+  const [params] = useSearchParams();
+  const [status, setStatus] = useState(params.get('status') ?? '');
   const [payment, setPayment] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');

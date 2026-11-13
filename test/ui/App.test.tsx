@@ -36,12 +36,13 @@ describe('App quản trị', () => {
     expect(await screen.findByText('Email hoặc mật khẩu không đúng.')).toBeTruthy();
   });
 
-  it('STAFF không thấy Báo cáo/Cài đặt và bị chuyển khỏi /bao-cao', async () => {
+  it('STAFF không thấy Báo cáo/Cài đặt và mở thẳng /bao-cao thì nhận trang Không có quyền', async () => {
     stubMe({ role: 'STAFF' });
     window.history.pushState({}, '', '/quan-tri/bao-cao');
     render(<App />);
 
-    await waitFor(() => expect(window.location.pathname).toBe('/quan-tri/tong-quan'));
+    expect(await screen.findByRole('heading', { name: 'Không có quyền' })).toBeTruthy();
+    expect(window.location.pathname).toBe('/quan-tri/bao-cao');
     const nav = await screen.findByRole('navigation', { name: 'Menu chính' });
     expect(nav.textContent).toContain('Đơn hàng');
     expect(nav.textContent).not.toContain('Báo cáo');

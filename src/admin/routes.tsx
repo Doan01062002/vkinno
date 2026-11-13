@@ -15,6 +15,7 @@ import {
 import type { ReactNode } from 'react';
 import { CustomerDetail } from './pages/CustomerDetail';
 import { Customers } from './pages/Customers';
+import { Dashboard } from './pages/Dashboard';
 import { DebtDetail } from './pages/DebtDetail';
 import { Debts } from './pages/Debts';
 import { Inventory } from './pages/Inventory';
@@ -26,8 +27,10 @@ import { Orders } from './pages/Orders';
 import { Placeholder } from './pages/Placeholder';
 import { ProductEdit } from './pages/ProductEdit';
 import { Products } from './pages/Products';
+import { Reports } from './pages/Reports';
 import { QuoteEdit } from './pages/QuoteEdit';
 import { Quotes } from './pages/Quotes';
+import { Settings as SettingsPage } from './pages/Settings';
 import { StockDocEdit } from './pages/StockDocEdit';
 import { StockDocs } from './pages/StockDocs';
 import { StockMovement } from './pages/StockMovement';
@@ -39,7 +42,7 @@ export interface MenuItem {
   slug: string;
   label: string;
   icon: LucideIcon;
-  /** Chỉ ADMIN thấy và vào được (STAFF bị chuyển về Tổng quan). */
+  /** Chỉ ADMIN thấy và vào được (STAFF mở thẳng URL thì thấy trang "Không có quyền"). */
   adminOnly?: boolean;
 }
 
@@ -80,6 +83,9 @@ const placeholder = (slug: string, label: string): ScreenRoute => ({
  * Route của mục `adminOnly` tự được bọc RequireAdmin.
  */
 const SCREENS: Record<string, ReactNode> = {
+  'tong-quan': <Dashboard />,
+  'bao-cao': <Reports />,
+  'cai-dat': <SettingsPage tab="company" />,
   'don-hang': <Orders />,
   'san-pham': <Products />,
   kho: <Inventory />,
@@ -105,6 +111,11 @@ export const ROUTES: ScreenRoute[] = [
   { path: 'bao-gia/moi', title: 'Tạo báo giá', section: 'bao-gia', element: <QuoteEdit /> },
   { path: 'bao-gia/:id', title: 'Chi tiết báo giá', section: 'bao-gia', element: <QuoteEdit /> },
   { path: 'cong-no/:customerId', title: 'Chi tiết công nợ', section: 'cong-no', element: <DebtDetail /> },
+  { path: 'cai-dat/telegram', title: 'Telegram', section: 'cai-dat', element: <SettingsPage tab="telegram" /> },
+  { path: 'cai-dat/file-san', title: 'File sàn', section: 'cai-dat', element: <SettingsPage tab="columns" /> },
+  { path: 'cai-dat/tai-khoan', title: 'Tài khoản', section: 'cai-dat', element: <SettingsPage tab="users" /> },
+  { path: 'cai-dat/nhat-ky', title: 'Nhật ký', section: 'cai-dat', element: <SettingsPage tab="audit" /> },
+  { path: 'cai-dat/sao-luu', title: 'Sao lưu', section: 'cai-dat', element: <SettingsPage tab="backup" /> },
   { path: 'kho/nhap-xuat-ton', title: 'Nhập-xuất-tồn', section: 'kho', element: <StockMovement /> },
 ];
 

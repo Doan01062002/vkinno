@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { ApiClientError, apiFetch, errorMessage } from './api';
 import { shouldRetry } from './queries';
+import { Forbidden } from '../pages/Forbidden';
 
 export type Role = 'ADMIN' | 'STAFF';
 
@@ -98,9 +99,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return <Navigate to="/dang-nhap" replace state={{ from: location.pathname + location.search }} />;
 }
 
-/** Chỉ ADMIN; STAFF bị chuyển về Tổng quan. */
+/** Chỉ ADMIN; STAFF thấy trang Không có quyền. */
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const { user, isAdmin } = useMe();
-  if (user && !isAdmin) return <Navigate to="/tong-quan" replace />;
+  if (user && !isAdmin) return <Forbidden />;
   return <>{children}</>;
 }
