@@ -47,7 +47,10 @@ export function Orders() {
   const [page, setPage] = useState(1);
   const [channel, setChannel] = useState('');
   const [params] = useSearchParams();
-  const [status, setStatus] = useState(params.get('status') ?? '');
+  const [status, setStatus] = useState(() => {
+    const s = params.get('status') ?? '';
+    return statusOptions('order').some((o) => o.value === s) ? s : '';
+  });
   const [payment, setPayment] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');

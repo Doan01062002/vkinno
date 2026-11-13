@@ -82,6 +82,7 @@ export function Reports() {
   });
 
   const error = [period, channel, product, top].find((q) => q.isError)?.error;
+  const ready = !!(period.data && channel.data && product.data && top.data);
   const loading = period.isFetching || channel.isFetching || product.isFetching || top.isFetching;
 
   const exportExcel = async () => {
@@ -108,7 +109,7 @@ export function Reports() {
         title="Báo cáo"
         description="Doanh thu ghi nhận lúc xuất kho (không gồm phí ship); đơn trả hàng trừ vào ngày trả."
         actions={
-          <Button variant="secondary" onClick={() => void exportExcel()} loading={exporting} disabled={!ok || !period.data}>
+          <Button variant="secondary" onClick={() => void exportExcel()} loading={exporting} disabled={!ok || !ready}>
             <Download size={16} aria-hidden /> Xuất Excel
           </Button>
         }
@@ -136,6 +137,9 @@ export function Reports() {
           </select>
         </Field>
       </div>
+      {ok && !ready && !error && (
+        <p className="mt-3 text-sm text-muted">Nút Xuất Excel sẽ mở khi tải xong mọi bảng.</p>
+      )}
       {rangeError && (
         <p role="alert" className="mt-3 text-sm text-danger">
           {rangeError}
@@ -143,7 +147,7 @@ export function Reports() {
       )}
       {!!error && (
         <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-          {errorMessage(error)}
+          {errorMessage(error)} Chưa thể xuất Excel cho đến khi tải đủ dữ liệu.
         </p>
       )}
 

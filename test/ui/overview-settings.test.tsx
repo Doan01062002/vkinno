@@ -5,6 +5,17 @@ import { completeMap } from '../../src/admin/pages/settings/ColumnMaps';
 import { salesSheetRows, topSheetRows } from '../../src/admin/pages/reports/sheets';
 import { DEFAULT_COLUMN_MAPS } from '../../src/shared/marketplace';
 
+const xlsxMock = vi.hoisted(() => ({ sheets: [] as string[], written: '' }));
+vi.mock('xlsx', () => ({
+  utils: {
+    book_new: () => ({}),
+    json_to_sheet: (rows: unknown) => rows,
+    book_append_sheet: (_b: unknown, _s: unknown, name: string) => xlsxMock.sheets.push(name),
+  },
+  writeFile: (_b: unknown, name: string) => {
+    xlsxMock.written = name;
+  },
+}));
 vi.mock('../../src/admin/pages/reports/ReportChart', () => ({ default: () => <div data-testid="chart" /> }));
 
 type Role = 'ADMIN' | 'STAFF';
@@ -34,7 +45,7 @@ function stubApi(role: Role, routes: Record<string, Handler>) {
       calls.push(call);
       const handler = routes[`${method} ${path}`];
       if (!handler) return apiError(404, 'NOT_FOUND', 'Không tìm thấy.');
-      const out = handler(call);
+      const out = await handler(call);
       return out instanceof Response ? out : json(200, { ok: true, data: out });
     }),
   );
@@ -70,10 +81,11 @@ afterEach(() => {
 });
 
 describe('Tổng quan', () => {
-  it('STAFF không thấy doanh thu và không có chữ undefined', async () => {
-    stubApi('STAFF', baseRoutes());
+  it('STAFF không thấy doanh thu, không có chữ undefined và không gọi /reports/sales, /settings', async () => {
+    const calls = stubApi('STAFF', baseRoutes());
     const { container } = open('/tong-quan');
     expect(await screen.findByText('Đơn chờ xử lý')).toBeTruthy();
+    expect(calls.some((c) => c.path === '/reports/sales' || c.path === '/settings')).toBe(false);
     expect(screen.queryByText('Doanh thu hôm nay')).toBeNull();
     expect(screen.queryByText('Doanh thu tháng này')).toBeNull();
     expect(container.textContent).not.toContain('undefined');
@@ -123,6 +135,43 @@ describe('Tổng quan', () => {
   });
 });
 
+describe('SePay đã được xử lý', () => {
+  it.each([
+    [409, 'SEPAY_ALREADY_HANDLED', 'Giao dịch này đã được ghi nhận hoặc bị bỏ qua.'],
+    [404, 'SEPAY_TX_NOT_FOUND', 'Không tìm thấy giao dịch SePay.'],
+  ])('%s %s: làm mới danh sách và tổng quan', async (status, code, message) => {
+    const calls = stubApi('ADMIN', baseRoutes({
+      'GET /orders': () => list([order]),
+      'POST /sepay/555/assign': () => apiError(status, code, message),
+    }));
+    open('/tong-quan');
+    fireEvent.click(await screen.findByRole('button', { name: 'Gán đơn' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Tìm đơn hàng'), { target: { value: 'VK2A3B' } });
+    fireEvent.click(await within(dialog).findByRole('button', { name: /VK2A3B/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Gán đơn' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Xác nhận gán giao dịch' })).getByRole('button', { name: 'Gán đơn' }));
+    expect(await screen.findByText(message)).toBeTruthy();
+    await waitFor(() => expect(calls.filter((c) => c.path === '/sepay/unmatched').length).toBeGreaterThan(1));
+    expect(calls.filter((c) => c.path === '/reports/dashboard').length).toBeGreaterThan(1);
+  });
+});
+
+describe('Đơn hàng lọc theo URL', () => {
+  it('bỏ qua status không hợp lệ trong URL', async () => {
+    const calls = stubApi('ADMIN', { 'GET /orders': () => list([]) });
+    open('/don-hang?status=HACKED');
+    await waitFor(() => expect(calls.some((c) => c.path === '/orders')).toBe(true));
+    expect(calls.find((c) => c.path === '/orders')?.query.get('status') ?? '').toBe('');
+  });
+  it('nhận status hợp lệ', async () => {
+    const calls = stubApi('ADMIN', { 'GET /orders': () => list([]) });
+    open('/don-hang?status=PENDING');
+    await waitFor(() => expect(calls.some((c) => c.path === '/orders')).toBe(true));
+    expect(calls.find((c) => c.path === '/orders')?.query.get('status')).toBe('PENDING');
+  });
+});
+
 describe('Báo cáo', () => {
   const rows = [
     { key: '2026-11-01', orders: 2, returns: 0, revenue_vnd: 1000000, cost_total_vnd: 600000, gross_profit_vnd: 400000, gross_margin: 0.4 },
@@ -143,6 +192,48 @@ describe('Báo cáo', () => {
     const sales = calls.find((c) => c.path === '/reports/sales' && c.query.get('group') === 'day');
     expect(sales?.query.get('from')).toMatch(/^\d{4}-\d{2}-01$/);
     expect(screen.getByRole('button', { name: /Xuất Excel/ })).toBeTruthy();
+  });
+
+  const reportRoutes = (top: Handler): Record<string, Handler> => ({
+    'GET /reports/sales': (c) => (c.query.get('group') === 'channel' ? [{ ...rows[0], key: 'SHOPEE' }] : c.query.get('group') === 'product' ? [{ ...rows[0], key: 'SP1', name: 'Tinh dầu' }] : rows),
+    'GET /reports/top-products': top,
+  });
+
+  it('Xuất Excel bị khoá khi truy vấn phụ còn chờ, mở khi đủ dữ liệu và xuất đủ 4 sheet', async () => {
+    xlsxMock.sheets.length = 0;
+    let release: (v: unknown) => void = () => undefined;
+    const pending = new Promise((r) => (release = r));
+    stubApi('ADMIN', reportRoutes(() => pending));
+    open('/bao-cao');
+    await screen.findByText('2026-11-02');
+    await screen.findByText('Shopee');
+    const btn = screen.getByRole('button', { name: /Xuất Excel/ }) as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    release([{ sku: 'SP1', name: 'Tinh dầu', quantity: 12, revenue_vnd: 700000 }]);
+    await waitFor(() => expect(btn.disabled).toBe(false));
+    fireEvent.click(btn);
+    await waitFor(() => expect(xlsxMock.sheets).toHaveLength(4));
+    expect(xlsxMock.sheets).toEqual(['Kỳ - ngày', 'Theo kênh', 'Theo sản phẩm', 'Top sản phẩm']);
+  });
+
+  it('một truy vấn lỗi: khoá Xuất Excel và hiện lý do', async () => {
+    stubApi('ADMIN', reportRoutes(() => apiError(500, 'INTERNAL', 'Lỗi hệ thống, vui lòng thử lại.')));
+    open('/bao-cao');
+    expect(await screen.findByText(/Lỗi hệ thống, vui lòng thử lại/, {}, { timeout: 5000 })).toBeTruthy();
+    expect((screen.getByRole('button', { name: /Xuất Excel/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('khoảng ngày mặc định theo giờ Việt Nam', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-30T18:00:00Z'));
+    try {
+      stubApi('ADMIN', reportRoutes(() => []));
+      open('/bao-cao');
+      expect(((await screen.findByLabelText('Từ ngày')) as HTMLInputElement).value).toBe('2026-12-01');
+      expect((screen.getByLabelText('Đến ngày') as HTMLInputElement).value).toBe('2026-12-01');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('xuất Excel: hàng là số, không phải chuỗi đã định dạng', () => {
@@ -236,6 +327,22 @@ describe('Cài đặt', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Tạo tài khoản' }));
     await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true));
     expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ email: 'nv@vkinno.vn', name: 'Nhân viên', role: 'STAFF', password: 'matkhau-dai-123' });
+  });
+
+  it('đặt lại mật khẩu gửi {password} và xoá mật khẩu khi mở lại', async () => {
+    const u = { id: 3, email: 'nv@b.c', name: 'Nhân viên', role: 'STAFF', is_active: 1, last_login_at: null, created_at: '2026-01-01 00:00:00' };
+    const calls = stubApi('ADMIN', { 'GET /users': () => ({ items: [u] }), 'POST /users/3/reset-password': () => ({}) });
+    open('/cai-dat/tai-khoan');
+    fireEvent.click(await screen.findByRole('button', { name: 'Đặt lại mật khẩu nv@b.c' }));
+    let dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/Mật khẩu mới/), { target: { value: 'mat-khau-moi-123' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Đặt lại mật khẩu' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true));
+    expect(calls.find((c) => c.method === 'POST')?.body).toEqual({ password: 'mat-khau-moi-123' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Đặt lại mật khẩu nv@b.c' }));
+    dialog = await screen.findByRole('dialog');
+    expect((within(dialog).getByLabelText(/Mật khẩu mới/) as HTMLInputElement).value).toBe('');
   });
 
   it('nhật ký: lọc theo đối tượng gửi tham số entity', async () => {

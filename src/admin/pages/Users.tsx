@@ -42,11 +42,10 @@ function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const [serverError, setServerError] = useState('');
 
   useEffect(() => {
-    if (open) {
-      setForm({ email: '', name: '', role: 'STAFF', password: '' });
-      setErrors({});
-      setServerError('');
-    }
+    // Mở thì đặt lại cả form; đóng thì xoá ngay mật khẩu khỏi state.
+    setForm({ email: '', name: '', role: 'STAFF', password: '' });
+    setErrors({});
+    setServerError('');
   }, [open]);
 
   const create = useMutation({
@@ -55,6 +54,7 @@ function CreateDialog({ open, onClose }: { open: boolean; onClose: () => void })
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['/users'] });
       toast.success('Đã tạo tài khoản.');
+      setForm((f) => ({ ...f, password: '' }));
       onClose();
     },
     onError: (e) => {
@@ -169,16 +169,15 @@ function ResetDialog({ user, onClose }: { user: UserRow | null; onClose: () => v
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user) {
-      setPassword('');
-      setError('');
-    }
+    setPassword('');
+    setError('');
   }, [user]);
 
   const reset = useMutation({
     mutationFn: () => apiFetch(`/users/${user?.id}/reset-password`, { method: 'POST', json: { password } }),
     onSuccess: () => {
       toast.success('Đã đặt lại mật khẩu.');
+      setPassword('');
       onClose();
     },
     onError: (e) => setError(errorMessage(e)),

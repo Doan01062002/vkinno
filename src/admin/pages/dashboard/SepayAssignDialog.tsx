@@ -5,7 +5,7 @@ import { Field, inputClass } from '../../components/Field';
 import { FormDialog } from '../../components/FormDialog';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useToast } from '../../components/Toast';
-import { apiFetch, errorMessage, type ListResult } from '../../lib/api';
+import { ApiClientError, apiFetch, errorMessage, type ListResult } from '../../lib/api';
 import { formatVnd } from '../../lib/format';
 import { useDebounced } from '../../lib/useDebounced';
 import type { OrderRow } from '../orders/types';
@@ -58,6 +58,10 @@ export function SepayAssignDialog({ tx, onClose }: { tx: SepayTx | null; onClose
       onClose();
     },
     onError: (e) => {
+      if (e instanceof ApiClientError && (e.code === 'SEPAY_ALREADY_HANDLED' || e.code === 'SEPAY_TX_NOT_FOUND')) {
+        void qc.invalidateQueries({ queryKey: ['/sepay/unmatched'] });
+        void qc.invalidateQueries({ queryKey: ['/reports/dashboard'] });
+      }
       setConfirming(false);
       setError(errorMessage(e));
     },
