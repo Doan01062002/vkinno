@@ -115,15 +115,44 @@ async function sendInventoryAlerts(env: Env): Promise<void> {
   if (failed > 0) console.error(`Gửi cảnh báo tồn kho: ${failed} tin Telegram thất bại`);
 }
 
-/** Tác vụ hằng ngày; mỗi bước độc lập, một bước lỗi không chặn các bước còn lại. */
-export async function runDaily(env: Env): Promise<void> {
-  try {
-    await runBackup(env);
-  } catch (e) {
-    console.error('Sao lưu hằng ngày thất bại', e);
-    const sentOk = await sendTelegramAlert(env, 'Sao lưu D1 hằng ngày THẤT BẠI. Vui lòng kiểm tra nhật ký Worker.');
-    if (!sentOk) console.error('Không gửi được tin báo lỗi sao lưu qua Telegram');
+/** Bản sao lưu mới nhất (`backups/YYYY-MM-DD.json.gz`, ngày lớn nhất) hoặc null khi chưa có. */
+export async function latestBackup(env: Env): Promise<{ key: string; uploaded: string; size: number } | null> {
+  let best: R2Object | null = null;
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await env.FILES.list({ prefix: BACKUP_PREFIX, cursor });
+    for (const obj of page.objects) {
+      if (KEY_RE.test(obj.key) && (!best || obj.key > best.key)) best = obj;
+    }
+    if (!page.truncated) break;
+    cursor = page.cursor;
   }
+  return best ? { key: best.key, uploaded: new Date(best.uploaded).toISOString(), size: best.size } : null;
+}
+
+/**
+ * Bản sao lưu của ngày hôm qua (giờ VN) phải có trong R2; thiếu (vd. Worker bị dừng giữa chừng vì
+ * quá CPU, không kịp báo lỗi) → báo Telegram. Cài mới chưa có bản nào thì bỏ qua.
+ */
+async function checkYesterdayBackup(env: Env, now = Date.now()): Promise<void> {
+  const any = await env.FILES.list({ prefix: BACKUP_PREFIX, limit: 1 });
+  if (any.objects.length === 0) return;
+  const day = vnToday(now - DAY_MS);
+  const key = `${BACKUP_PREFIX}${day}.json.gz`;
+  if (await env.FILES.head(key)) return;
+  const [y, m, d] = day.split('-');
+  const sentOk = await sendTelegramAlert(
+    env,
+    `Không thấy bản sao lưu ngày ${d}/${m}/${y} (${key}). Vui lòng kiểm tra nhật ký Worker và bấm "Sao lưu ngay" trong Cài đặt.`,
+  );
+  if (!sentOk) console.error(`Thiếu bản sao lưu ${key}; không gửi được tin Telegram`);
+}
+
+/**
+ * Tác vụ hằng ngày; mỗi bước độc lập, một bước lỗi không chặn các bước còn lại. Sao lưu chạy CUỐI:
+ * nếu nó làm Worker vượt giới hạn CPU, dọn dẹp và cảnh báo (gồm kiểm tra bản hôm qua) đã xong.
+ */
+export async function runDaily(env: Env): Promise<void> {
   try {
     await env.DB.prepare(
       "DELETE FROM login_attempts WHERE (CAST(strftime('%s','now') AS INTEGER) - CAST(strftime('%s', window_start) AS INTEGER)) >= 900",
@@ -135,5 +164,17 @@ export async function runDaily(env: Env): Promise<void> {
     await sendInventoryAlerts(env);
   } catch (e) {
     console.error('Gửi cảnh báo tồn kho thất bại', e);
+  }
+  try {
+    await checkYesterdayBackup(env);
+  } catch (e) {
+    console.error('Kiểm tra bản sao lưu hôm qua thất bại', e);
+  }
+  try {
+    await runBackup(env);
+  } catch (e) {
+    console.error('Sao lưu hằng ngày thất bại', e);
+    const sentOk = await sendTelegramAlert(env, 'Sao lưu D1 hằng ngày THẤT BẠI. Vui lòng kiểm tra nhật ký Worker.');
+    if (!sentOk) console.error('Không gửi được tin báo lỗi sao lưu qua Telegram');
   }
 }

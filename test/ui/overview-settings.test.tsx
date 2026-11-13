@@ -374,13 +374,34 @@ describe('Cài đặt', () => {
     await waitFor(() => expect(calls.some((c) => c.path === '/audit-logs' && c.query.get('entity') === 'order')).toBe(true));
   });
 
+  it('hiện bản sao lưu gần nhất; chưa có thì báo chưa có', async () => {
+    stubApi('ADMIN', {
+      'GET /backup/latest': () => ({ key: 'backups/2026-11-12.json.gz', uploaded: '2026-11-12T19:00:05.000Z', size: 51200 }),
+    });
+    open('/cai-dat/sao-luu');
+    const info = await screen.findByText(/Bản sao lưu gần nhất:/);
+    expect(info.textContent).toContain('backups/2026-11-12.json.gz');
+    expect(info.textContent).toContain('13/11/2026');
+    expect(info.textContent).toContain('50 KB');
+  });
+
+  it('chưa có bản sao lưu nào', async () => {
+    stubApi('ADMIN', { 'GET /backup/latest': () => null });
+    open('/cai-dat/sao-luu');
+    expect(await screen.findByText(/Bản sao lưu gần nhất: chưa có/)).toBeTruthy();
+  });
+
   it('"Sao lưu ngay" hiện khoá tệp và dung lượng KB', async () => {
-    const calls = stubApi('ADMIN', { 'POST /backup/run': () => ({ key: 'backups/2026-11-13.json.gz', bytes: 20480 }) });
+    const calls = stubApi('ADMIN', {
+      'POST /backup/run': () => ({ key: 'backups/2026-11-13.json.gz', bytes: 20480 }),
+      'GET /backup/latest': () => null,
+    });
     open('/cai-dat/sao-luu');
     fireEvent.click(await screen.findByRole('button', { name: /Sao lưu ngay/ }));
     const info = await screen.findByText(/20 KB/);
     expect(info.textContent).toContain('backups/2026-11-13.json.gz');
     expect(calls.some((c) => c.method === 'POST' && c.path === '/backup/run')).toBe(true);
+    await waitFor(() => expect(calls.filter((c) => c.path === '/backup/latest').length).toBeGreaterThan(1));
   });
 
   it('STAFF mở thẳng /cai-dat/tai-khoan thấy Không có quyền', async () => {

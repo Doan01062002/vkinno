@@ -7,7 +7,7 @@ import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
 import { hashPassword } from './auth';
 import { auditStmt } from './audit';
 import { route } from './router';
-import { runBackup } from './scheduled';
+import { latestBackup, runBackup } from './scheduled';
 
 // ---------------------------------------------------------------------------
 // Cài đặt (chỉ khoá trong danh sách trắng; khoá cũ của website không bao giờ lộ ra)
@@ -267,3 +267,5 @@ route(
   },
   { role: 'ADMIN' },
 );
+
+route('GET', '/backup/latest', async ({ env }) => ok(await latestBackup(env)), { role: 'ADMIN' });

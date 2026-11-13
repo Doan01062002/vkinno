@@ -95,6 +95,19 @@ describe('sao lưu', () => {
     const staff = await createUser(env.DB, 'STAFF');
     expect((await send('/backup/run', 'POST', undefined, staff)).status).toBe(403);
   });
+
+  it('GET backup/latest (ADMIN): null khi chưa có, sau đó bản mới nhất theo ngày; STAFF 403', async () => {
+    expect((await send('/backup/latest')).json).toEqual({ ok: true, data: null });
+    await env.FILES.put(backupKey(-2), 'xx');
+    await env.FILES.put(backupKey(-1), 'xxxx');
+    await env.FILES.put('backups/ghi-chu.txt', 'x');
+    const r = await send('/backup/latest');
+    expect(r.status).toBe(200);
+    expect(r.json.data).toMatchObject({ key: backupKey(-1), size: 4 });
+    expect(Number.isNaN(Date.parse(r.json.data.uploaded))).toBe(false);
+    const staff = await createUser(env.DB, 'STAFF');
+    expect((await send('/backup/latest', 'GET', undefined, staff)).status).toBe(403);
+  });
 });
 
 describe('runDaily / scheduled', () => {
@@ -126,9 +139,43 @@ describe('runDaily / scheduled', () => {
     expect(sent.some((t) => t.includes('THẤT BẠI'))).toBe(true);
   });
 
+  it('dọn login_attempts và gửi cảnh báo TRƯỚC khi sao lưu', async () => {
+    const sent = stubTelegram();
+    env = { ...env, TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: 'c' };
+    await send('/settings', 'PUT', { 'telegram.enabled': true });
+    await env.DB.prepare('UPDATE products SET stock_qty = 0, reserved_qty = 0, min_stock = 5 WHERE sku = ?').bind(DG).run();
+    await env.DB.prepare("INSERT INTO login_attempts (key, count, window_start) VALUES ('old', 3, datetime('now', '-1 day'))").run();
+    const seen: { attempts: number; sent: number }[] = [];
+    const put = env.FILES.put.bind(env.FILES);
+    vi.spyOn(env.FILES, 'put').mockImplementation(async (...args: Parameters<R2Bucket['put']>) => {
+      const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM login_attempts').first<{ n: number }>();
+      seen.push({ attempts: n!.n, sent: sent.length });
+      return put(...args);
+    });
+    await runDaily(env);
+    expect(seen).toEqual([{ attempts: 0, sent: 1 }]);
+    expect(sent[0]).toContain(DG);
+  });
+
+  it('thiếu bản sao lưu hôm qua (giờ VN) → báo Telegram; có thì không; chưa từng sao lưu thì bỏ qua', async () => {
+    const sent = stubTelegram();
+    env = { ...env, TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: 'c' };
+    const [y, m, d] = vnDay(-1).split('-');
+    await runDaily(env); // cài mới: chưa có bản nào
+    expect(sent.filter((t) => t.includes('Không thấy bản sao lưu'))).toEqual([]);
+    await runDaily(env); // đã có bản hôm nay, thiếu bản hôm qua
+    const missing = sent.filter((t) => t.includes('Không thấy bản sao lưu'));
+    expect(missing).toHaveLength(1);
+    expect(missing[0]).toContain(`Không thấy bản sao lưu ngày ${d}/${m}/${y}`);
+    await env.FILES.put(backupKey(-1), 'x');
+    await runDaily(env);
+    expect(sent.filter((t) => t.includes('Không thấy bản sao lưu'))).toHaveLength(1);
+  });
+
   it('gửi cảnh báo tồn thấp khi telegram.enabled = true, không gửi khi tắt', async () => {
     const sent = stubTelegram();
     env = { ...env, TELEGRAM_BOT_TOKEN: 't', TELEGRAM_CHAT_ID: 'c' };
+    await env.FILES.put(backupKey(-1), 'x'); // có bản hôm qua: chỉ còn cảnh báo kho
     await env.DB.prepare('UPDATE products SET stock_qty = 0, reserved_qty = 0, min_stock = 5 WHERE sku = ?').bind(DG).run();
     await runDaily(env);
     expect(sent).toEqual([]);
