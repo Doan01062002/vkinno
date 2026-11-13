@@ -88,6 +88,10 @@ function invalidTransition(from: OrderStatus, to: TransitionTarget | 'EDIT' | 'S
   return new ApiError(409, 'INVALID_TRANSITION', `Đơn đang ${STATUS_LABEL[from]}, không thể ${action}.`, { from, to });
 }
 
+const CLOSED_STATUSES: readonly OrderStatus[] = ['COMPLETED', 'CANCELLED', 'RETURNED'];
+const feeLocked = () =>
+  new ApiError(409, 'ORDER_CLOSED', 'Đơn đã hoàn tất, huỷ hoặc trả hàng: không thể đổi phí vận chuyển.');
+
 const orderChanged = () =>
   new ApiError(409, 'ORDER_CHANGED', 'Đơn vừa được người khác thay đổi, vui lòng tải lại.');
 
@@ -104,6 +108,7 @@ interface OrderRow {
   order_code: string;
   order_status: OrderStatus;
   stock_deducted: number;
+  shipping_fee_vnd: number;
   items_stamp: string;
 }
 
@@ -115,7 +120,9 @@ interface ItemRow {
 
 async function loadOrder(db: D1Database, id: number): Promise<OrderRow> {
   const row = await db
-    .prepare(`SELECT id, order_code, order_status, stock_deducted, ${ITEMS_STAMP} AS items_stamp FROM orders WHERE id = ?`)
+    .prepare(
+      `SELECT id, order_code, order_status, stock_deducted, shipping_fee_vnd, ${ITEMS_STAMP} AS items_stamp FROM orders WHERE id = ?`,
+    )
     .bind(id)
     .first<OrderRow>();
   if (!row) throw notFound();
@@ -674,6 +681,10 @@ route('PUT', '/orders/:id/shipping', async (c) => {
   const id = parseId(c);
   const input = await parseBody(req, orderShippingInput);
   const order = await loadOrder(env.DB, id);
+  // Đơn đã đóng: tổng tiền đã chốt (doanh thu, công nợ, hoàn tiền) → không đổi phí ship.
+  const closedFeeChange = (o: OrderRow) =>
+    CLOSED_STATUSES.includes(o.order_status) && o.shipping_fee_vnd !== input.shipping_fee_vnd;
+  if (closedFeeChange(order)) throw feeLocked();
   if (order.order_status === 'CANCELLED' || order.order_status === 'RETURNED') {
     throw invalidTransition(order.order_status, 'SHIPPING_INFO');
   }
@@ -682,7 +693,10 @@ route('PUT', '/orders/:id/shipping', async (c) => {
     await env.DB.batch([
       env.DB.prepare(
         `UPDATE orders SET
-           order_status = CASE WHEN order_status IN ('CANCELLED', 'RETURNED') THEN 'INVALID' ELSE order_status END,
+           order_status = CASE
+             WHEN order_status IN ('CANCELLED', 'RETURNED') THEN 'INVALID'
+             WHEN order_status = 'COMPLETED' AND shipping_fee_vnd <> ?3 THEN 'INVALID'
+             ELSE order_status END,
            shipping_carrier = ?1, shipping_tracking_code = ?2, shipping_fee_vnd = ?3, total_amount = ${total},
            ${paymentStatusSql(`(${total})`)}, updated_at = datetime('now')
          WHERE id = ?4`,
@@ -691,7 +705,9 @@ route('PUT', '/orders/:id/shipping', async (c) => {
     ]);
   } catch (e) {
     if (!isCheckError(e)) throw e;
-    throw invalidTransition((await loadOrder(env.DB, id)).order_status, 'SHIPPING_INFO');
+    const now = await loadOrder(env.DB, id);
+    if (closedFeeChange(now)) throw feeLocked();
+    throw invalidTransition(now.order_status, 'SHIPPING_INFO');
   }
   return ok(await orderDetail(env.DB, id));
 });

@@ -407,6 +407,14 @@ describe('Chi tiết đơn', () => {
     expect(calls.some((c) => c.method === 'POST')).toBe(false);
   });
 
+  it('đơn hoàn tất: khoá phí vận chuyển, vẫn sửa được hãng và mã vận đơn', async () => {
+    stubApi('STAFF', { 'GET /orders/5': () => order({ order_status: 'COMPLETED' }) });
+    open('/don-hang/5');
+    expect(((await screen.findByLabelText('Hãng vận chuyển')) as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByLabelText('Mã vận đơn') as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByLabelText('Phí vận chuyển') as HTMLInputElement).disabled).toBe(true);
+  });
+
   it('lưu thông tin giao hàng gọi PUT /orders/:id/shipping', async () => {
     const calls = stubApi('STAFF', {
       'GET /orders/5': () => order({ order_status: 'PACKED' }),

@@ -7,13 +7,17 @@ import { useToast } from '../../components/Toast';
 import { ApiClientError, apiFetch } from '../../lib/api';
 import { orderKey, type OrderDetailData } from './types';
 
-/** Thông tin giao hàng: hãng vận chuyển, mã vận đơn, phí ship (đổi phí làm đổi tổng tiền đơn). */
+/**
+ * Thông tin giao hàng: hãng vận chuyển, mã vận đơn, phí ship (đổi phí làm đổi tổng tiền đơn).
+ * Đơn đã hoàn tất: tổng tiền đã chốt nên khoá phí ship (máy chủ trả 409 ORDER_CLOSED nếu đổi).
+ */
 export function ShippingForm({ order, readOnly }: { order: OrderDetailData; readOnly: boolean }) {
   const toast = useToast();
   const qc = useQueryClient();
   const [carrier, setCarrier] = useState(order.shipping_carrier);
   const [tracking, setTracking] = useState(order.shipping_tracking_code);
   const [fee, setFee] = useState<number | null>(order.shipping_fee_vnd);
+  const feeLocked = readOnly || order.order_status === 'COMPLETED';
 
   const save = useMutation({
     mutationFn: () =>
@@ -49,7 +53,7 @@ export function ShippingForm({ order, readOnly }: { order: OrderDetailData; read
         <input id="ship-tracking" value={tracking} disabled={readOnly} maxLength={100} onChange={(e) => setTracking(e.target.value)} className={inputClass} />
       </Field>
       <Field label="Phí vận chuyển" htmlFor="ship-fee">
-        <MoneyInput id="ship-fee" value={fee} disabled={readOnly} onChange={setFee} />
+        <MoneyInput id="ship-fee" value={fee} disabled={feeLocked} onChange={setFee} />
       </Field>
       {!readOnly && (
         <div className="sm:col-span-3">

@@ -415,6 +415,39 @@ describe('giao hàng, danh sách, chi tiết', () => {
     expect(late.status).toBe(409);
   });
 
+  it('đơn đã đóng (COMPLETED/CANCELLED/RETURNED): đổi phí ship → 409 ORDER_CLOSED; COMPLETED vẫn sửa được hãng/mã vận đơn', async () => {
+    const o = await create();
+    await moveTo(o.id, 'PACKED', 'SHIPPING', 'COMPLETED');
+    const fee = await send(`/orders/${o.id}/shipping`, 'PUT', {
+      shipping_carrier: 'GHN',
+      shipping_tracking_code: 'GHN1',
+      shipping_fee_vnd: 0,
+    });
+    expect(fee.status).toBe(409);
+    expect(fee.json.error?.code).toBe('ORDER_CLOSED');
+    const row = await env.DB.prepare('SELECT shipping_fee_vnd, total_amount, shipping_carrier FROM orders WHERE id = ?')
+      .bind(o.id)
+      .first<any>();
+    expect(row).toEqual({ shipping_fee_vnd: 25000, total_amount: 195000, shipping_carrier: '' });
+    const info = await send(`/orders/${o.id}/shipping`, 'PUT', {
+      shipping_carrier: 'GHN',
+      shipping_tracking_code: 'GHN1',
+      shipping_fee_vnd: 25000,
+    });
+    expect(info.status).toBe(200);
+    expect(info.json.data).toMatchObject({ shipping_carrier: 'GHN', shipping_tracking_code: 'GHN1', total_amount: 195000 });
+
+    const c = await create();
+    await moveTo(c.id, 'CANCELLED');
+    const cancelled = await send(`/orders/${c.id}/shipping`, 'PUT', {
+      shipping_carrier: '',
+      shipping_tracking_code: '',
+      shipping_fee_vnd: 10000,
+    });
+    expect(cancelled.status).toBe(409);
+    expect(cancelled.json.error?.code).toBe('ORDER_CLOSED');
+  });
+
   it('đổi tổng tiền (phí ship) tính lại payment_status theo số đã thu', async () => {
     const o = await create();
     await env.DB.prepare('UPDATE orders SET paid_amount = 170000, payment_status = ? WHERE id = ?')
