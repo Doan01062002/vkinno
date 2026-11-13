@@ -258,6 +258,8 @@ export const orderListQuery = pageQuerySchema.extend({
   from: dateSchema.optional(),
   to: dateSchema.optional(),
   customer_id: idSchema.optional(),
+  /** 1 = đơn WEB chờ xử lý, chưa thu tiền, tạo quá 48 giờ (thẻ trên Tổng quan). */
+  stale_web: z.enum(['0', '1']).optional(),
 });
 
 // ---------------------------------------------------------------------------

@@ -63,17 +63,19 @@ describe('POST /api/orders (web)', () => {
   });
 
   it('đặt vượt có thể bán → 409 kèm thông báo tiếng Việt, không tạo đơn', async () => {
-    const { status, json } = await post(webBody({ items: [{ sku: DG, quantity: 101 }] }));
+    await env.DB.prepare('UPDATE products SET stock_qty = 10 WHERE sku = ?').bind(DG).run();
+    const { status, json } = await post(webBody({ items: [{ sku: DG, quantity: 11 }] }));
     expect(status).toBe(409);
     expect(json.ok).toBe(false);
     expect(typeof json.error).toBe('string');
-    expect(json.error).toContain('chỉ còn 100 có thể bán');
+    expect(json.error).toContain('chỉ còn 10 có thể bán');
     expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM orders').first<any>()).n).toBe(0);
     expect((await stock(DG))!.reserved_qty).toBe(0);
   });
 
   it('đơn đã giữ hàng thì đơn sau chỉ còn phần có thể bán', async () => {
-    expect((await post(webBody({ items: [{ sku: DG, quantity: 99 }] }))).status).toBe(201);
+    await env.DB.prepare('UPDATE products SET stock_qty = 10 WHERE sku = ?').bind(DG).run();
+    expect((await post(webBody({ items: [{ sku: DG, quantity: 9 }] }))).status).toBe(201);
     const r = await post(webBody({ items: [{ sku: DG, quantity: 2 }] }));
     expect(r.status).toBe(409);
     expect(r.json.error).toContain('chỉ còn 1 có thể bán');
@@ -100,6 +102,31 @@ describe('POST /api/orders (web)', () => {
     const bad = await post(webBody({ voucher_code: 'SAIMA' }));
     expect(bad.status).toBe(400);
     expect(bad.json.error).toContain('SAIMA');
+  });
+
+  it('quá 20 đơn vị một SKU (kể cả gộp dòng) → 422, không tạo đơn, không giữ hàng', async () => {
+    const over = await post(webBody({ items: [{ sku: DG, quantity: 21 }] }));
+    expect(over.status).toBe(422);
+    expect(over.json.ok).toBe(false);
+    expect(typeof over.json.error).toBe('string');
+    expect(over.json.error).toContain('20');
+    const merged = await post(webBody({ items: [{ sku: DG, quantity: 15 }, { sku: DG, quantity: 6 }] }));
+    expect(merged.status).toBe(422);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM orders').first<any>()).n).toBe(0);
+    expect((await stock(DG))!.reserved_qty).toBe(0);
+    expect((await post(webBody({ items: [{ sku: DG, quantity: 20 }] }))).status).toBe(201);
+  });
+
+  it('quá 100 đơn vị cả đơn → 422', async () => {
+    const skus = (await env.DB.prepare('SELECT sku FROM products WHERE is_combo = 0 ORDER BY product_id').all<any>()).results.map(
+      (r: any) => r.sku,
+    );
+    expect(skus.length).toBeGreaterThanOrEqual(6);
+    const items = skus.slice(0, 6).map((sku: string) => ({ sku, quantity: 17 })); // 102 đơn vị, mỗi SKU ≤ 20
+    const r = await post(webBody({ items }));
+    expect(r.status).toBe(422);
+    expect(r.json.error).toContain('100');
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM orders').first<any>()).n).toBe(0);
   });
 
   it('đơn web hiện trong danh sách quản trị với source WEB và voucher_code', async () => {

@@ -453,6 +453,25 @@ describe('giao hàng, danh sách, chi tiết', () => {
     expect(page.items).toHaveLength(1);
   });
 
+  it('GET orders?stale_web=1: chỉ đơn WEB chờ xử lý, chưa thu tiền, tạo quá 48 giờ', async () => {
+    const stale = await create({ channel: 'WEB' });
+    const fresh = await create({ channel: 'WEB' });
+    const paid = await create({ channel: 'WEB' });
+    const packed = await create({ channel: 'WEB' });
+    const phone = await create({ channel: 'PHONE' });
+    await moveTo(packed.id, 'PACKED');
+    const old = "UPDATE orders SET created_at = datetime('now', '-49 hours') WHERE id IN (?, ?, ?, ?)";
+    await env.DB.prepare(old).bind(stale.id, paid.id, packed.id, phone.id).run();
+    await env.DB.prepare("UPDATE orders SET created_at = datetime('now', '-47 hours') WHERE id = ?").bind(fresh.id).run();
+    await env.DB.prepare("UPDATE orders SET paid_amount = 1000, payment_status = 'PARTIAL' WHERE id = ?").bind(paid.id).run();
+    const r = await send('/orders?stale_web=1');
+    expect(r.status).toBe(200);
+    expect(r.json.data.items.map((i: any) => i.id)).toEqual([stale.id]);
+    expect(r.json.data.total).toBe(1);
+    expect((await send('/orders?stale_web=0')).json.data.total).toBe(5);
+    expect((await send('/orders?stale_web=x')).status).toBe(422);
+  });
+
   it('GET orders/:id kèm dòng hàng, thanh toán, sổ kho; STAFF không thấy giá vốn', async () => {
     const o = await create();
     await moveTo(o.id, 'PACKED');

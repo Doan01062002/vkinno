@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Banknote, Clock, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Banknote, Clock, Hourglass, TrendingUp } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
@@ -17,6 +17,7 @@ interface DashboardData {
   pending_orders: number;
   alerts_count: number;
   sepay_unmatched: number;
+  stale_web_orders?: number;
 }
 
 interface Alerts {
@@ -81,6 +82,14 @@ export function Dashboard() {
               to="/don-hang?status=PENDING"
             />
             <StatCard icon={<AlertTriangle size={16} aria-hidden />} label="Cảnh báo kho" value={formatNumber(d.alerts_count)} to="/kho" />
+            {d.stale_web_orders !== undefined && (
+              <StatCard
+                icon={<Hourglass size={16} aria-hidden />}
+                label="Đơn web chờ thanh toán quá 48 giờ"
+                value={formatNumber(d.stale_web_orders)}
+                to="/don-hang?stale_web=1"
+              />
+            )}
           </>
         )}
       </div>

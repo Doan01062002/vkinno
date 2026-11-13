@@ -25,6 +25,9 @@ const FREESHIP_THRESHOLD_VND = 199000;
 const FLAT_SHIPPING_FEE_VND = 25000;
 const PROJECT_SLUG = "chu-dong-vkinno";
 const MAX_PUBLIC_BODY_BYTES = 16384;
+// Giới hạn đơn web (chống giữ hết hàng bằng đơn ảo): mỗi SKU ≤ 20, cả đơn ≤ 100 đơn vị.
+const WEB_MAX_UNITS_PER_SKU = 20;
+const WEB_MAX_UNITS_PER_ORDER = 100;
 
 interface ProductRow {
   sku: string;
@@ -434,6 +437,25 @@ export default {
         const normalizedItems = Array.from(mergedMap.values());
         if (normalizedItems.length === 0) {
           return jsonResponse({ ok: false, error: "Giỏ hàng không có sản phẩm hợp lệ." }, 400);
+        }
+        const overSku = normalizedItems.find((i) => i.quantity > WEB_MAX_UNITS_PER_SKU);
+        if (overSku) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: `Mỗi sản phẩm đặt tối đa ${WEB_MAX_UNITS_PER_SKU} đơn vị trên website ("${overSku.product.name}"). Đơn số lượng lớn vui lòng liên hệ Zalo/Hotline 0938.791.389.`,
+            },
+            422
+          );
+        }
+        if (normalizedItems.reduce((n, i) => n + i.quantity, 0) > WEB_MAX_UNITS_PER_ORDER) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: `Mỗi đơn trên website tối đa ${WEB_MAX_UNITS_PER_ORDER} đơn vị sản phẩm. Đơn số lượng lớn vui lòng liên hệ Zalo/Hotline 0938.791.389.`,
+            },
+            422
+          );
         }
 
         const subtotalVnd = normalizedItems.reduce(

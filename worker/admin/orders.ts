@@ -74,6 +74,10 @@ const ITEMS_STAMP = `COALESCE((SELECT group_concat(id) FROM
 
 const notFound = () => new ApiError(404, 'ORDER_NOT_FOUND', 'Không tìm thấy đơn hàng.');
 
+/** Đơn web chờ thanh toán quá 48 giờ (alias bảng `o`): chỉ để nhân viên rà soát, không tự huỷ. */
+export const STALE_WEB_SQL = `(o.channel = 'WEB' AND o.order_status = 'PENDING' AND o.payment_status = 'UNPAID'
+  AND o.created_at < datetime('now', '-48 hours'))`;
+
 function invalidTransition(from: OrderStatus, to: TransitionTarget | 'EDIT' | 'SHIPPING_INFO'): ApiError {
   const action =
     to === 'EDIT'
@@ -611,7 +615,8 @@ route('GET', '/orders', async ({ env, url }) => {
       AND (?6 IS NULL OR o.customer_id = ?6)
       AND (?7 IS NULL OR o.order_code LIKE '%' || ?7 || '%' OR o.customer_name LIKE '%' || ?7 || '%'
            OR o.customer_phone LIKE '%' || ?7 || '%'
-           OR (?8 IS NOT NULL AND o.customer_phone LIKE '%' || ?8 || '%'))`;
+           OR (?8 IS NOT NULL AND o.customer_phone LIKE '%' || ?8 || '%'))
+      AND (?9 IS NULL OR ${STALE_WEB_SQL})`;
   const filters = [
     q.channel ?? null,
     q.status ?? null,
@@ -621,6 +626,7 @@ route('GET', '/orders', async ({ env, url }) => {
     q.customer_id ?? null,
     text,
     phone,
+    q.stale_web === '1' ? 1 : null,
   ];
   const [items, total] = await env.DB.batch([
     env.DB.prepare(
@@ -629,7 +635,7 @@ route('GET', '/orders', async ({ env, url }) => {
               o.payment_method, o.payment_status, o.paid_amount, o.order_status, o.due_date,
               o.shipping_carrier, o.shipping_tracking_code, o.created_at, o.updated_at,
               (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id) AS item_count
-       FROM orders o ${where} ORDER BY o.id DESC LIMIT ?9 OFFSET ?10`,
+       FROM orders o ${where} ORDER BY o.id DESC LIMIT ?10 OFFSET ?11`,
     ).bind(...filters, q.page_size, (q.page - 1) * q.page_size),
     env.DB.prepare(`SELECT COUNT(*) AS n FROM orders o ${where}`).bind(...filters),
   ]);

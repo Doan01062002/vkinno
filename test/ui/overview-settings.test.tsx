@@ -91,6 +91,15 @@ describe('Tổng quan', () => {
     expect(container.textContent).not.toContain('undefined');
   });
 
+  it('thẻ "Đơn web chờ thanh toán quá 48 giờ" hiện số và dẫn tới danh sách đã lọc (cả STAFF)', async () => {
+    stubApi('STAFF', baseRoutes({ 'GET /reports/dashboard': () => dashboard({ stale_web_orders: 4 }) }));
+    open('/tong-quan');
+    const label = await screen.findByText('Đơn web chờ thanh toán quá 48 giờ');
+    const link = label.closest('a')!;
+    expect(link.getAttribute('href')).toBe('/quan-tri/don-hang?stale_web=1');
+    expect(link.textContent).toContain('4');
+  });
+
   it('ADMIN thấy doanh thu hôm nay và tháng', async () => {
     stubApi('ADMIN', baseRoutes({ 'GET /reports/dashboard': () => dashboard({ today_revenue_vnd: 1500000, month_revenue_vnd: 9000000 }) }));
     open('/tong-quan');
@@ -163,6 +172,15 @@ describe('Đơn hàng lọc theo URL', () => {
     open('/don-hang?status=HACKED');
     await waitFor(() => expect(calls.some((c) => c.path === '/orders')).toBe(true));
     expect(calls.find((c) => c.path === '/orders')?.query.get('status') ?? '').toBe('');
+  });
+  it('stale_web=1 trong URL gửi lên API; bỏ lọc thì không gửi nữa', async () => {
+    const calls = stubApi('ADMIN', { 'GET /orders': () => list([]) });
+    open('/don-hang?stale_web=1');
+    await waitFor(() => expect(calls.some((c) => c.path === '/orders')).toBe(true));
+    expect(calls.find((c) => c.path === '/orders')?.query.get('stale_web')).toBe('1');
+    expect(screen.getByText(/Đơn web chờ thanh toán quá 48 giờ/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ lọc' }));
+    await waitFor(() => expect(calls.at(-1)?.query.get('stale_web') ?? '').toBe(''));
   });
   it('nhận status hợp lệ', async () => {
     const calls = stubApi('ADMIN', { 'GET /orders': () => list([]) });

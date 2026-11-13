@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiError, ok, parseQuery } from '../lib/http';
+import { STALE_WEB_SQL } from './orders';
 import { inventoryAlerts } from './products';
 import { route } from './router';
 
@@ -296,9 +297,10 @@ route('GET', '/reports/dashboard', async ({ env, user }) => {
   const now = await env.DB.prepare("SELECT date('now', '+7 hours') AS today").first<{ today: string }>();
   if (!now) throw new ApiError(500, 'INTERNAL', 'Lỗi hệ thống, vui lòng thử lại.');
   const today = now.today;
-  const [statuses, unmatched] = await env.DB.batch([
+  const [statuses, unmatched, stale] = await env.DB.batch([
     env.DB.prepare('SELECT order_status AS status, COUNT(*) AS n FROM orders GROUP BY order_status'),
     env.DB.prepare("SELECT COUNT(*) AS n FROM sepay_webhook_logs WHERE match_status = 'UNMATCHED'"),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM orders o WHERE ${STALE_WEB_SQL}`),
   ]);
   const orders_by_status: Record<string, number> = Object.fromEntries(ORDER_STATUSES.map((s) => [s, 0]));
   for (const r of statuses.results as { status: string; n: number }[]) orders_by_status[r.status] = r.n;
@@ -319,5 +321,6 @@ route('GET', '/reports/dashboard', async ({ env, user }) => {
     pending_orders: orders_by_status.PENDING,
     alerts_count: alerts.low_stock.length + alerts.expiring.length,
     sepay_unmatched: (unmatched.results[0] as { n: number }).n,
+    stale_web_orders: (stale.results[0] as { n: number }).n,
   });
 });

@@ -371,4 +371,15 @@ describe('dashboard', () => {
     expect(r.json.data).toHaveProperty('alerts_count');
     expect(r.json.data).toHaveProperty('sepay_unmatched');
   });
+
+  it('stale_web_orders: đơn WEB chờ xử lý chưa thu quá 48 giờ (cả STAFF thấy)', async () => {
+    const a = await makeOrder({ items: [{ sku: DG, quantity: 1, unit_price: 100000 }] });
+    const b = await makeOrder({ items: [{ sku: DG, quantity: 1, unit_price: 100000 }] });
+    await makeOrder({ items: [{ sku: DG, quantity: 1, unit_price: 100000 }] });
+    await env.DB.prepare("UPDATE orders SET created_at = datetime('now', '-3 days') WHERE id IN (?, ?)").bind(a.id, b.id).run();
+    await env.DB.prepare("UPDATE orders SET paid_amount = 130000, payment_status = 'PAID' WHERE id = ?").bind(b.id).run();
+    expect((await send('/reports/dashboard')).json.data.stale_web_orders).toBe(1);
+    const s = await send('/reports/dashboard', 'GET', undefined, staff);
+    expect(s.json.data.stale_web_orders).toBe(1);
+  });
 });

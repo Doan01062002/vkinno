@@ -46,7 +46,8 @@ export function Orders() {
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [channel, setChannel] = useState('');
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+  const staleWeb = params.get('stale_web') === '1';
   const [status, setStatus] = useState(() => {
     const s = params.get('status') ?? '';
     return statusOptions('order').some((o) => o.value === s) ? s : '';
@@ -63,6 +64,7 @@ export function Orders() {
     payment_status: payment,
     from,
     to,
+    stale_web: staleWeb ? '1' : '',
   });
   const reset = (set: (v: string) => void) => (v: string) => {
     set(v);
@@ -72,6 +74,23 @@ export function Orders() {
   return (
     <>
       <PageHeader title="Đơn hàng" description="Đơn từ website, sàn thương mại và đơn nhập tay." />
+      {staleWeb && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-warning/10 px-3 py-2 text-sm text-fg">
+          Đang lọc: Đơn web chờ thanh toán quá 48 giờ (chưa thu tiền). Liên hệ khách hoặc huỷ đơn để trả hàng giữ về kho.
+          <button
+            type="button"
+            className="underline"
+            onClick={() => {
+              const next = new URLSearchParams(params);
+              next.delete('stale_web');
+              setParams(next);
+              setPage(1);
+            }}
+          >
+            Bỏ lọc
+          </button>
+        </p>
+      )}
       <DataTable
         columns={COLUMNS}
         {...listProps(query.data)}
