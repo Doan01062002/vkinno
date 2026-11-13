@@ -222,6 +222,33 @@ describe('cài đặt', () => {
     expect(audits!.n).toBe(2);
   });
 
+  it('GET /settings/print: mọi vai trò, chỉ khoá company.* và print.*', async () => {
+    await send('/settings', 'PUT', {
+      'company.name': 'Công ty VKINNO',
+      'company.address': '12 Lê Lợi, Q1',
+      'print.show_logo': true,
+      'telegram.enabled': true,
+      'import.columns.SHOPEE': DEFAULT_COLUMN_MAPS.SHOPEE,
+    });
+    const staff = await createUser(env.DB, 'STAFF');
+    for (const who of [admin, staff]) {
+      const r = await send('/settings/print', 'GET', undefined, who);
+      expect(r.status).toBe(200);
+      expect(r.json.data).toEqual({
+        'company.name': 'Công ty VKINNO',
+        'company.address': '12 Lê Lợi, Q1',
+        'company.phone': null,
+        'company.tax_code': null,
+        'company.bank_account': null,
+        'company.bank_name': null,
+        'print.invoice_footer': null,
+        'print.show_logo': true,
+      });
+    }
+    const anon = await api(env, '/settings/print');
+    expect(anon.status).toBe(401);
+  });
+
   it('khoá lạ → 422, khoá cũ của website không bị lộ hay ghi đè', async () => {
     const before = await env.DB.prepare('SELECT key, value FROM app_settings ORDER BY key').all();
     expect(before.results.some((r: any) => r.key === 'gem_cskh_url')).toBe(true);

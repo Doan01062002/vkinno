@@ -136,6 +136,14 @@ describe('Danh sách đơn', () => {
 });
 
 describe('Tạo đơn', () => {
+  it('kênh bán có "Website (nhập tay)" gửi channel WEB', async () => {
+    stubApi('STAFF', pickerRoutes());
+    open('/don-hang/moi');
+    const select = (await screen.findByLabelText('Kênh bán')) as HTMLSelectElement;
+    const web = within(select).getByRole('option', { name: 'Website (nhập tay)' }) as HTMLOptionElement;
+    expect(web.value).toBe('WEB');
+  });
+
   it('khách cũ hạng sỉ: giá sỉ, gửi đúng nội dung và chuyển sang trang chi tiết', async () => {
     const calls = stubApi('STAFF', {
       ...pickerRoutes(),
@@ -417,7 +425,10 @@ describe('Chi tiết đơn', () => {
   });
 
   it('in phiếu: A5 mặc định, đổi A4, STAFF không gọi /settings', async () => {
-    const calls = stubApi('STAFF', { 'GET /orders/5': () => order() });
+    const calls = stubApi('STAFF', {
+      'GET /orders/5': () => order(),
+      'GET /settings/print': () => ({ 'company.name': 'Công ty VKINNO', 'company.address': '99 Đường In, Hà Nội', 'company.phone': '0900000000' }),
+    });
     const { container } = open('/don-hang/5');
     fireEvent.click(await screen.findByRole('button', { name: 'In phiếu' }));
 
@@ -428,6 +439,9 @@ describe('Chi tiết đơn', () => {
     fireEvent.change(screen.getByLabelText('Loại phiếu'), { target: { value: 'packing' } });
     expect(screen.getByLabelText('Phiếu đóng gói')).toBeTruthy();
     expect(calls.some((c) => c.path === '/settings')).toBe(false);
+    fireEvent.change(screen.getByLabelText('Loại phiếu'), { target: { value: 'delivery' } });
+    expect(await screen.findByText(/99 Đường In, Hà Nội/)).toBeTruthy();
+    expect(calls.some((c) => c.path === '/settings/print')).toBe(true);
   });
 });
 

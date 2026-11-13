@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { columnMapSchema } from '../../src/shared/marketplace';
+import type { Env } from '../lib/env';
 import { pageQuerySchema } from '../../src/shared/schemas';
 import { isCheckError } from '../lib/db-errors';
 import { ApiError, ok, parseBody, parseQuery } from '../lib/http';
@@ -35,32 +36,34 @@ const settingsInput = z
   .strictObject(Object.fromEntries(SETTING_KEYS.map((k) => [k, SETTING_SCHEMAS[k].optional()])))
   .refine((o) => Object.values(o).some((v) => v !== undefined), 'Cần ít nhất một khoá cài đặt');
 
-route(
-  'GET',
-  '/settings',
-  async ({ env }) => {
-    const placeholders = SETTING_KEYS.map(() => '?').join(',');
-    const rows = await env.DB.prepare(`SELECT key, value FROM app_settings WHERE key IN (${placeholders})`)
-      .bind(...SETTING_KEYS)
-      .all<{ key: string; value: string }>();
-    const stored = new Map(rows.results.map((r) => [r.key, r.value]));
-    const out: Record<string, unknown> = {};
-    for (const k of SETTING_KEYS) {
-      let v: unknown = null;
-      const raw = stored.get(k);
-      if (raw !== undefined) {
-        try {
-          v = JSON.parse(raw);
-        } catch {
-          v = null;
-        }
+/** Đọc các khoá cài đặt (giá trị JSON đã parse; chưa lưu hoặc hỏng → null). */
+async function readSettings(env: Env, keys: readonly SettingKey[]): Promise<Record<string, unknown>> {
+  const placeholders = keys.map(() => '?').join(',');
+  const rows = await env.DB.prepare(`SELECT key, value FROM app_settings WHERE key IN (${placeholders})`)
+    .bind(...keys)
+    .all<{ key: string; value: string }>();
+  const stored = new Map(rows.results.map((r) => [r.key, r.value]));
+  const out: Record<string, unknown> = {};
+  for (const k of keys) {
+    let v: unknown = null;
+    const raw = stored.get(k);
+    if (raw !== undefined) {
+      try {
+        v = JSON.parse(raw);
+      } catch {
+        v = null;
       }
-      out[k] = v;
     }
-    return ok(out);
-  },
-  { role: 'ADMIN' },
-);
+    out[k] = v;
+  }
+  return out;
+}
+
+route('GET', '/settings', async ({ env }) => ok(await readSettings(env, SETTING_KEYS)), { role: 'ADMIN' });
+
+/** Thông tin in phiếu (company.*, print.*) cho mọi vai trò — không chứa khoá nhạy cảm. */
+const PRINT_KEYS = SETTING_KEYS.filter((k) => k.startsWith('company.') || k.startsWith('print.'));
+route('GET', '/settings/print', async ({ env }) => ok(await readSettings(env, PRINT_KEYS)));
 
 route(
   'PUT',

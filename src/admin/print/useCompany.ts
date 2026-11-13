@@ -1,16 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '../lib/api';
-import { useMe } from '../lib/auth';
 import { DEFAULT_COMPANY, type CompanyInfo } from './types';
 
-/** Thông tin công ty cho phiếu in. /settings chỉ dành cho ADMIN nên STAFF dùng tên mặc định. */
+/** Thông tin công ty cho phiếu in, từ /settings/print (mọi vai trò đọc được). */
 export function useCompany(): CompanyInfo {
-  const { isAdmin } = useMe();
   const q = useQuery({
-    queryKey: ['/settings', 'company'],
-    enabled: isAdmin,
+    // Khoá con của ['/settings'] để lưu cài đặt (invalidate theo tiền tố) làm mới phiếu in.
+    queryKey: ['/settings', 'print'],
     retry: false,
-    queryFn: () => apiFetch<Record<string, unknown>>('/settings'),
+    queryFn: () => apiFetch<Record<string, unknown>>('/settings/print'),
   });
   const s = q.data;
   const str = (k: string) => (typeof s?.[k] === 'string' ? (s[k] as string) : '');

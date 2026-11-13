@@ -67,8 +67,17 @@ export const CHANNEL_LABELS: Record<string, string> = {
   FACEBOOK: 'Facebook',
 };
 
-/** Kênh chọn được khi tạo đơn tay (WEB/SHOPEE/TIKTOK đến từ website hoặc nhập file). */
-export const MANUAL_CHANNELS = ['ZALO', 'PHONE', 'FACEBOOK', 'B2B'] as const;
+/** Kênh chọn được khi tạo đơn tay (SHOPEE/TIKTOK đến từ nhập file; WEB = đơn website nhận qua kênh khác). */
+export const MANUAL_CHANNELS = ['ZALO', 'PHONE', 'FACEBOOK', 'B2B', 'WEB'] as const;
+
+/** Nhãn kênh trong ô chọn khi tạo đơn tay. */
+export const MANUAL_CHANNEL_LABELS: Record<(typeof MANUAL_CHANNELS)[number], string> = {
+  ZALO: CHANNEL_LABELS.ZALO,
+  PHONE: CHANNEL_LABELS.PHONE,
+  FACEBOOK: CHANNEL_LABELS.FACEBOOK,
+  B2B: CHANNEL_LABELS.B2B,
+  WEB: 'Website (nhập tay)',
+};
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   COD: 'Thu hộ (COD)',

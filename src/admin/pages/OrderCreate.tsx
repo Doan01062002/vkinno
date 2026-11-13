@@ -10,7 +10,7 @@ import { ProductPicker, type PriceTier } from '../components/ProductPicker';
 import { useToast } from '../components/Toast';
 import { ApiClientError, apiFetch, fieldErrors, type ListResult } from '../lib/api';
 import { formatNumber, formatVnd } from '../lib/format';
-import { CHANNEL_LABELS, MANUAL_CHANNELS, MANUAL_PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../lib/orderFlow';
+import { MANUAL_CHANNEL_LABELS, MANUAL_CHANNELS, MANUAL_PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '../lib/orderFlow';
 import type { OrderDetailData } from './orders/types';
 import { useDebounced } from '../lib/useDebounced';
 
@@ -197,7 +197,7 @@ export function OrderCreate() {
               <select id="order-channel" value={channel} onChange={(e) => setChannel(e.target.value)} className={inputClass}>
                 {MANUAL_CHANNELS.map((c) => (
                   <option key={c} value={c}>
-                    {CHANNEL_LABELS[c]}
+                    {MANUAL_CHANNEL_LABELS[c]}
                   </option>
                 ))}
               </select>
