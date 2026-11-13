@@ -81,7 +81,7 @@ export function DraftLines({
   }
   return (
     <div className="overflow-x-auto rounded-xl border border-line">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[44rem] text-sm">
         <thead className="border-b border-line bg-subtle">
           <tr>
             <th className={head}>Sản phẩm</th>
@@ -99,7 +99,7 @@ export function DraftLines({
               <>
                 <th className={head}>Tồn hệ thống</th>
                 <th className={head}>Số đếm thực tế</th>
-                <th className={head}>Chênh lệch</th>
+                <th className={head}>Chênh lệch (ước tính)</th>
               </>
             )}
             <th className={head}>
@@ -121,14 +121,14 @@ export function DraftLines({
                     value={l.qty}
                     onChange={(e) => patch(l.sku, { qty: e.target.value })}
                     aria-label={`Số lượng ${l.sku}`}
-                    className={`${inputClass} w-28`}
+                    className={`${inputClass} w-28 min-w-[7rem]`}
                   />
                 </td>
               )}
               {type === 'RECEIPT' && (
                 <>
                   <td className={cell}>
-                    <div className="w-36">
+                    <div className="w-40 min-w-[9rem]">
                       <MoneyInput
                         value={l.unitCost}
                         onChange={(v) => patch(l.sku, { unitCost: v })}
@@ -142,7 +142,7 @@ export function DraftLines({
                       value={l.batch}
                       onChange={(e) => patch(l.sku, { batch: e.target.value })}
                       aria-label={`Mã lô ${l.sku}`}
-                      className={`${inputClass} w-32`}
+                      className={`${inputClass} w-32 min-w-[8rem]`}
                     />
                   </td>
                   <td className={cell}>
@@ -151,7 +151,7 @@ export function DraftLines({
                       value={l.expiry}
                       onChange={(e) => patch(l.sku, { expiry: e.target.value })}
                       aria-label={`Hạn sử dụng ${l.sku}`}
-                      className={`${inputClass} w-40`}
+                      className={`${inputClass} w-40 min-w-[10rem]`}
                     />
                   </td>
                 </>
@@ -169,7 +169,7 @@ export function DraftLines({
                       value={l.counted}
                       onChange={(e) => patch(l.sku, { counted: e.target.value })}
                       aria-label={`Số đếm ${l.sku}`}
-                      className={`${inputClass} w-28`}
+                      className={`${inputClass} w-28 min-w-[7rem]`}
                     />
                   </td>
                   <td className={cell}>
@@ -200,7 +200,7 @@ export function ReadonlyLines({ type, lines }: { type: DocType; lines: ServerLin
   const showCost = type === 'RECEIPT' && lines.some((l) => l.unit_cost_vnd != null);
   return (
     <div className="overflow-x-auto rounded-xl border border-line">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[44rem] text-sm">
         <thead className="border-b border-line bg-subtle">
           <tr>
             <th className={head}>Sản phẩm</th>

@@ -35,6 +35,13 @@ function invalidState(status: string): ApiError {
   return new ApiError(409, 'INVALID_STATE', `Phiếu ${label}, không thể thao tác.`, { status });
 }
 
+/** Phiếu nhập (giá vốn) chỉ ADMIN được tạo, sửa, ghi sổ, huỷ. */
+function assertCanHandle(user: { role: string }, type: DocType): void {
+  if (type === 'RECEIPT' && user.role !== 'ADMIN') {
+    throw new ApiError(403, 'FORBIDDEN', 'Chỉ quản trị viên được thao tác với phiếu nhập kho.');
+  }
+}
+
 function parseId(c: AdminCtx): number {
   const parsed = idSchema.safeParse(c.params.id);
   if (!parsed.success) throw new ApiError(404, 'NOT_FOUND', 'Không tìm thấy phiếu.');
@@ -176,6 +183,7 @@ route('GET', '/stock-docs/:id', async (c) => ok(await docDetail(c.env.DB, parseI
 
 route('POST', '/stock-docs', async ({ env, req, user }) => {
   const input = await parseBody(req, stockDocInput);
+  assertCanHandle(user, input.type);
   await validateLines(env.DB, input.lines);
   await assertSupplier(env.DB, input.supplier_id);
   const code = docCode(PREFIX[input.type]);
@@ -199,6 +207,8 @@ route('PUT', '/stock-docs/:id', async (c) => {
   const id = parseId(c);
   const input = await parseBody(req, stockDocInput);
   const doc = await loadDoc(env.DB, id);
+  assertCanHandle(user, doc.type);
+  assertCanHandle(user, input.type);
   if (doc.status !== 'DRAFT') throw invalidState(doc.status);
   if (input.type !== doc.type) {
     throw new ApiError(422, 'VALIDATION', 'Không đổi được loại phiếu.', { type: ['Không đổi được loại phiếu'] });
@@ -264,6 +274,7 @@ route('POST', '/stock-docs/:id/post', async (c) => {
   const { env, ctx, user } = c;
   const id = parseId(c);
   const doc = await loadDoc(env.DB, id);
+  assertCanHandle(user, doc.type);
   if (doc.status !== 'DRAFT') throw invalidState(doc.status);
   const lines = await loadLines(env.DB, id);
   if (lines.length === 0) throw new ApiError(422, 'VALIDATION', 'Phiếu chưa có dòng nào.');
@@ -289,6 +300,7 @@ route('POST', '/stock-docs/:id/cancel', async (c) => {
   const { env, user } = c;
   const id = parseId(c);
   const doc = await loadDoc(env.DB, id);
+  assertCanHandle(user, doc.type);
   if (doc.status !== 'DRAFT') throw invalidState(doc.status);
   try {
     await env.DB.batch([

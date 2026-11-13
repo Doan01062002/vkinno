@@ -174,6 +174,8 @@ function ProductForm({ product }: { product?: ProductDetail }) {
     onSuccess: (saved) => {
       void qc.invalidateQueries({ queryKey: ['/products'] });
       void qc.invalidateQueries({ queryKey: ['/inventory'] });
+      void qc.invalidateQueries({ queryKey: ['product-picker'] });
+      void qc.invalidateQueries({ queryKey: ['/reports/stock-movement'] });
       toast.success(creating ? 'Đã thêm sản phẩm.' : 'Đã lưu sản phẩm.');
       if (creating) navigate(saved.is_combo ? `/san-pham/${encodeURIComponent(saved.sku)}` : '/san-pham');
       else reset(toValues(saved));

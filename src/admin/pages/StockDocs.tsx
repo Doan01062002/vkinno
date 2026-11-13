@@ -6,6 +6,7 @@ import { DataTable, listProps, type Column } from '../components/DataTable';
 import { inputClass } from '../components/Field';
 import { PageHeader } from '../components/PageHeader';
 import { StatusBadge, statusOptions } from '../components/StatusBadge';
+import { useMe } from '../lib/auth';
 import { formatDate } from '../lib/format';
 import { useListQuery } from '../lib/queries';
 import { KhoTabs } from './kho/KhoTabs';
@@ -25,6 +26,7 @@ interface DocRow {
 /** Danh sách phiếu kho (nhập, xuất khác, điều chỉnh, kiểm kê). */
 export function StockDocs() {
   const navigate = useNavigate();
+  const { isAdmin } = useMe();
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
@@ -87,14 +89,14 @@ export function StockDocs() {
         }
         actions={
           <>
-            {DOC_TYPES.map((t) => (
+            {DOC_TYPES.filter((t) => isAdmin || t !== 'RECEIPT').map((t) => (
               <Link
                 key={t}
                 to={`/kho/phieu/moi?type=${t}`}
                 className={buttonClass(t === 'RECEIPT' ? 'primary' : 'secondary')}
               >
                 <Plus size={16} aria-hidden />
-                {t === 'RECEIPT' ? 'Phiếu nhập' : DOC_TYPE_LABELS[t]}
+                {DOC_TYPE_LABELS[t]}
               </Link>
             ))}
           </>

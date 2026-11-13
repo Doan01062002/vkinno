@@ -9,6 +9,7 @@ import { ProductPicker } from '../components/ProductPicker';
 import { StatusBadge } from '../components/StatusBadge';
 import { useToast } from '../components/Toast';
 import { ApiClientError, apiFetch, type ListResult } from '../lib/api';
+import { useMe } from '../lib/auth';
 import { formatDate } from '../lib/format';
 import { DraftLines, ReadonlyLines, type LineState, type ServerLine } from './kho/StockDocLines';
 import { DOC_TYPE_LABELS, isDocType, type DocType } from './kho/labels';
@@ -31,8 +32,12 @@ async function fetchSystemQty(sku: string): Promise<number> {
   const res = await apiFetch<ListResult<{ sku: string; stock: number }>>('/inventory', {
     query: { q: sku, page_size: 20 },
   });
-  return res.items.find((i) => i.sku === sku)?.stock ?? 0;
+  const row = res.items.find((i) => i.sku === sku);
+  if (!row) throw new Error(`Không tìm thấy tồn kho của ${sku}.`);
+  return row.stock;
 }
+
+const asToast = (e: unknown): unknown => (e instanceof Error && !(e instanceof ApiClientError) ? e.message : e);
 
 const toLineState = (l: ServerLine, type: DocType): LineState => ({
   sku: l.sku,
@@ -89,7 +94,8 @@ function DocEditor({ type, doc }: { type: DocType; doc?: DocDetail }) {
   const requested = useRef(new Set<string>());
   const createdId = useRef<number | null>(null);
 
-  const readOnly = !!doc && doc.status !== 'DRAFT';
+  const { isAdmin } = useMe();
+  const readOnly = (!!doc && doc.status !== 'DRAFT') || (type === 'RECEIPT' && !isAdmin);
   const suppliers = useQuery({
     queryKey: ['/suppliers', 'options'],
     enabled: type === 'RECEIPT' && !readOnly,
@@ -106,14 +112,25 @@ function DocEditor({ type, doc }: { type: DocType; doc?: DocDetail }) {
         .then((system) => setLines((cur) => cur.map((x) => (x.sku === l.sku ? { ...x, system } : x))))
         .catch((e) => {
           requested.current.delete(l.sku);
-          toast.error(e);
+          toast.error(asToast(e));
         });
     }
   }, [type, readOnly, lines, toast]);
 
+  /** Tải lại tồn hệ thống (khi mở hộp xác nhận ghi sổ) để chênh lệch hiển thị sát thực tế. */
+  const refreshSystem = (skus: string[]) => {
+    for (const sku of skus) {
+      fetchSystemQty(sku)
+        .then((system) => setLines((cur) => cur.map((x) => (x.sku === sku ? { ...x, system } : x))))
+        .catch((e) => toast.error(asToast(e)));
+    }
+  };
+
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['/stock-docs'] });
     void qc.invalidateQueries({ queryKey: ['/products'] });
+    void qc.invalidateQueries({ queryKey: ['/reports/stock-movement'] });
+    void qc.invalidateQueries({ queryKey: ['product-picker'] });
     void qc.invalidateQueries({
       predicate: (q) => typeof q.queryKey[0] === 'string' && q.queryKey[0].startsWith('/inventory'),
     });
@@ -272,7 +289,7 @@ function DocEditor({ type, doc }: { type: DocType; doc?: DocDetail }) {
           </p>
         )}
 
-        {readOnly ? (
+        {readOnly && doc ? (
           <>
             {doc.note && (
               <p className="text-sm text-fg">
@@ -328,7 +345,10 @@ function DocEditor({ type, doc }: { type: DocType; doc?: DocDetail }) {
                 <p className="text-xs text-muted">Sau khi thêm, nhập số âm ở cột độ lệch để giảm tồn.</p>
               )}
               {type === 'STOCKTAKE' && (
-                <p className="text-xs text-muted">Tồn hệ thống được điền sẵn; nhập số đếm thực tế để xem chênh lệch.</p>
+                <p className="text-xs text-muted">
+                  Tồn hệ thống được điền sẵn; nhập số đếm thực tế để xem chênh lệch. Tồn thực tế tại thời điểm ghi sổ có
+                  thể khác; hệ thống tính lại khi ghi sổ.
+                </p>
               )}
             </div>
 
@@ -352,7 +372,9 @@ function DocEditor({ type, doc }: { type: DocType; doc?: DocDetail }) {
               <Button
                 disabled={busy}
                 onClick={() => {
-                  if (buildBody()) setConfirm('post');
+                  if (!buildBody()) return;
+                  if (type === 'STOCKTAKE') refreshSystem(lines.map((l) => l.sku));
+                  setConfirm('post');
                 }}
               >
                 Ghi sổ
@@ -390,6 +412,7 @@ function DocEditor({ type, doc }: { type: DocType; doc?: DocDetail }) {
 export function StockDocEdit() {
   const { id } = useParams();
   const [params] = useSearchParams();
+  const { isAdmin } = useMe();
   const isNew = !id || id === 'moi';
   const query = useQuery({
     queryKey: detailKey(id ?? 'moi'),
@@ -399,7 +422,15 @@ export function StockDocEdit() {
 
   if (isNew) {
     const t = params.get('type');
-    return <DocEditor key={t} type={isDocType(t) ? t : 'RECEIPT'} />;
+    const type = isDocType(t) ? t : 'RECEIPT';
+    if (type === 'RECEIPT' && !isAdmin) {
+      return (
+        <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
+          Chỉ quản trị viên được tạo phiếu nhập kho.
+        </p>
+      );
+    }
+    return <DocEditor key={type} type={type} />;
   }
   if (query.isPending) return <p className="text-sm text-muted">Đang tải…</p>;
   if (query.isError) {

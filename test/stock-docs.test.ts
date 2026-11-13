@@ -218,8 +218,10 @@ describe('danh sách và phân quyền', () => {
     expect(await list('from=2000-01-01&to=2999-01-01')).toHaveLength(2);
   });
 
-  it('STAFF được tạo và ghi sổ phiếu, phản hồi không có unit_cost_vnd', async () => {
-    const created = await create(receipt(), staff);
+  it('STAFF được tạo và ghi sổ phiếu xuất, phản hồi không có unit_cost_vnd', async () => {
+    const rid = (await create(receipt())).data.id;
+    await send(`/stock-docs/${rid}/post`, 'POST');
+    const created = await create({ type: 'ISSUE', lines: [{ sku: DG, qty: 10 }] }, staff);
     expect(created.ok).toBe(true);
     const id = created.data.id;
     const got = await (await send(`/stock-docs/${id}`, 'GET', undefined, staff)).text();
@@ -228,7 +230,38 @@ describe('danh sách và phân quyền', () => {
     expect(posted.status).toBe(200);
     expect(await posted.text()).not.toContain('unit_cost_vnd');
     expect(await docStatus(id)).toMatchObject({ status: 'POSTED', posted_by: staff.id });
-    expect(await product(DG)).toMatchObject({ cost_avg_vnd: 65000 });
+    // STAFF xem phiếu nhập đã ghi sổ: không có giá nhập.
+    expect(await (await send(`/stock-docs/${rid}`, 'GET', undefined, staff)).text()).not.toContain('unit_cost_vnd');
+  });
+
+  it('phiếu nhập chỉ ADMIN: STAFF bị 403 khi tạo, sửa, ghi sổ, huỷ (kiểm theo loại của phiếu)', async () => {
+    const forbidden = async (res: Response) => {
+      expect(res.status).toBe(403);
+      expect(((await res.json()) as Json).error?.code).toBe('FORBIDDEN');
+    };
+    await forbidden(await send('/stock-docs', 'POST', receipt(), staff));
+    const id = (await create(receipt())).data.id;
+    // Body là ISSUE nhưng phiếu là RECEIPT: vẫn bị chặn theo loại phiếu.
+    await forbidden(await send(`/stock-docs/${id}`, 'PUT', { type: 'ISSUE', lines: [{ sku: DG, qty: 1 }] }, staff));
+    await forbidden(await send(`/stock-docs/${id}`, 'PUT', receipt(), staff));
+    await forbidden(await send(`/stock-docs/${id}/post`, 'POST', undefined, staff));
+    await forbidden(await send(`/stock-docs/${id}/cancel`, 'POST', undefined, staff));
+    expect(await docStatus(id)).toMatchObject({ status: 'DRAFT' });
+    // ADMIN vẫn làm được.
+    expect((await send(`/stock-docs/${id}/post`, 'POST')).status).toBe(200);
+  });
+
+  it('STAFF vẫn tạo, sửa, huỷ phiếu ISSUE/ADJUST/STOCKTAKE', async () => {
+    for (const [type, line] of [
+      ['ISSUE', { sku: DG, qty: 1 }],
+      ['ADJUST', { sku: DG, qty: 1 }],
+      ['STOCKTAKE', { sku: DG, counted_qty: 3 }],
+    ] as const) {
+      const c = await create({ type, lines: [line] }, staff);
+      expect(c.ok).toBe(true);
+      expect((await send(`/stock-docs/${c.data.id}`, 'PUT', { type, lines: [line], note: 'x' }, staff)).status).toBe(200);
+      expect((await send(`/stock-docs/${c.data.id}/cancel`, 'POST', undefined, staff)).status).toBe(200);
+    }
   });
 
   it('chưa đăng nhập → 401', async () => {

@@ -45,7 +45,7 @@ export function Products() {
             <div className="h-10 w-10 shrink-0 rounded-lg border border-line bg-subtle" aria-hidden />
           )}
           <div className="min-w-0">
-            <p className="truncate font-medium text-fg">{p.name}</p>
+            <p className="line-clamp-2 font-medium break-words text-fg">{p.name}</p>
             <p className="text-xs text-muted">
               {p.sku}
               {p.is_combo ? ' · Combo' : ''}

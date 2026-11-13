@@ -31,6 +31,7 @@ export function BomEditor({ sku, initial }: { sku: string; initial: BomRow[] }) 
       toast.success('Đã lưu thành phần combo.');
       void qc.invalidateQueries({ queryKey: ['/products'] });
       void qc.invalidateQueries({ queryKey: ['/inventory'] });
+      void qc.invalidateQueries({ queryKey: ['product-picker'] });
     },
     onError: (e) => {
       const msg =
@@ -46,7 +47,13 @@ export function BomEditor({ sku, initial }: { sku: string; initial: BomRow[] }) 
     setRows((rs) =>
       rs.map((r) => (r.component_sku === componentSku ? { ...r, qty_per_combo: Math.floor(Number(v)) || 0 } : r)),
     );
-  const invalid = rows.length === 0 || rows.some((r) => !(r.qty_per_combo >= 1));
+  const invalidReason =
+    rows.length === 0
+      ? 'Cần ít nhất một thành phần.'
+      : rows.some((r) => !(r.qty_per_combo >= 1))
+        ? 'Số lượng phải lớn hơn 0.'
+        : '';
+  const invalid = invalidReason !== '';
 
   return (
     <section className="space-y-3 rounded-xl border border-line bg-surface p-4" aria-label="Thành phần combo">
@@ -98,7 +105,8 @@ export function BomEditor({ sku, initial }: { sku: string; initial: BomRow[] }) 
           )
         }
       />
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {invalid && <p className="text-xs text-muted">{invalidReason}</p>}
         <Button loading={save.isPending} disabled={invalid} onClick={() => save.mutate()}>
           Lưu thành phần
         </Button>

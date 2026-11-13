@@ -276,6 +276,56 @@ describe('Phiếu kho', () => {
     });
   });
 
+  it('STAFF không thấy nút "Nhập kho"; ADMIN thấy', async () => {
+    stubApi('STAFF', { 'GET /stock-docs': () => list([]) });
+    const view = open('/kho/phieu');
+    expect(await screen.findByRole('link', { name: /Kiểm kê/ })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Nhập kho/ })).toBeNull();
+    view.unmount();
+
+    stubApi('ADMIN', { 'GET /stock-docs': () => list([]) });
+    open('/kho/phieu');
+    expect(await screen.findByRole('link', { name: /Nhập kho/ })).toBeTruthy();
+  });
+
+  it('kiểm kê: chênh lệch là ước tính và được tính lại khi mở hộp xác nhận ghi sổ', async () => {
+    let stock = 12;
+    stubApi('ADMIN', {
+      'GET /inventory': () =>
+        list([{ sku: 'VK-001', name: 'Nước tăng lực', unit: 'chai', min_stock: 10, is_combo: 0, is_active: 1, stock, reserved: 0, available: stock }]),
+      'GET /products': () => list([{ sku: 'VK-001', price_vnd: 150000, wholesale_price_vnd: null }]),
+    });
+    open('/kho/phieu/moi?type=STOCKTAKE');
+
+    await pickProduct();
+    expect(await screen.findByRole('columnheader', { name: 'Chênh lệch (ước tính)' })).toBeTruthy();
+    expect(screen.getByText(/hệ thống tính lại khi ghi sổ/)).toBeTruthy();
+    await waitFor(() => expect(screen.getByLabelText('Tồn hệ thống VK-001').textContent).toBe('12'));
+    fireEvent.change(screen.getByLabelText('Số đếm VK-001'), { target: { value: '9' } });
+    expect(screen.getByLabelText('Chênh lệch VK-001').textContent).toBe('-3');
+
+    stock = 15; // có người bán/nhập trong lúc đang kiểm
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi sổ' }));
+    await screen.findByRole('dialog');
+    await waitFor(() => expect(screen.getByLabelText('Chênh lệch VK-001').textContent).toBe('-6'));
+  });
+
+  it('kiểm kê: không tìm thấy đúng SKU thì báo lỗi, không coi là 0', async () => {
+    stubApi('ADMIN', {
+      'GET /inventory': (c) =>
+        list(
+          c.query.get('q') === 'VK-001'
+            ? []
+            : [{ sku: 'VK-001', name: 'Nước tăng lực', unit: 'chai', min_stock: 10, is_combo: 0, is_active: 1, stock: 5, reserved: 0, available: 5 }],
+        ),
+      'GET /products': () => list([{ sku: 'VK-001', price_vnd: 150000, wholesale_price_vnd: null }]),
+    });
+    open('/kho/phieu/moi?type=STOCKTAKE');
+    await pickProduct();
+    expect(await screen.findByText('Không tìm thấy tồn kho của VK-001.')).toBeTruthy();
+    expect(screen.getByLabelText('Tồn hệ thống VK-001').textContent).not.toBe('0');
+  });
+
   it('huỷ phiếu nháp qua hộp xác nhận', async () => {
     const draft = {
       id: 5,

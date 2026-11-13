@@ -106,7 +106,7 @@ export function Inventory() {
       header: 'Sản phẩm',
       cell: (r) => (
         <div className="min-w-0">
-          <p className="truncate font-medium text-fg">{r.name}</p>
+          <p className="line-clamp-2 font-medium break-words text-fg">{r.name}</p>
           <p className="text-xs text-muted">
             {r.sku}
             {r.is_combo ? ' · Combo' : ''}
