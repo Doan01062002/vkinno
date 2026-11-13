@@ -13,7 +13,14 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Inventory } from './pages/Inventory';
+import { Ledger } from './pages/Ledger';
 import { Placeholder } from './pages/Placeholder';
+import { ProductEdit } from './pages/ProductEdit';
+import { Products } from './pages/Products';
+import { StockDocEdit } from './pages/StockDocEdit';
+import { StockDocs } from './pages/StockDocs';
+import { StockMovement } from './pages/StockMovement';
 
 /** Mục menu trái (spec mục 10). `slug` là đoạn đầu đường dẫn dưới /quan-tri. */
 export interface MenuItem {
@@ -60,7 +67,21 @@ const placeholder = (slug: string, label: string): ScreenRoute => ({
  * vd. `{ path: 'don-hang/:id', title: 'Chi tiết đơn', section: 'don-hang', element: <OrderDetail /> }`.
  * Route của mục `adminOnly` tự được bọc RequireAdmin.
  */
-export const ROUTES: ScreenRoute[] = MENU.map((m) => placeholder(m.slug, m.label));
+const SCREENS: Record<string, ReactNode> = {
+  'san-pham': <Products />,
+  kho: <Inventory />,
+};
+
+export const ROUTES: ScreenRoute[] = [
+  ...MENU.map((m) => ({ ...placeholder(m.slug, m.label), element: SCREENS[m.slug] ?? <Placeholder title={m.label} /> })),
+  { path: 'san-pham/moi', title: 'Thêm sản phẩm', section: 'san-pham', element: <ProductEdit /> },
+  { path: 'san-pham/:sku', title: 'Sửa sản phẩm', section: 'san-pham', element: <ProductEdit /> },
+  { path: 'kho/so-kho/:sku', title: 'Sổ kho', section: 'kho', element: <Ledger /> },
+  { path: 'kho/phieu', title: 'Phiếu kho', section: 'kho', element: <StockDocs /> },
+  { path: 'kho/phieu/moi', title: 'Phiếu mới', section: 'kho', element: <StockDocEdit /> },
+  { path: 'kho/phieu/:id', title: 'Chi tiết phiếu', section: 'kho', element: <StockDocEdit /> },
+  { path: 'kho/nhap-xuat-ton', title: 'Nhập-xuất-tồn', section: 'kho', element: <StockMovement /> },
+];
 
 export function menuItem(section: string): MenuItem | undefined {
   return MENU.find((m) => m.slug === section);

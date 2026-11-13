@@ -29,6 +29,8 @@ export interface ProductPickerProps {
   picked?: Record<string, number>;
   /** false cho phiếu nhập kho (không giới hạn theo tồn). Mặc định true. */
   limitToAvailable?: boolean;
+  /** true: ẩn sản phẩm combo (phiếu kho, thành phần combo). Mặc định false. */
+  excludeCombos?: boolean;
   disabled?: boolean;
 }
 
@@ -62,6 +64,7 @@ export function ProductPicker({
   priceTier = 'RETAIL',
   picked = {},
   limitToAvailable = true,
+  excludeCombos = false,
   disabled = false,
 }: ProductPickerProps) {
   const inputId = useId();
@@ -72,7 +75,7 @@ export function ProductPicker({
   const q = useDebounced(text.trim(), 250);
 
   const results = useQuery({
-    queryKey: ['product-picker', q, priceTier],
+    queryKey: ['product-picker', q, priceTier, excludeCombos],
     enabled: open && !disabled,
     queryFn: async ({ signal }) => {
       const query = { q, page_size: 20 };
@@ -82,7 +85,7 @@ export function ProductPicker({
       ]);
       const prices = new Map(prods.items.map((p) => [p.sku, p]));
       return inv.items
-        .filter((r) => r.is_active === 1 && prices.has(r.sku))
+        .filter((r) => r.is_active === 1 && prices.has(r.sku) && !(excludeCombos && r.is_combo === 1))
         .map<PickedProduct>((r) => {
           const p = prices.get(r.sku) as ProductRow;
           return {
