@@ -13,6 +13,10 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { CustomerDetail } from './pages/CustomerDetail';
+import { Customers } from './pages/Customers';
+import { DebtDetail } from './pages/DebtDetail';
+import { Debts } from './pages/Debts';
 import { Inventory } from './pages/Inventory';
 import { Ledger } from './pages/Ledger';
 import { OrderCreate } from './pages/OrderCreate';
@@ -22,9 +26,13 @@ import { Orders } from './pages/Orders';
 import { Placeholder } from './pages/Placeholder';
 import { ProductEdit } from './pages/ProductEdit';
 import { Products } from './pages/Products';
+import { QuoteEdit } from './pages/QuoteEdit';
+import { Quotes } from './pages/Quotes';
 import { StockDocEdit } from './pages/StockDocEdit';
 import { StockDocs } from './pages/StockDocs';
 import { StockMovement } from './pages/StockMovement';
+import { SupplierDetail } from './pages/SupplierDetail';
+import { Suppliers } from './pages/Suppliers';
 
 /** Mục menu trái (spec mục 10). `slug` là đoạn đầu đường dẫn dưới /quan-tri. */
 export interface MenuItem {
@@ -75,6 +83,10 @@ const SCREENS: Record<string, ReactNode> = {
   'don-hang': <Orders />,
   'san-pham': <Products />,
   kho: <Inventory />,
+  'khach-hang': <Customers />,
+  'nha-cung-cap': <Suppliers />,
+  'bao-gia': <Quotes />,
+  'cong-no': <Debts />,
 };
 
 export const ROUTES: ScreenRoute[] = [
@@ -88,6 +100,11 @@ export const ROUTES: ScreenRoute[] = [
   { path: 'kho/phieu', title: 'Phiếu kho', section: 'kho', element: <StockDocs /> },
   { path: 'kho/phieu/moi', title: 'Phiếu mới', section: 'kho', element: <StockDocEdit /> },
   { path: 'kho/phieu/:id', title: 'Chi tiết phiếu', section: 'kho', element: <StockDocEdit /> },
+  { path: 'khach-hang/:id', title: 'Chi tiết khách', section: 'khach-hang', element: <CustomerDetail /> },
+  { path: 'nha-cung-cap/:id', title: 'Chi tiết nhà cung cấp', section: 'nha-cung-cap', element: <SupplierDetail /> },
+  { path: 'bao-gia/moi', title: 'Tạo báo giá', section: 'bao-gia', element: <QuoteEdit /> },
+  { path: 'bao-gia/:id', title: 'Chi tiết báo giá', section: 'bao-gia', element: <QuoteEdit /> },
+  { path: 'cong-no/:customerId', title: 'Chi tiết công nợ', section: 'cong-no', element: <DebtDetail /> },
   { path: 'kho/nhap-xuat-ton', title: 'Nhập-xuất-tồn', section: 'kho', element: <StockMovement /> },
 ];
 

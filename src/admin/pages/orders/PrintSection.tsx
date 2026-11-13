@@ -1,33 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { inputClass } from '../../components/Field';
 import { PrintFrame, type PaperSize } from '../../components/PrintFrame';
-import { apiFetch } from '../../lib/api';
-import { useMe } from '../../lib/auth';
 import { DeliveryNote } from '../../print/DeliveryNote';
 import { PackingSlip } from '../../print/PackingSlip';
-import { DEFAULT_COMPANY, type CompanyInfo } from '../../print/types';
+import { useCompany } from '../../print/useCompany';
 import type { OrderDetailData } from './types';
 
 type Doc = 'delivery' | 'packing';
-
-/** Thông tin công ty cho phiếu in. /settings chỉ dành cho ADMIN nên STAFF dùng tên mặc định. */
-function useCompany(): CompanyInfo {
-  const { isAdmin } = useMe();
-  const q = useQuery({
-    queryKey: ['/settings', 'company'],
-    enabled: isAdmin,
-    retry: false,
-    queryFn: () => apiFetch<Record<string, unknown>>('/settings'),
-  });
-  const s = q.data;
-  const str = (k: string) => (typeof s?.[k] === 'string' ? (s[k] as string) : '');
-  return {
-    name: str('company.name') || DEFAULT_COMPANY.name,
-    address: str('company.address'),
-    phone: str('company.phone'),
-  };
-}
 
 /** In phiếu giao hàng hoặc phiếu đóng gói, khổ A5 hoặc A4. */
 export function PrintSection({ order }: { order: OrderDetailData }) {
