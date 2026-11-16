@@ -221,6 +221,8 @@ Hạ tầng: `POST /api/webhook/pancake` trên staging chỉ kiểm header `X-VK
 
 **Bước 5 đã làm (16/11/2026):** Cài đặt → **Pancake** (`/quan-tri/cai-dat/pancake`, chỉ ADMIN): tình trạng kết nối + số liệu 7 ngày + nút "Đồng bộ ngay"; "Việc cần xử lý" (Chưa gán SKU / Cần xử lý / Lỗi) với nút "Xử lý lại" và "Đã xử lý" (migration `0007`: `resolved_at`, `resolved_by`); "Mẫu mã Pancake chưa gán SKU" (đọc từ API Pancake, gán vào `channel_sku_map` kênh `PANCAKE`); cấu hình bật/tắt, mã shop, mã kho; nhật ký đồng bộ có lọc. API: `GET /pancake/status`, `PUT /pancake/settings`, `GET /pancake/events`, `POST /pancake/events/:id/retry|resolve`, `GET /pancake/unmapped`. Chưa làm: kênh Lazada và bộ lọc "nguồn Pancake" trong danh sách đơn (chưa nối Lazada; đơn Pancake xem được qua nhật ký).
 
+**Chi phí POS (kiểm 16/11/2026):** tài liệu chính thức `docs.pos.pages.fm/pos` ghi "bạn không cần phải trả bất kỳ khoản phí nào để sử dụng POS"; `pos.pancake.vn` ghi "một nền tảng miễn phí"; `pancake.vn/pricing` chỉ có gói trả phí cho **Pancake (chat/inbox)** theo số trang + nhân viên, không có gói POS; trong tài khoản POS không có trang gói/thanh toán. Không thấy giới hạn số đơn công bố. Rủi ro: "miễn phí" là cam kết marketing, không phải hợp đồng → giữ công tắc `pancake.enabled` + đường nhập file làm phương án lui.
+
 **Hệ quả cho thiết kế:** vì đơn sửa ghi chú cũng bắn webhook, khoá chống lặp `UNIQUE(pancake_order_id, status, updated_at)` ở mục 8 vẫn đúng nhưng sẽ ghi nhiều sự kiện `SKIPPED`; giữ 90 ngày rồi xoá như đã định.
 
 ## Nguồn
