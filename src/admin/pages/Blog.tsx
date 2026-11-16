@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bot, KeyRound, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Bot, CheckCircle2, KeyRound, Plus, ShieldCheck, Sparkles, Trash2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { Button } from '../components/Button';
@@ -437,7 +437,7 @@ function AutoTab() {
             <div className="rounded-lg bg-subtle p-3">
               <dt className="text-xs text-muted">Khoá Gemini</dt>
               <dd className={`mt-0.5 flex items-center gap-1.5 font-medium ${s.has_api_key ? 'text-success' : 'text-danger'}`}>
-                <KeyRound size={14} aria-hidden /> {s.has_api_key ? 'Đã nạp' : 'Chưa nạp'}
+                <KeyRound size={14} aria-hidden /> {s.has_api_key ? `…${s.key_last4 ?? ''}` : 'Chưa có'}
               </dd>
             </div>
             <div className="rounded-lg bg-subtle p-3">
@@ -447,13 +447,9 @@ function AutoTab() {
               </dd>
             </div>
           </dl>
-          {!s.has_api_key && (
-            <p className="mt-3 rounded-lg bg-warning/10 px-3 py-2 text-xs leading-relaxed text-warning">
-              Tạo khoá ở aistudio.google.com/apikey rồi tự nạp lên máy chủ:{' '}
-              <code className="font-mono">npx.cmd wrangler secret put GEMINI_API_KEY --env staging</code>
-            </p>
-          )}
         </div>
+
+        <GeminiKeyCard />
 
         <form
           className="space-y-3 border-t border-line pt-4"
@@ -550,5 +546,128 @@ function AutoTab() {
         onCancel={() => setConfirmAuto(false)}
       />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Khoá Gemini nhập trong admin (máy chủ mã hoá AES-GCM, không bao giờ trả khoá đầy đủ)
+// ---------------------------------------------------------------------------
+
+interface KeyStatus {
+  configured: boolean;
+  source: 'admin' | 'env' | null;
+  last4: string | null;
+}
+
+const KEY_STATUS = ['/blog/gemini-key'];
+
+function GeminiKeyCard() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [value, setValue] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null);
+  const status = useQuery({ queryKey: KEY_STATUS, queryFn: () => apiFetch<KeyStatus>('/blog/gemini-key') });
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: KEY_STATUS });
+    void qc.invalidateQueries({ queryKey: STATUS_KEY });
+  };
+  const save = useMutation({
+    mutationFn: () => apiFetch<KeyStatus>('/blog/gemini-key', { method: 'PUT', json: { key: value.trim() } }),
+    onSuccess: (r) => {
+      setValue('');
+      setTest(null);
+      refresh();
+      toast.success(`Đã lưu khoá …${r.last4}`);
+    },
+    onError: (e) => toast.error(e),
+  });
+  const remove = useMutation({
+    mutationFn: () => apiFetch<KeyStatus>('/blog/gemini-key', { method: 'DELETE' }),
+    onSuccess: () => {
+      setConfirmDelete(false);
+      setTest(null);
+      refresh();
+      toast.success('Đã xoá khoá nhập trong admin');
+    },
+    onError: (e) => toast.error(e),
+  });
+  const check = useMutation({
+    mutationFn: () => apiFetch<{ ok: boolean; message: string }>('/blog/gemini-key/test', { method: 'POST', json: {} }),
+    onSuccess: setTest,
+    onError: (e) => toast.error(e),
+  });
+  const k = status.data;
+  const sourceLabel = k?.source === 'admin' ? 'nhập trong admin' : k?.source === 'env' ? 'từ máy chủ' : '';
+
+  return (
+    <section aria-labelledby="gemini-key" className="space-y-3 border-t border-line pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="gemini-key" className="flex items-center gap-1.5 text-sm font-semibold text-fg">
+          <ShieldCheck size={16} aria-hidden className="text-primary" /> Khoá Gemini API
+        </h3>
+        {k && (
+          <span className={`text-xs font-medium ${k.configured ? 'text-success' : 'text-danger'}`}>
+            {k.configured ? `Đã cấu hình …${k.last4} (${sourceLabel})` : 'Chưa cấu hình'}
+          </span>
+        )}
+      </div>
+      <form
+        className="flex flex-col gap-2 sm:flex-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (value.trim()) save.mutate();
+        }}
+      >
+        <label htmlFor="gemini-key-input" className="sr-only">
+          Dán khoá Gemini mới
+        </label>
+        <input
+          id="gemini-key-input"
+          type="password"
+          autoComplete="new-password"
+          spellCheck={false}
+          placeholder={k?.configured ? 'Dán khoá mới để thay' : 'Dán khoá Gemini (AIza…)'}
+          className={`${inputClass} font-mono`}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <Button type="submit" loading={save.isPending} disabled={value.trim().length < 20}>
+          Lưu khoá
+        </Button>
+      </form>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="secondary" onClick={() => check.mutate()} loading={check.isPending} disabled={!k?.configured}>
+          Kiểm tra khoá
+        </Button>
+        {k?.source === 'admin' && (
+          <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)}>
+            <Trash2 size={14} aria-hidden /> Xoá khoá
+          </Button>
+        )}
+        {test && (
+          <span role="status" className={`flex items-center gap-1 text-xs font-medium ${test.ok ? 'text-success' : 'text-danger'}`}>
+            {test.ok ? <CheckCircle2 size={14} aria-hidden /> : <XCircle size={14} aria-hidden />} {test.message}
+          </span>
+        )}
+      </div>
+      <p className="text-xs leading-relaxed text-muted">
+        Tạo khoá miễn phí ở aistudio.google.com/apikey. Khoá được mã hoá trước khi lưu và không bao giờ hiện lại đầy đủ; khoá nhập ở đây được dùng trước khoá đặt trên máy chủ.
+      </p>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Xoá khoá Gemini?"
+        message={
+          k?.source === 'admin'
+            ? 'Xoá khoá đã nhập trong admin. Nếu máy chủ có khoá riêng thì hệ thống dùng khoá đó, nếu không thì ngừng tự viết bài.'
+            : 'Xoá khoá đã nhập trong admin.'
+        }
+        confirmLabel="Xoá khoá"
+        danger
+        busy={remove.isPending}
+        onConfirm={() => remove.mutate()}
+        onCancel={() => setConfirmDelete(false)}
+      />
+    </section>
   );
 }

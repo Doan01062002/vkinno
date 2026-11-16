@@ -70,6 +70,8 @@ export interface BlogStatus {
   model: string;
   author: string;
   has_api_key: boolean;
+  key_source: 'admin' | 'env' | null;
+  key_last4: string | null;
   pending_topics: number;
   manual_runs_today: number;
   manual_runs_limit: number;

@@ -401,3 +401,93 @@ describe('API quản trị cẩm nang', () => {
     expect(st).toMatchObject({ has_api_key: true, manual_runs_today: 3, model: 'gemini-3.5-flash-lite' });
   });
 });
+
+describe('khoá Gemini nhập trong admin', () => {
+  const FAKE = 'AIzaFAKE-test_key_1234567890abcdWXYZ';
+
+  it('mã hoá AES-GCM: giải mã đúng, sai bí mật hoặc dữ liệu hỏng thì null', async () => {
+    const { encryptGeminiKey, decryptGeminiKey } = await import('../worker/blog/gemini-key');
+    const a = await encryptGeminiKey(FAKE, 'bi-mat-1');
+    const b = await encryptGeminiKey(FAKE, 'bi-mat-1');
+    expect(a).not.toContain(FAKE);
+    expect(a).not.toBe(b); // IV ngẫu nhiên
+    expect(a).toMatch(/^[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+$/);
+    expect(await decryptGeminiKey(a, 'bi-mat-1')).toBe(FAKE);
+    expect(await decryptGeminiKey(a, 'bi-mat-2')).toBeNull();
+    expect(await decryptGeminiKey(`${a.split('.')[0]}.AAAA`, 'bi-mat-1')).toBeNull();
+    expect(await decryptGeminiKey('rac', 'bi-mat-1')).toBeNull();
+  });
+
+  it('API: STAFF bị 403; ADMIN lưu/đọc/xoá, không bao giờ lộ khoá (phản hồi, D1, nhật ký)', async () => {
+    const env = await blogEnv();
+    const staff = await createUser(env.DB, 'STAFF');
+    const admin = await createUser(env.DB, 'ADMIN');
+    expect((await api(env, '/blog/gemini-key', {}, staff)).status).toBe(403);
+    expect((await api(env, '/blog/gemini-key', { method: 'PUT', body: JSON.stringify({ key: FAKE }) }, staff)).status).toBe(403);
+    expect((await api(env, '/blog/gemini-key', { method: 'PUT', body: JSON.stringify({ key: 'ngắn quá' }) }, admin)).status).toBe(422);
+
+    const put = await api(env, '/blog/gemini-key', { method: 'PUT', body: JSON.stringify({ key: FAKE }) }, admin);
+    const putText = await put.text();
+    expect(put.status).toBe(200);
+    expect(putText).not.toContain(FAKE);
+    expect(JSON.parse(putText).data).toEqual({ configured: true, source: 'admin', last4: 'WXYZ' });
+
+    const get = await api(env, '/blog/gemini-key', {}, admin);
+    const getText = await get.text();
+    expect(getText).not.toContain(FAKE);
+    expect(JSON.parse(getText).data).toEqual({ configured: true, source: 'admin', last4: 'WXYZ' });
+    const st = await (await api(env, '/blog/status', {}, admin)).text();
+    expect(st).not.toContain(FAKE);
+    expect(JSON.parse(st).data).toMatchObject({ has_api_key: true, key_source: 'admin', key_last4: 'WXYZ' });
+
+    const row = await env.DB.prepare("SELECT value FROM app_settings WHERE key = 'blog.gemini_key_enc'").first<{ value: string }>();
+    expect(row!.value).not.toContain(FAKE);
+    const audit = await env.DB.prepare("SELECT detail_json FROM audit_logs WHERE action LIKE 'blog.gemini_key%'").all<{ detail_json: string }>();
+    expect(audit.results.length).toBe(1);
+    expect(audit.results[0].detail_json).not.toContain(FAKE);
+    expect(audit.results[0].detail_json).toContain('WXYZ');
+
+    const del = await api(env, '/blog/gemini-key', { method: 'DELETE' }, admin);
+    expect(((await del.json()) as { data: unknown }).data).toEqual({ configured: false, source: null, last4: null });
+    expect(await env.DB.prepare("SELECT 1 FROM app_settings WHERE key = 'blog.gemini_key_enc'").first()).toBeNull();
+  });
+
+  it('ưu tiên khoá admin hơn env; sai ADMIN_SESSION_SECRET thì coi như chưa có khoá admin', async () => {
+    const { encryptGeminiKey, getGeminiKey } = await import('../worker/blog/gemini-key');
+    const env = await blogEnv({ GEMINI_API_KEY: 'env-key-0000000000000000ENVK' });
+    expect(await getGeminiKey(env)).toEqual({ key: 'env-key-0000000000000000ENVK', source: 'env' });
+    await env.DB.prepare("INSERT INTO app_settings (key, value) VALUES ('blog.gemini_key_enc', ?)")
+      .bind(await encryptGeminiKey(FAKE, env.ADMIN_SESSION_SECRET as string))
+      .run();
+    expect(await getGeminiKey(env)).toEqual({ key: FAKE, source: 'admin' });
+    // Bài viết dùng đúng khoá admin
+    const { gemini } = stubFetch(() => geminiOk(article()));
+    expect((await runBlogDaily(env)).status).toBe('ok');
+    expect(gemini[0].key).toBe(FAKE);
+    // Bí mật phiên đổi → không giải mã được → rơi về env / null
+    expect(await getGeminiKey({ ...env, ADMIN_SESSION_SECRET: 'bi-mat-khac-bi-mat-khac-bi-mat-khac' })).toMatchObject({ source: 'env' });
+    expect(await getGeminiKey({ ...env, ADMIN_SESSION_SECRET: 'bi-mat-khac-bi-mat-khac-bi-mat-khac', GEMINI_API_KEY: undefined })).toBeNull();
+  });
+
+  it('kiểm tra khoá: gọi Gemini nhẹ, thông báo lỗi không chứa khoá', async () => {
+    const env = await blogEnv();
+    const admin = await createUser(env.DB, 'ADMIN');
+    const none = await api(env, '/blog/gemini-key/test', { method: 'POST', body: '{}' }, admin);
+    expect(((await none.json()) as { data: { ok: boolean } }).data.ok).toBe(false);
+    await api(env, '/blog/gemini-key', { method: 'PUT', body: JSON.stringify({ key: FAKE }) }, admin);
+    const urls: string[] = [];
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      urls.push(String(input));
+      expect(new Headers(init?.headers).get('x-goog-api-key')).toBe(FAKE);
+      return new Response(JSON.stringify({ error: { message: `API key not valid: ${FAKE}` } }), { status: 400 });
+    });
+    const bad = await api(env, '/blog/gemini-key/test', { method: 'POST', body: '{}' }, admin);
+    const text = await bad.text();
+    expect(text).not.toContain(FAKE);
+    expect(JSON.parse(text).data).toMatchObject({ ok: false });
+    expect(urls[0]).toContain('/v1beta/models?pageSize=1');
+    vi.stubGlobal('fetch', async () => new Response('{"models":[]}'));
+    const good = await api(env, '/blog/gemini-key/test', { method: 'POST', body: '{}' }, admin);
+    expect(((await good.json()) as { data: { ok: boolean; message: string } }).data).toMatchObject({ ok: true, message: 'Khoá …WXYZ hoạt động.' });
+  });
+});

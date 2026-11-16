@@ -7,6 +7,7 @@ import { auditStmt } from '../admin/audit';
 import { route } from '../admin/router';
 import { MANUAL_RUNS_PER_DAY, runBlogGeneration, vnToday } from './generate';
 import { countWords, sanitizeArticleHtml, slugify } from './html';
+import { GEMINI_KEY_RE, GEMINI_KEY_SETTING, encryptGeminiKey, getGeminiKey, last4 } from './gemini-key';
 import { checkQuality } from './quality';
 import { parseJsonArray, readBlogSettings, type BlogPostRow, type FaqItem } from './store';
 
@@ -313,6 +314,7 @@ route(
   '/blog/status',
   async ({ env }) => {
     const settings = await readBlogSettings(env.DB);
+    const gemini = await getGeminiKey(env);
     const [runs, pending, manual] = await env.DB.batch([
       env.DB.prepare('SELECT * FROM blog_runs ORDER BY id DESC LIMIT 10'),
       env.DB.prepare("SELECT COUNT(*) AS n FROM blog_topics WHERE status = 'pending'"),
@@ -323,7 +325,9 @@ route(
       auto_publish: settings.autoPublish,
       model: settings.model,
       author: settings.author,
-      has_api_key: Boolean(env.GEMINI_API_KEY),
+      has_api_key: Boolean(gemini),
+      key_source: gemini?.source ?? null,
+      key_last4: gemini ? last4(gemini.key) : null,
       pending_topics: (pending.results[0] as { n: number }).n,
       manual_runs_today: (manual.results[0] as { n: number }).n,
       manual_runs_limit: MANUAL_RUNS_PER_DAY,
@@ -368,6 +372,89 @@ route(
   async ({ env }) => {
     const r = await runBlogGeneration(env, 'manual');
     return ok(r);
+  },
+  ADMIN,
+);
+
+// ---------- Khoá Gemini nhập trong admin (mã hoá AES-GCM; không bao giờ trả khoá đầy đủ) ----------
+
+route(
+  'GET',
+  '/blog/gemini-key',
+  async ({ env }) => {
+    const g = await getGeminiKey(env);
+    return ok({ configured: Boolean(g), source: g?.source ?? null, last4: g ? last4(g.key) : null });
+  },
+  ADMIN,
+);
+
+const keyInput = z.object({
+  key: z
+    .string()
+    .trim()
+    .regex(GEMINI_KEY_RE, 'Khoá không đúng định dạng (chỉ chữ, số, "-" và "_", dài 20–200 ký tự).'),
+});
+
+route(
+  'PUT',
+  '/blog/gemini-key',
+  async ({ env, req, user }) => {
+    if (!env.ADMIN_SESSION_SECRET) {
+      throw new ApiError(503, 'NO_SECRET', 'Máy chủ thiếu ADMIN_SESSION_SECRET nên không mã hoá được khoá.');
+    }
+    const { key } = await parseBody(req, keyInput, 4096);
+    const stored = await encryptGeminiKey(key, env.ADMIN_SESSION_SECRET);
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(
+        GEMINI_KEY_SETTING,
+        stored,
+      ),
+      auditStmt(env.DB, user.id, 'blog.gemini_key.set', 'app_settings', 'blog.gemini_key', { action: 'đổi khoá Gemini', last4: last4(key) }),
+    ]);
+    return ok({ configured: true, source: 'admin', last4: last4(key) });
+  },
+  ADMIN,
+);
+
+route(
+  'DELETE',
+  '/blog/gemini-key',
+  async ({ env, user }) => {
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM app_settings WHERE key = ?').bind(GEMINI_KEY_SETTING),
+      auditStmt(env.DB, user.id, 'blog.gemini_key.delete', 'app_settings', 'blog.gemini_key', { action: 'xoá khoá Gemini nhập trong admin' }),
+    ]);
+    const g = await getGeminiKey(env);
+    return ok({ configured: Boolean(g), source: g?.source ?? null, last4: g ? last4(g.key) : null });
+  },
+  ADMIN,
+);
+
+route(
+  'POST',
+  '/blog/gemini-key/test',
+  async ({ env }) => {
+    const g = await getGeminiKey(env);
+    if (!g) return ok({ ok: false, message: 'Chưa có khoá Gemini.' });
+    const scrub = (s: string) => s.split(g.key).join('***');
+    try {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', {
+        headers: { 'x-goog-api-key': g.key },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) return ok({ ok: true, message: `Khoá …${last4(g.key)} hoạt động.`, source: g.source });
+      let detail = `HTTP ${res.status}`;
+      try {
+        const j = (await res.json()) as { error?: { message?: string } };
+        if (j.error?.message) detail = j.error.message.slice(0, 200);
+      } catch {
+        /* giữ HTTP status */
+      }
+      return ok({ ok: false, message: scrub(`Gemini từ chối khoá (${detail}).`), source: g.source });
+    } catch (e) {
+      const msg = e instanceof Error && e.name === 'TimeoutError' ? 'Quá 10 giây không phản hồi.' : 'Không kết nối được tới Gemini.';
+      return ok({ ok: false, message: msg, source: g.source });
+    }
   },
   ADMIN,
 );

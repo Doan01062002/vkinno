@@ -6,6 +6,7 @@ import type { Env } from '../lib/env';
 import { ApiError } from '../lib/http';
 import { sendTelegramAlert } from '../lib/notify';
 import { extractJson, generateJson } from './gemini';
+import { getGeminiKey } from './gemini-key';
 import { sanitizeArticleHtml, slugify } from './html';
 import { checkQuality, unwrapExternalLinks } from './quality';
 import { parseJsonArray, readBlogSettings } from './store';
@@ -179,8 +180,9 @@ export async function runBlogGeneration(env: Env, trigger: 'cron' | 'manual'): P
     }
   }
 
-  if (!env.GEMINI_API_KEY) {
-    const r: RunResult = { status: 'error', message: 'Chưa nạp GEMINI_API_KEY cho Worker.' };
+  const gemini = await getGeminiKey(env);
+  if (!gemini) {
+    const r: RunResult = { status: 'error', message: 'Chưa có khoá Gemini — nhập ở Quản trị → Bài viết → Tự viết bằng AI.' };
     await logRun(db, { ...r, trigger, model });
     if (trigger === 'manual') throw new ApiError(503, 'NO_API_KEY', r.message);
     return r;
@@ -207,7 +209,7 @@ export async function runBlogGeneration(env: Env, trigger: 'cron' | 'manual'): P
   let modelUsed = model;
   try {
     const res = await generateJson({
-      apiKey: env.GEMINI_API_KEY,
+      apiKey: gemini.key,
       model,
       system: SYSTEM_PROMPT,
       prompt: buildPrompt(topic, existing),
