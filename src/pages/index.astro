@@ -1,6 +1,8 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import ProductCard from "../components/ProductCard.astro";
+import Icon from "../components/Icon.astro";
+import { pageSeo } from "../data/seo";
 import { products } from "../data/products";
 import { SITE_CONFIG } from "../data/siteConfig";
 import postsData from "../data/posts.json";
@@ -13,8 +15,8 @@ const bestsellerSlugs = [
 ];
 
 const newArrivalSlugs = [
-  "nuoc-lau-kinh-chuyen-dung-clearway-glasspro-cong-thuc-khong-amoniac-an-toan-cho-kinh-va-guong-500ml",
-  "nuoc-lau-kinh-chuyen-dung-clearway-glasspro-cong-thuc-khong-amoniac-an-toan-tang-kem-binh-xit-can-5l",
+  "nuoc-lau-kinh-clearway-glasspro-500ml-sach-nhanh-khong-vet-sang-bong-kinh-nha-van-phong",
+  "nuoc-lau-kinh-lam-sach-cuc-sau-khong-de-lai-vet-mo-can-5l-tang-kem-binh-xit-clearway-glasspro",
   "nuoc-rua-kinh-o-to-chuyen-dung-clearway-chong-bam-nuoc-sach-sau-an-toan-voi-can-gat-va-be-mat-kinh",
   "chai-xit-tay-rua-vet-o-kinh-logo-o-to-va-mang-dau-kinh-xit-lam-sach-sau-tiet-kiem-visionx-clean",
 ];
@@ -26,70 +28,116 @@ const bestsellers = bestsellerSlugs
 const newArrivals = newArrivalSlugs
   .map((slug) => products.find((p) => p.slug === slug))
   .filter(Boolean);
+
+const seo = pageSeo("/");
+
+// Banner: mobile (< 640px) hiện chữ HTML + phần chai của chính ảnh banner; >= 640px giữ nguyên ảnh đầy đủ (spec V6).
+const heroSlides = [
+  {
+    img: "/uploads/banner-homepage-1.png",
+    alt: "Xịt tẩy dầu mỡ đa năng VKINNO 500ml",
+    eyebrow: "VKINNO · 500ml",
+    title: "Xịt tẩy dầu mỡ đa năng",
+    sub: "Làm sạch dầu mỡ nhanh chóng, giữ sáng gian bếp mỗi ngày",
+    href: "/san-pham/tay-dau-mo-da-nang-cao-cap-vkinno-500ml-chuyen-dung-cho-bep-tu-bep-hong-ngoai-an-toan-be-mat-bep",
+    pos: "object-[88%_50%]",
+  },
+  {
+    img: "/uploads/banner-homepage-2.png",
+    alt: "Xịt tẩy cặn canxi Bossman 500ml",
+    eyebrow: "VKINNO · 500ml",
+    title: "Xịt tẩy cặn canxi Bossman",
+    sub: "Đánh bay cặn vôi cứng đầu, giữ sáng bóng sen vòi & vách kính tắm",
+    href: "/san-pham/chai-xit-tay-can-canxi-500ml-an-toan-cho-da-tay-dung-dich-tay-can-canxi-lam-sach-voi-sen-va-nha-tam",
+    pos: "object-[83%_50%]",
+  },
+  {
+    img: "/uploads/banner-homepage-3.png",
+    alt: "Nước rửa kính ô tô ClearWay can 5L",
+    eyebrow: "VKINNO · Can 5L",
+    title: "Nước rửa kính ô tô ClearWay",
+    sub: "Chống bám nước lá sen, trong suốt tầm nhìn vượt mưa bão",
+    href: "/san-pham/nuoc-rua-kinh-o-to-chuyen-dung-clearway-chong-bam-nuoc-sach-sau-an-toan-voi-can-gat-va-be-mat-kinh",
+    pos: "object-[84%_50%]",
+  },
+];
 ---
 
-<Layout
-  title="VKINNO - Chất Tẩy Rửa Sinh Học, Chăm Sóc Ô Tô & Vệ Sinh Điện Mặt Trời"
-  description="Công ty TNHH Công nghệ Vĩnh Khang (VKINNO) sản xuất và phân phối chất tẩy cặn canxi Bossman, tẩy dầu mỡ nhà bếp, nước rửa kính ô tô ClearWay và dung dịch vệ sinh pin mặt trời Solar Shield."
->
+<Layout title={seo.title} description={seo.description}>
   <div class="w-full flex flex-col">
     <!-- ==================== 1. HERO BANNER SLIDER ==================== -->
-    <section class="relative w-full aspect-[2244/701] max-h-[560px] bg-[#0F1638] overflow-hidden" id="home-section-hero">
+    <section
+      class="relative w-full h-[264px] sm:h-auto sm:aspect-[2244/701] max-h-[560px] bg-[#EEF4FF] sm:bg-[#0F1638] overflow-hidden touch-pan-y"
+      id="home-section-hero"
+      aria-roledescription="carousel"
+      aria-label="Sản phẩm nổi bật"
+    >
       <div class="w-full h-full relative" id="hero-slides-wrapper">
-        <div class="hero-slide absolute inset-0 transition-opacity duration-700 opacity-100" data-index="0">
-          <img
-            alt="VKINNO - Giải pháp tẩy rửa sinh học cho gia đình Việt"
-            class="w-full h-full object-cover"
-            src="/uploads/banner-homepage-1.png"
-            width="1600"
-            height="500"
-            fetchpriority="high"
-          />
-        </div>
-        <div class="hero-slide absolute inset-0 transition-opacity duration-700 opacity-0 pointer-events-none" data-index="1">
-          <img
-            alt="Chăm sóc kính ô tô ClearWay & VisionX Clean không Methanol"
-            class="w-full h-full object-cover"
-            src="/uploads/banner-homepage-2.png"
-            width="1600"
-            height="500"
-            loading="lazy"
-          />
-        </div>
-        <div class="hero-slide absolute inset-0 transition-opacity duration-700 opacity-0 pointer-events-none" data-index="2">
-          <img
-            alt="Dung dịch vệ sinh tấm pin mặt trời Solar Shield Can 5L"
-            class="w-full h-full object-cover"
-            src="/uploads/banner-homepage-3.png"
-            width="1600"
-            height="500"
-            loading="lazy"
-          />
-        </div>
+        {heroSlides.map((s, i) => (
+          <div
+            class={`hero-slide absolute inset-0 transition-opacity duration-700 ${i === 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            data-index={i}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${i + 1} / ${heroSlides.length}: ${s.alt}`}
+            aria-hidden={i === 0 ? undefined : "true"}
+          >
+            <img
+              src={s.img}
+              alt={s.alt}
+              width="1600"
+              height="500"
+              class={`absolute top-0 right-0 h-full w-[44%] object-cover ${s.pos} sm:inset-0 sm:w-full sm:object-center`}
+              fetchpriority={i === 0 ? "high" : undefined}
+              loading={i === 0 ? undefined : "lazy"}
+            />
+            <div aria-hidden="true" class="sm:hidden absolute inset-y-0 left-[56%] w-8 bg-gradient-to-r from-[#EEF4FF] to-transparent"></div>
+            <a
+              href={s.href}
+              tabindex={i === 0 ? 0 : -1}
+              class="hero-link sm:hidden absolute inset-y-0 left-0 w-[56%] flex flex-col justify-center gap-1.5 pl-4 pr-2 pt-4 pb-12 bg-gradient-to-r from-[#EEF4FF] to-[#F2F6FF]"
+            >
+              <span class="text-xs font-bold uppercase tracking-wide text-[#A84B00]">{s.eyebrow}</span>
+              <p class="font-display font-extrabold text-xl leading-[1.3] text-[#1E2B6B] text-balance">{s.title}</p>
+              <p class="text-sm leading-[1.4] text-[#334155] line-clamp-3">{s.sub}</p>
+              <span class="mt-1.5 self-start inline-flex items-center gap-1.5 min-h-11 px-4 rounded-xl bg-[#FF8A15] text-[#0F1638] text-sm font-extrabold">
+                Xem sản phẩm <Icon name="arrow-right" class="text-base" />
+              </span>
+            </a>
+          </div>
+        ))}
       </div>
 
       <button
         aria-label="Ảnh bìa trước"
-        class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white rounded-full w-11 h-11 flex items-center justify-center transition-all focus:outline-none cursor-pointer z-20"
+        class="hidden sm:flex absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white rounded-full w-11 h-11 items-center justify-center transition-colors cursor-pointer z-20"
         id="hero-prev"
         type="button"
       >
-        <i class="fa-solid fa-chevron-left text-sm sm:text-base"></i>
+        <Icon name="chevron-left" class="text-base" />
       </button>
 
       <button
         aria-label="Ảnh bìa tiếp theo"
-        class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white rounded-full w-11 h-11 flex items-center justify-center transition-all focus:outline-none cursor-pointer z-20"
+        class="hidden sm:flex absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/45 hover:bg-[#FF8A15] hover:text-[#0F1638] text-white rounded-full w-11 h-11 items-center justify-center transition-colors cursor-pointer z-20"
         id="hero-next"
         type="button"
       >
-        <i class="fa-solid fa-chevron-right text-sm sm:text-base"></i>
+        <Icon name="chevron-right" class="text-base" />
       </button>
 
-      <div class="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 bg-black/40 backdrop-blur-xs px-3 py-1.5 rounded-full z-20">
-        <button aria-label="Chuyển tới ảnh 1" type="button" class="hero-dot w-3 h-3 rounded-full transition-all bg-[#FF8A15] scale-110 cursor-pointer" data-index="0"></button>
-        <button aria-label="Chuyển tới ảnh 2" type="button" class="hero-dot w-3 h-3 rounded-full transition-all bg-white/80 hover:bg-white cursor-pointer" data-index="1"></button>
-        <button aria-label="Chuyển tới ảnh 3" type="button" class="hero-dot w-3 h-3 rounded-full transition-all bg-white/80 hover:bg-white cursor-pointer" data-index="2"></button>
+      <div class="absolute z-20 left-2 bottom-0 flex sm:left-1/2 sm:-translate-x-1/2 sm:bottom-2 sm:bg-black/40 sm:rounded-full sm:px-1">
+        {heroSlides.map((_s, i) => (
+          <button
+            type="button"
+            class="hero-dot group size-11 flex items-center justify-center cursor-pointer"
+            data-index={i}
+            aria-label={`Chuyển tới ảnh ${i + 1}`}
+            aria-current={i === 0 ? "true" : "false"}
+          >
+            <span class="block h-2 w-2 rounded-full bg-[#1E2B6B]/30 sm:bg-white/80 transition-[width,background-color] duration-200 group-aria-[current=true]:w-6 group-aria-[current=true]:bg-[#FF8A15]"></span>
+          </button>
+        ))}
       </div>
     </section>
 
@@ -98,13 +146,13 @@ const newArrivals = newArrivalSlugs
       <div class="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div class="space-y-2 max-w-2xl">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#FF8A15] text-xs font-extrabold uppercase tracking-wider">
-            <i class="fa-solid fa-flask"></i>
+            <Icon name="flask-conical" />
             <span>Kho trực tiếp Công ty TNHH Công nghệ Vĩnh Khang (VAT 8%)</span>
           </div>
           <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold leading-snug font-montserrat text-white">
-            Chất Tẩy Rửa Chuyên Dụng, Chăm Sóc Kính Xe &amp; Vệ Sinh Điện Mặt Trời VKINNO
+            Chất Tẩy Rửa Sinh Học Chuyên Dụng, Chăm Sóc Kính Xe &amp; Vệ Sinh Điện Mặt Trời VKINNO
           </h1>
-          <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+          <p class="text-sm text-slate-200 leading-relaxed">
             Làm sạch đúng cơ chế hóa học an toàn bề mặt khuyến nghị: <strong>Combo Đôi Nhà Sạch 145.000 ₫</strong> (tiết kiệm 9.000 ₫) · <strong>Bộ 3 Toàn Gia 199.000 ₫ miễn phí vận chuyển toàn quốc</strong>.
           </p>
         </div>
@@ -116,14 +164,14 @@ const newArrivals = newArrivalSlugs
             data-cta="bundle-199k"
             class="min-h-[48px] px-5 py-3 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all"
           >
-            <i class="fa-solid fa-gift"></i>
+            <Icon name="gift" />
             <span>Mua Bộ 3 Toàn Gia 199.000 ₫ (Freeship)</span>
           </button>
           <a
             href="/giai-phap-gara"
             class="min-h-[48px] px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition-all"
           >
-            <i class="fa-solid fa-building"></i>
+            <Icon name="building-2" />
             <span>Báo giá sỉ Gara &amp; Solar</span>
           </a>
         </div>
@@ -138,7 +186,7 @@ const newArrivals = newArrivalSlugs
             DANH MỤC GIẢI PHÁP CHỦ LỰC
           </h2>
           <div class="w-16 h-1 bg-[#FF8A15] rounded"></div>
-          <p class="text-xs sm:text-sm text-[#475569] font-medium max-w-lg">
+          <p class="text-sm text-[#475569] font-medium max-w-lg">
             9 sản phẩm chuẩn hóa từ kho VKINNO Hoài Đức — đầy đủ hướng dẫn ủ hóa chất và cảnh báo bề mặt rõ ràng
           </p>
         </div>
@@ -160,7 +208,7 @@ const newArrivals = newArrivalSlugs
               <h3 class="text-sm sm:text-base font-extrabold uppercase tracking-wide">
                 Nhà Tắm, Nhà Bếp &amp; Solar
               </h3>
-              <p class="text-xs text-slate-200 font-semibold mt-1">
+              <p class="text-sm text-slate-200 font-semibold mt-1">
                 Bossman · Tẩy dầu mỡ · ClearWay · Solar Shield
               </p>
             </div>
@@ -182,7 +230,7 @@ const newArrivals = newArrivalSlugs
               <h3 class="text-sm sm:text-base font-extrabold uppercase tracking-wide">
                 Chăm Sóc Ô Tô &amp; Gara
               </h3>
-              <p class="text-xs text-slate-200 font-semibold mt-1">
+              <p class="text-sm text-slate-200 font-semibold mt-1">
                 ClearWay Can 5L 0% Methanol · VisionX Clean
               </p>
             </div>
@@ -191,12 +239,12 @@ const newArrivals = newArrivalSlugs
           <a class="group relative block rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-[#E2E8F0]" href="/san-pham?category=2">
             <div class="w-full aspect-[4/3] overflow-hidden relative bg-[#F1F5F9]">
               <img
-                alt="Dụng Cụ Pha Chế & Bình Xịt Định Lượng"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                alt="Bình xịt nhựa PET 500ml phun sương VKINNO"
+                class="w-full h-full object-cover object-[50%_20%] origin-top scale-[1.34] group-hover:scale-[1.4] transition-transform duration-500"
                 loading="lazy"
-                src="/images/blog/cat-dung-cu.jpg"
-                width="480"
-                height="360"
+                src="/images/products/vk-bottle-spray-500ml.jpg"
+                width="960"
+                height="960"
               />
               <div class="absolute inset-0 bg-gradient-to-t from-[#0F1638]/90 via-[#0F1638]/35 to-transparent"></div>
             </div>
@@ -204,7 +252,7 @@ const newArrivals = newArrivalSlugs
               <h3 class="text-sm sm:text-base font-extrabold uppercase tracking-wide">
                 Dụng Cụ &amp; Bình Xịt PET
               </h3>
-              <p class="text-xs text-slate-200 font-semibold mt-1">
+              <p class="text-sm text-slate-200 font-semibold mt-1">
                 Vỏ bình xịt kháng hóa chất 500ml sang chiết can 5L
               </p>
             </div>
@@ -220,9 +268,9 @@ const newArrivals = newArrivalSlugs
           <h2 class="text-lg sm:text-xl font-extrabold text-[#0F172A] tracking-wider uppercase font-montserrat">
             Sản phẩm bán chạy tại kho
           </h2>
-          <a class="text-xs sm:text-sm font-extrabold text-[#A84B00] hover:text-[#1E2B6B] uppercase tracking-wider flex items-center space-x-1.5 transition-colors shrink-0" href="/san-pham">
+          <a class="text-xs sm:text-sm font-extrabold text-[#A84B00] hover:text-[#1E2B6B] uppercase tracking-wider flex items-center gap-1.5 min-h-11 transition-colors shrink-0" href="/san-pham">
             <span>Xem tất cả 9 mã</span>
-            <i class="fa-solid fa-arrow-right-long"></i>
+            <Icon name="move-right" />
           </a>
         </div>
 
@@ -239,13 +287,13 @@ const newArrivals = newArrivalSlugs
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
           <div class="bg-[#FFF7ED] text-[#A84B00] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-truck-fast"></i>
+            <Icon name="truck" />
           </div>
           <div class="space-y-1">
             <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
               Freeship Từ 199.000 ₫
             </h3>
-            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+            <p class="text-sm text-[#475569] font-medium leading-relaxed">
               Miễn phí giao toàn quốc đơn từ 199.000 ₫ (dưới 199.000 ₫ phí ship 25.000 ₫)
             </p>
           </div>
@@ -253,13 +301,13 @@ const newArrivals = newArrivalSlugs
 
         <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
           <div class="bg-[#EEF2FF] text-[#1E2B6B] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-file-invoice"></i>
+            <Icon name="file-text" />
           </div>
           <div class="space-y-1">
             <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
               Pháp Nhân TNHH &amp; VAT 8%
             </h3>
-            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+            <p class="text-sm text-[#475569] font-medium leading-relaxed">
               Giá công bố đã gồm VAT 8%, xuất hóa đơn điện tử &amp; SDS/MSDS cho doanh nghiệp
             </p>
           </div>
@@ -267,13 +315,13 @@ const newArrivals = newArrivalSlugs
 
         <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
           <div class="bg-[#ECFDF5] text-[#047857] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-arrows-rotate"></i>
+            <Icon name="refresh-cw" />
           </div>
           <div class="space-y-1">
             <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
               Đồng Kiểm &amp; Đổi Trả 7 Ngày
             </h3>
-            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+            <p class="text-sm text-[#475569] font-medium leading-relaxed">
               Kiểm tra ngoại quan khi nhận hàng; đổi mới 1:1 nếu móp rò rỉ do vận chuyển
             </p>
           </div>
@@ -281,13 +329,13 @@ const newArrivals = newArrivalSlugs
 
         <div class="flex flex-col sm:flex-row items-center text-center sm:text-left space-y-3 sm:space-y-0 sm:space-x-4 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
           <div class="bg-[#FFF7ED] text-[#A84B00] text-2xl w-14 h-14 rounded-full flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-headset"></i>
+            <Icon name="headset" />
           </div>
           <div class="space-y-1">
             <h3 class="text-xs sm:text-sm font-extrabold text-[#0F172A] uppercase tracking-wide">
               Tư Vấn Kỹ Thuật Kho
             </h3>
-            <p class="text-xs text-[#475569] font-medium leading-relaxed">
+            <p class="text-sm text-[#475569] font-medium leading-relaxed">
               Gửi ảnh vết ố qua Zalo {SITE_CONFIG.hotlinePrimary} để tư vấn đúng loại hóa chất
             </p>
           </div>
@@ -302,9 +350,9 @@ const newArrivals = newArrivalSlugs
           <h2 class="text-lg sm:text-xl font-extrabold text-[#0F172A] tracking-wider uppercase font-montserrat">
             Chăm sóc kính tòa nhà &amp; Ô tô chuyên dụng
           </h2>
-          <a class="text-xs sm:text-sm font-extrabold text-[#A84B00] hover:text-[#1E2B6B] uppercase tracking-wider flex items-center space-x-1.5 transition-colors shrink-0" href="/san-pham">
+          <a class="text-xs sm:text-sm font-extrabold text-[#A84B00] hover:text-[#1E2B6B] uppercase tracking-wider flex items-center gap-1.5 min-h-11 transition-colors shrink-0" href="/san-pham">
             <span>Xem cửa hàng</span>
-            <i class="fa-solid fa-arrow-right-long"></i>
+            <Icon name="move-right" />
           </a>
         </div>
 
@@ -324,7 +372,7 @@ const newArrivals = newArrivalSlugs
             CẨM NANG SỬ DỤNG HÓA CHẤT ĐÚNG CÁCH
           </h2>
           <div class="w-16 h-1 bg-[#FF8A15] rounded"></div>
-          <p class="text-xs sm:text-sm text-[#475569] font-medium max-w-xl">
+          <p class="text-sm text-[#475569] font-medium max-w-xl">
             Hướng dẫn thời gian ủ 5–15 phút, tỷ lệ pha loãng can 5L và lưu ý nhận biết bề mặt vật liệu trước khi vệ sinh
           </p>
         </div>
@@ -343,21 +391,21 @@ const newArrivals = newArrivalSlugs
                     height="375"
                   />
                 </div>
-                <div class="flex items-center text-[11px] font-bold text-[#475569] uppercase tracking-wider space-x-2">
-                  <span><i class="fa-regular fa-calendar-days mr-1 text-[#A84B00]"></i> 04/07/2026</span>
+                <div class="flex items-center text-xs font-bold text-[#475569] uppercase tracking-wider gap-2">
+                  <span class="inline-flex items-center gap-1"><Icon name="calendar-days" class="text-[#A84B00]" /> 04/07/2026</span>
                   <span>•</span>
                   <span>Cẩm nang kỹ thuật</span>
                 </div>
                 <h3 class="text-[#0F172A] font-extrabold text-sm sm:text-base line-clamp-2 group-hover:text-[#1E2B6B] transition-colors leading-snug">
                   {post.title}
                 </h3>
-                <p class="text-xs text-[#475569] font-medium leading-relaxed line-clamp-3">
+                <p class="text-sm text-[#475569] font-medium leading-relaxed line-clamp-3">
                   {post.summary}
                 </p>
               </div>
-              <span class="text-xs font-extrabold text-[#A84B00] group-hover:text-[#1E2B6B] uppercase tracking-wider flex items-center space-x-1.5 transition-colors pt-2">
+              <span class="text-xs font-extrabold text-[#A84B00] group-hover:text-[#1E2B6B] uppercase tracking-wider flex items-center gap-1.5 transition-colors pt-2">
                 <span>Đọc hướng dẫn</span>
-                <i class="fa-solid fa-arrow-right-long"></i>
+                <Icon name="move-right" />
               </span>
             </a>
           ))}
@@ -372,43 +420,49 @@ const newArrivals = newArrivalSlugs
   const dots = document.querySelectorAll<HTMLElement>(".hero-dot");
   const prevBtn = document.getElementById("hero-prev");
   const nextBtn = document.getElementById("hero-next");
+  const heroWrap = document.getElementById("home-section-hero");
 
   let currentIdx = 0;
   const totalSlides = slides.length;
   let interval: ReturnType<typeof setInterval> | null = null;
+  // Tự chạy > 5 giây phải dừng được: dừng hẳn khi người dùng chạm/vuốt, đưa focus vào, hoặc bật giảm chuyển động.
+  let autoplayStopped = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function showSlide(index: number) {
     if (totalSlides === 0) return;
     currentIdx = (index + totalSlides) % totalSlides;
 
     slides.forEach((slide, i) => {
-      if (i === currentIdx) {
-        slide.classList.remove("opacity-0", "pointer-events-none");
-        slide.classList.add("opacity-100");
-      } else {
-        slide.classList.remove("opacity-100");
-        slide.classList.add("opacity-0", "pointer-events-none");
-      }
+      const active = i === currentIdx;
+      slide.classList.toggle("opacity-100", active);
+      slide.classList.toggle("opacity-0", !active);
+      slide.classList.toggle("pointer-events-none", !active);
+      if (active) slide.removeAttribute("aria-hidden");
+      else slide.setAttribute("aria-hidden", "true");
+      slide.querySelector(".hero-link")?.setAttribute("tabindex", active ? "0" : "-1");
     });
 
     dots.forEach((dot, i) => {
-      if (i === currentIdx) {
-        dot.className = "hero-dot w-3 h-3 rounded-full transition-all bg-[#FF8A15] scale-110 cursor-pointer";
-      } else {
-        dot.className = "hero-dot w-3 h-3 rounded-full transition-all bg-white/80 hover:bg-white cursor-pointer";
-      }
+      dot.setAttribute("aria-current", i === currentIdx ? "true" : "false");
     });
+  }
+
+  function stopAutoplay() {
+    if (interval) clearInterval(interval);
+    interval = null;
   }
 
   function startAutoplay() {
     stopAutoplay();
+    if (autoplayStopped) return;
     interval = setInterval(() => {
       showSlide(currentIdx + 1);
     }, 5500);
   }
 
-  function stopAutoplay() {
-    if (interval) clearInterval(interval);
+  function stopForGood() {
+    autoplayStopped = true;
+    stopAutoplay();
   }
 
   prevBtn?.addEventListener("click", () => {
@@ -428,7 +482,27 @@ const newArrivals = newArrivalSlugs
     });
   });
 
-  const heroWrap = document.getElementById("home-section-hero");
+  // Vuốt ngang trên mobile: lệch > 40px thì đổi ảnh
+  let touchX0: number | null = null;
+  heroWrap?.addEventListener(
+    "touchstart",
+    (ev) => {
+      stopForGood();
+      touchX0 = ev.touches[0]?.clientX ?? null;
+    },
+    { passive: true }
+  );
+  heroWrap?.addEventListener(
+    "touchend",
+    (ev) => {
+      if (touchX0 === null) return;
+      const dx = (ev.changedTouches[0]?.clientX ?? touchX0) - touchX0;
+      touchX0 = null;
+      if (Math.abs(dx) > 40) showSlide(currentIdx + (dx < 0 ? 1 : -1));
+    },
+    { passive: true }
+  );
+  heroWrap?.addEventListener("focusin", stopForGood);
   heroWrap?.addEventListener("mouseenter", stopAutoplay);
   heroWrap?.addEventListener("mouseleave", startAutoplay);
   startAutoplay();
@@ -457,7 +531,7 @@ const newArrivals = newArrivalSlugs
         "Nước Lau Kính Chuyên Dụng ClearWay GlassPro 500ml — Không Amoniac, Trong Suốt Không Vệt",
         45000,
         "/images/products/vk-clearway-glasspro-500ml.jpg",
-        "nuoc-lau-kinh-chuyen-dung-clearway-glasspro-cong-thuc-khong-amoniac-an-toan-cho-kinh-va-guong-500ml",
+        "nuoc-lau-kinh-clearway-glasspro-500ml-sach-nhanh-khong-vet-sang-bong-kinh-nha-van-phong",
         1,
         "VK-CLEARWAY-GLASSPRO-500ML"
       );
