@@ -1,30 +1,28 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { SITE_CONFIG } from "../data/siteConfig";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Icon from "../components/Icon.astro";
+import { pageSeo } from "../data/seo";
+
+const seo = pageSeo("/lien-he/");
 ---
 
-<Layout
-  title="Liên Hệ Kho & Pháp Nhân Công Ty TNHH Công Nghệ Vĩnh Khang - VKINNO"
-  description="Liên hệ trực tiếp Công ty TNHH Công nghệ Vĩnh Khang (VKINNO) tại Cầu Giấy và Kho xuất hàng Di Trạch, Hoài Đức, Hà Nội để nhận tư vấn kỹ thuật và báo giá đại lý."
->
+<Layout title={seo.title} description={seo.description}>
   <div class="w-full min-h-screen bg-[#F8FAFC] pb-16 font-inter">
     <!-- Hero Header Section -->
     <div class="relative bg-gradient-to-br from-[#1E2B6B] to-[#0F1638] text-white py-14 sm:py-18 overflow-hidden mb-10">
       <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10 space-y-4">
-        <nav class="text-xs text-slate-300 font-semibold flex items-center space-x-2" aria-label="Breadcrumb">
-          <a href="/" class="hover:text-[#FF8A15] transition-colors">Trang chủ</a>
-          <span>/</span>
-          <span class="text-white font-bold">Liên hệ</span>
-        </nav>
+        <Breadcrumb tone="dark" items={[{ label: "Trang chủ", href: "/" }, { label: "Liên hệ" }]} />
 
         <div class="max-w-3xl space-y-3">
-          <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
+          <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
             Hỗ trợ trực tiếp từ kho Vĩnh Khang
           </span>
           <h1 class="text-2xl sm:text-4xl font-extrabold uppercase tracking-wide font-montserrat">
             LIÊN HỆ VỚI VKINNO
           </h1>
-          <p class="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed max-w-2xl">
+          <p class="text-sm text-slate-200 font-medium leading-relaxed max-w-2xl">
             Cần tư vấn cách xử lý vết cặn canxi, dầu mỡ nhà bếp hay nhận bảng chiết khấu sỉ can 5L xuất hóa đơn VAT 8%? Đội ngũ kỹ thuật kho VKINNO luôn sẵn sàng hỗ trợ.
           </p>
         </div>
@@ -40,68 +38,68 @@ import { SITE_CONFIG } from "../data/siteConfig";
             <h2 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] font-montserrat uppercase">
               {SITE_CONFIG.legalName}
             </h2>
-            <p class="text-xs sm:text-sm text-[#475569] font-medium leading-relaxed">
-              Mã số doanh nghiệp: <strong class="text-[#0F172A] tabular-nums">{SITE_CONFIG.taxCode}</strong> · Người đại diện pháp luật: <strong class="text-[#0F172A]">{SITE_CONFIG.legalRepresentative}</strong>
+            <p class="text-sm text-[#475569] font-medium leading-relaxed">
+              Mã số doanh nghiệp: <strong class="text-[#0F172A] tabular-nums">{SITE_CONFIG.taxId}</strong> · Người đại diện pháp luật: <strong class="text-[#0F172A]">{SITE_CONFIG.legalRepresentative}</strong>
             </p>
           </div>
 
           <ul class="space-y-4">
-            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+            <li class="flex items-start gap-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
               <div class="w-11 h-11 bg-[#FFF7ED] text-[#A84B00] rounded-xl flex items-center justify-center text-base shrink-0">
-                <i class="fa-solid fa-warehouse"></i>
+                <Icon name="warehouse" />
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1 min-w-0">
                 <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Kho xuất hàng &amp; Điểm tiếp nhận</h3>
-                <p class="text-xs sm:text-sm text-[#0F172A] font-bold leading-relaxed">
+                <p class="text-sm text-[#0F172A] font-bold leading-relaxed">
                   {SITE_CONFIG.warehouseAddress}
                 </p>
                 <a
                   href="https://www.google.com/maps/search/?api=1&query=Nh%C3%A0+C%C3%B4ng+v%E1%BB%A5+Di+Tr%E1%BA%A1ch+Ho%C3%A0i+%C4%90%E1%BB%A9c+H%C3%A0+N%E1%BB%99i"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1E2B6B] underline pt-1"
+                  class="inline-flex items-center gap-1.5 min-h-11 text-sm font-extrabold text-[#1E2B6B] underline"
                 >
-                  <i class="fa-solid fa-diamond-turn-right"></i>
+                  <Icon name="navigation" />
                   <span>Mở chỉ đường Google Maps tới Kho Di Trạch</span>
                 </a>
               </div>
             </li>
 
-            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+            <li class="flex items-start gap-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
               <div class="w-11 h-11 bg-[#EEF2FF] text-[#1E2B6B] rounded-xl flex items-center justify-center text-base shrink-0">
-                <i class="fa-solid fa-building"></i>
+                <Icon name="building-2" />
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1 min-w-0">
                 <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Trụ sở đăng ký kinh doanh</h3>
-                <p class="text-xs sm:text-sm text-[#0F172A] font-bold leading-relaxed">
-                  {SITE_CONFIG.headquartersAddress}
+                <p class="text-sm text-[#0F172A] font-bold leading-relaxed">
+                  {SITE_CONFIG.registeredAddress}
                 </p>
               </div>
             </li>
 
-            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+            <li class="flex items-start gap-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
               <div class="w-11 h-11 bg-[#ECFDF5] text-[#047857] rounded-xl flex items-center justify-center text-base shrink-0">
-                <i class="fa-solid fa-phone-volume"></i>
+                <Icon name="phone-call" />
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1 min-w-0">
                 <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Hotline &amp; Zalo Trực Kho</h3>
                 <p class="text-sm text-[#0F172A] font-extrabold tabular-nums">
-                  <a href={`tel:${SITE_CONFIG.hotlinePrimaryRaw}`} class="hover:text-[#1E2B6B] underline">{SITE_CONFIG.hotlinePrimary}</a>
+                  <a href={`tel:${SITE_CONFIG.hotlinePrimaryTel}`} class="inline-flex items-center min-h-11 hover:text-[#1E2B6B] underline">{SITE_CONFIG.hotlinePrimary}</a>
                   {" / "}
-                  <a href={`tel:${SITE_CONFIG.hotlineSecondaryRaw}`} class="hover:text-[#1E2B6B] underline">{SITE_CONFIG.hotlineSecondary}</a>
+                  <a href={`tel:${SITE_CONFIG.hotlineSecondaryTel}`} class="inline-flex items-center min-h-11 hover:text-[#1E2B6B] underline">{SITE_CONFIG.hotlineSecondary}</a>
                 </p>
-                <p class="text-xs text-[#475569]">Giờ làm việc: {SITE_CONFIG.workingHours}</p>
+                {/* TODO: thêm workingHours vào siteConfig.ts rồi hiện lại dòng "Giờ làm việc" (trước đây in rỗng). */}
               </div>
             </li>
 
-            <li class="flex items-start space-x-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
+            <li class="flex items-start gap-4 p-4 bg-white rounded-2xl border border-[#E2E8F0]">
               <div class="w-11 h-11 bg-[#FFF7ED] text-[#A84B00] rounded-xl flex items-center justify-center text-base shrink-0">
-                <i class="fa-solid fa-envelope"></i>
+                <Icon name="mail" />
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1 min-w-0">
                 <h3 class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Email hỗ trợ &amp; Hóa đơn</h3>
-                <p class="text-xs sm:text-sm text-[#0F172A] font-bold">
-                  <a href={`mailto:${SITE_CONFIG.email}`} class="hover:text-[#1E2B6B] underline">{SITE_CONFIG.email}</a>
+                <p class="text-sm text-[#0F172A] font-bold">
+                  <a href={`mailto:${SITE_CONFIG.email}`} class="inline-flex items-center min-h-11 hover:text-[#1E2B6B] underline">{SITE_CONFIG.email}</a>
                 </p>
               </div>
             </li>
@@ -112,7 +110,7 @@ import { SITE_CONFIG } from "../data/siteConfig";
         <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-6">
           <div class="space-y-1.5">
             <h2 class="text-lg font-extrabold text-[#0F172A] uppercase tracking-wider font-montserrat">Gửi câu hỏi tư vấn kỹ thuật</h2>
-            <p class="text-xs sm:text-sm text-[#475569]">
+            <p class="text-sm text-[#475569]">
               Điền thông tin bên dưới để đội ngũ VKINNO gọi lại hoặc nhắn Zalo hướng dẫn chi tiết.
             </p>
           </div>
@@ -167,7 +165,7 @@ import { SITE_CONFIG } from "../data/siteConfig";
                 name="message"
                 required
                 rows="4"
-                placeholder="Mô tả bề mặt cần làm sạch (vách kính nhà tắm, lưới hút mùi, kính ô tô...) hoặc yêu cầu hợp tác đại lý..."
+                placeholder="Mô tả bề mặt cần làm sạch (vách kính nhà tắm, lưới hút mùi, kính ô tô…) hoặc yêu cầu hợp tác đại lý…"
                 class="w-full text-base p-3 border border-[#CBD5E1] rounded-xl bg-[#F8FAFC] focus:outline-none focus:border-[#1E2B6B] focus:bg-white resize-none text-[#0F172A] leading-relaxed"
               ></textarea>
             </div>
@@ -179,21 +177,21 @@ import { SITE_CONFIG } from "../data/siteConfig";
                 id="contact-privacy-consent"
                 name="privacy_consent"
                 required
-                class="mt-1 w-5 h-5 rounded accent-[#1E2B6B] shrink-0 cursor-pointer"
+                class="mt-0.5 size-5 rounded accent-[#1E2B6B] shrink-0 cursor-pointer"
               />
-              <span class="text-xs text-[#334155] leading-relaxed">
+              <span class="text-sm text-[#334155] leading-relaxed">
                 Tôi đồng ý để <strong>{SITE_CONFIG.legalName}</strong> xử lý thông tin liên hệ nhằm phản hồi yêu cầu tư vấn theo{" "}
                 <a href="/chinh-sach/chinh-sach-bao-mat" target="_blank" class="font-bold text-[#1E2B6B] underline">Chính sách bảo vệ dữ liệu cá nhân (Luật 91/2025/QH15)</a>. *
               </span>
             </label>
 
-            <div id="contact-form-error" class="hidden p-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs font-bold text-[#991B1B]"></div>
+            <div id="contact-form-error" class="hidden p-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-sm font-bold text-[#991B1B]" role="alert"></div>
 
             <button
               type="submit"
               id="btn-submit-contact"
               data-cta="contact-submit"
-              class="w-full min-h-[50px] bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm py-3.5 rounded-xl uppercase tracking-wider transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer font-montserrat"
+              class="w-full min-h-[50px] bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm py-3.5 rounded-xl uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer font-montserrat"
             >
               <span id="btn-submit-text">GỬI YÊU CẦU TƯ VẤN</span>
             </button>
@@ -201,7 +199,7 @@ import { SITE_CONFIG } from "../data/siteConfig";
 
           <div id="contact-success-box" class="hidden p-5 rounded-2xl bg-[#ECFDF5] border border-[#10B981] text-center space-y-2">
             <p class="font-extrabold text-base text-[#047857]">✓ Đã gửi tin nhắn tới kho VKINNO!</p>
-            <p class="text-xs sm:text-sm text-[#334155]">
+            <p class="text-sm text-[#334155]">
               Cảm ơn bạn đã liên hệ. Đội ngũ VKINNO sẽ phản hồi qua Số điện thoại hoặc Zalo sớm nhất.
             </p>
           </div>
@@ -232,7 +230,7 @@ import { SITE_CONFIG } from "../data/siteConfig";
     }
 
     if (submitBtn) submitBtn.disabled = true;
-    if (submitText) submitText.textContent = "ĐANG GỬI...";
+    if (submitText) submitText.textContent = "ĐANG GỬI…";
 
     try {
       const res = await fetch("/api/leads", {

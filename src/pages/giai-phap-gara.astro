@@ -1,6 +1,10 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { SITE_CONFIG } from "../data/siteConfig";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import { pageSeo } from "../data/seo";
+
+const seo = pageSeo("/giai-phap-gara/");
 
 const wholesaleTiers = [
   {
@@ -43,24 +47,21 @@ const wholesaleTiers = [
 ];
 ---
 
-<Layout
-  title="Báo Giá Sỉ Gara Ô Tô & Dự Án Điện Mặt Trời Can 5L (VAT 8%) - VKINNO"
-  description="Chính sách chiết khấu sỉ 20% - 40% tính trực tiếp trên giá bán lẻ hiện hành cho Gara ô tô, Car Care và nhà thầu O&M điện mặt trời từ Công ty TNHH Công nghệ Vĩnh Khang."
->
+<Layout title={seo.title} description={seo.description}>
   <!-- ==================== HERO HEADER ==================== -->
   <section class="relative bg-gradient-to-br from-[#0F1638] via-[#1E2B6B] to-[#0369A1] text-white py-14 lg:py-20 border-b border-white/10 overflow-hidden">
     <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10">
-      <nav class="flex items-center gap-2 text-xs text-slate-200 mb-4 font-semibold" aria-label="Breadcrumb">
-        <a href="/" class="hover:text-[#FF8A15]">Trang chủ</a>
-        <span>/</span>
-        <span class="text-white font-bold">Giải pháp Gara &amp; Điện mặt trời B2B</span>
-      </nav>
+      <Breadcrumb
+        tone="dark"
+        class="mb-4"
+        items={[{ label: "Trang chủ", href: "/" }, { label: "Giải pháp Gara & Điện mặt trời B2B" }]}
+      />
 
       <div class="max-w-3xl space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[#FF8A15] text-xs font-extrabold uppercase tracking-wider">
           • CHÍNH SÁCH SỈ PHÁP NHÂN TNHH VĨNH KHANG (VAT 8%) •
         </div>
-        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold font-montserrat tracking-tight leading-tight text-white">
+        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold font-montserrat tracking-tight leading-[1.3] text-white">
           GIẢI PHÁP HÓA CHẤT CAN 5L CHO GARA Ô TÔ &amp; NHÀ THẦU ĐIỆN MẶT TRỜI
         </h1>
         <p class="text-slate-100 text-sm sm:text-base leading-relaxed">
@@ -76,7 +77,7 @@ const wholesaleTiers = [
             Nhận Báo Giá Sỉ &amp; Tách VAT 8% →
           </a>
           <a
-            href={`tel:${SITE_CONFIG.hotlinePrimaryRaw}`}
+            href={`tel:${SITE_CONFIG.hotlinePrimaryTel}`}
             class="min-h-[48px] px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center transition tabular-nums"
           >
             Hotline Sỉ &amp; Dự Án: {SITE_CONFIG.hotlinePrimary}
@@ -95,7 +96,7 @@ const wholesaleTiers = [
             1:30
           </div>
           <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Tối Ưu Định Mức Vật Tư</h2>
-          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+          <p class="text-sm text-[#475569] leading-relaxed">
             Can Solar Shield 5L pha được 100–150 lít dung dịch làm việc (~1.300 ₫ – 1.900 ₫/lít sau pha), tiết kiệm chi phí vận chuyển ra công trường.
           </p>
         </div>
@@ -105,7 +106,7 @@ const wholesaleTiers = [
             pH 7
           </div>
           <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Bảo Vệ Bề Mặt Kỹ Thuật</h2>
-          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+          <p class="text-sm text-[#475569] leading-relaxed">
             Nước khử khoáng Deion không để lại đốm vôi gây điểm nóng (hot-spot) trên cell pin; dòng rửa kính ô tô cam kết 0% Methanol bảo vệ cao su gạt mưa.
           </p>
         </div>
@@ -115,8 +116,8 @@ const wholesaleTiers = [
             VAT
           </div>
           <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Hóa Đơn VAT 8% &amp; SDS</h2>
-          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
-            Pháp nhân {SITE_CONFIG.legalName} (MST {SITE_CONFIG.taxCode}) xuất hóa đơn điện tử VAT 8% và bảng dữ liệu an toàn hóa chất SDS/MSDS đầy đủ.
+          <p class="text-sm text-[#475569] leading-relaxed">
+            Pháp nhân {SITE_CONFIG.legalName} (MST {SITE_CONFIG.taxId}) xuất hóa đơn điện tử VAT 8% và bảng dữ liệu an toàn hóa chất SDS/MSDS đầy đủ.
           </p>
         </div>
 
@@ -125,7 +126,7 @@ const wholesaleTiers = [
             KHO
           </div>
           <h2 class="font-extrabold text-[#0F172A] text-base font-montserrat">Xuất Kho Nhanh Hoài Đức</h2>
-          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+          <p class="text-sm text-[#475569] leading-relaxed">
             Sẵn kho can 5L tại Di Trạch, Hoài Đức, Hà Nội — giao nhanh nội thành và gửi chành xe/vận chuyển toàn quốc trong ngày.
           </p>
         </div>
@@ -141,7 +142,7 @@ const wholesaleTiers = [
         <h2 class="text-2xl sm:text-3xl font-extrabold font-montserrat text-[#0F172A]">
           BẢNG CHIẾT KHẤU SỈ TRÊN GIÁ BÁN LẺ HIỆN HÀNH
         </h2>
-        <p class="text-xs sm:text-sm text-[#475569]">
+        <p class="text-sm text-[#475569]">
           Tính trực tiếp trên giá bán lẻ đang áp dụng trên website (Solar Shield 5L: 295.000 ₫ · ClearWay 5L: 155.000 ₫ · Rửa kính ô tô 5L: 95.000 ₫ — đã gồm VAT 8%)
         </p>
       </div>
@@ -156,7 +157,7 @@ const wholesaleTiers = [
             }`}
           >
             {tier.highlight && (
-              <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#FF8A15] text-[#0F1638] font-extrabold text-[11px] uppercase tracking-wider shadow-sm whitespace-nowrap">
+              <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#FF8A15] text-[#0F1638] font-extrabold text-xs uppercase tracking-wider shadow-sm whitespace-nowrap">
                 Phổ Biến Nhất Cho Gara &amp; Đội O&amp;M
               </div>
             )}
@@ -166,7 +167,7 @@ const wholesaleTiers = [
                 <h3 class={`text-lg sm:text-xl font-extrabold font-montserrat uppercase ${tier.highlight ? "text-white" : "text-[#0F172A]"}`}>
                   {tier.tier}
                 </h3>
-                <p class={`text-xs mt-1 ${tier.highlight ? "text-slate-300" : "text-[#475569]"}`}>
+                <p class={`text-sm mt-1 ${tier.highlight ? "text-slate-300" : "text-[#475569]"}`}>
                   {tier.target}
                 </p>
               </div>
@@ -187,7 +188,7 @@ const wholesaleTiers = [
                 <span class={`text-xs font-extrabold uppercase tracking-wider block ${tier.highlight ? "text-[#FF8A15]" : "text-[#0F172A]"}`}>
                   Quyền lợi đi kèm:
                 </span>
-                <ul class={`text-xs sm:text-sm space-y-2.5 ${tier.highlight ? "text-slate-200" : "text-[#334155]"}`}>
+                <ul class={`text-sm space-y-2.5 ${tier.highlight ? "text-slate-200" : "text-[#334155]"}`}>
                   {tier.benefits.map((b) => (
                     <li class="flex items-start gap-2">
                       <span class="font-bold text-[#10B981] shrink-0">✓</span>
@@ -222,7 +223,7 @@ const wholesaleTiers = [
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         <div class="lg:col-span-5 space-y-5">
           <div class="text-xs font-extrabold uppercase tracking-wider text-[#A84B00]">• HỢP TÁC PHÂN PHỐI &amp; DỰ ÁN •</div>
-          <h2 class="text-2xl sm:text-3xl font-extrabold font-montserrat text-[#0F172A] leading-tight">
+          <h2 class="text-2xl sm:text-3xl font-extrabold font-montserrat text-[#0F172A] leading-[1.3]">
             ĐĂNG KÝ NHẬN BẢNG GIÁ SỈ &amp; HỒ SƠ KỸ THUẬT SDS
           </h2>
           <p class="text-sm text-[#475569] leading-relaxed">
@@ -232,11 +233,11 @@ const wholesaleTiers = [
           <div class="p-5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
             <span class="text-xs font-extrabold text-[#475569] uppercase tracking-wider">Hotline Sỉ &amp; Kho Vĩnh Khang</span>
             <div class="text-xl sm:text-2xl font-black font-montserrat text-[#1E2B6B] tabular-nums">
-              <a href={`tel:${SITE_CONFIG.hotlinePrimaryRaw}`} class="hover:underline">{SITE_CONFIG.hotlinePrimary}</a>
+              <a href={`tel:${SITE_CONFIG.hotlinePrimaryTel}`} class="inline-flex items-center min-h-11 hover:underline">{SITE_CONFIG.hotlinePrimary}</a>
               {" / "}
-              <a href={`tel:${SITE_CONFIG.hotlineSecondaryRaw}`} class="hover:underline">{SITE_CONFIG.hotlineSecondary}</a>
+              <a href={`tel:${SITE_CONFIG.hotlineSecondaryTel}`} class="inline-flex items-center min-h-11 hover:underline">{SITE_CONFIG.hotlineSecondary}</a>
             </div>
-            <p class="text-xs text-[#475569]">
+            <p class="text-sm text-[#475569]">
               Kho xuất hàng: {SITE_CONFIG.warehouseAddress}
             </p>
           </div>
@@ -247,7 +248,7 @@ const wholesaleTiers = [
             <h3 class="font-montserrat font-extrabold text-lg sm:text-xl text-[#0F172A] mb-1">
               PHIẾU YÊU CẦU BÁO GIÁ SỈ B2B
             </h3>
-            <p class="text-xs text-[#475569] mb-6">
+            <p class="text-sm text-[#475569] mb-6">
               Áp dụng chiết khấu 20% – 40% trên giá bán lẻ hiện hành · Xuất hóa đơn VAT 8%
             </p>
 
@@ -266,7 +267,7 @@ const wholesaleTiers = [
                     id="lead-company"
                     name="company_name"
                     required
-                    placeholder="VD: Gara AutoPro / Công ty Solar..."
+                    placeholder="VD: Gara AutoPro / Công ty Solar…"
                     class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]"
                   />
                 </div>
@@ -302,7 +303,7 @@ const wholesaleTiers = [
                     id="lead-city"
                     name="city"
                     required
-                    placeholder="VD: Hà Nội, Bắc Ninh, Ninh Thuận..."
+                    placeholder="VD: Hà Nội, Bắc Ninh, Ninh Thuận…"
                     class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]"
                   />
                 </div>
@@ -324,7 +325,7 @@ const wholesaleTiers = [
                   type="text"
                   id="lead-volume"
                   name="estimated_volume"
-                  placeholder="VD: 20 can 5L/tháng hoặc trạm điện áp mái 3 MWp..."
+                  placeholder="VD: 20 can 5L/tháng hoặc trạm điện áp mái 3 MWp…"
                   class="w-full text-base px-3.5 py-3 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] focus:outline-none focus:border-[#1E2B6B]"
                 />
               </div>
@@ -336,9 +337,9 @@ const wholesaleTiers = [
                   id="b2b-privacy-consent"
                   name="privacy_consent"
                   required
-                  class="mt-1 w-5 h-5 rounded accent-[#1E2B6B] shrink-0 cursor-pointer"
+                  class="mt-0.5 size-5 rounded accent-[#1E2B6B] shrink-0 cursor-pointer"
                 />
-                <span class="text-xs text-[#334155] leading-relaxed">
+                <span class="text-sm text-[#334155] leading-relaxed">
                   Tôi đồng ý để <strong>{SITE_CONFIG.legalName}</strong> liên hệ tư vấn kỹ thuật và gửi báo giá sỉ B2B qua Số điện thoại/Zalo đã cung cấp theo{" "}
                   <a href="/chinh-sach/chinh-sach-bao-mat" target="_blank" class="font-bold text-[#1E2B6B] underline">Chính sách bảo vệ dữ liệu cá nhân (Luật 91/2025/QH15)</a>. *
                 </span>
@@ -358,7 +359,7 @@ const wholesaleTiers = [
 
             <div id="lead-success-msg" class="hidden p-5 rounded-2xl bg-[#ECFDF5] border border-[#10B981] text-sm text-center space-y-2 mt-4">
               <p class="font-extrabold text-base text-[#047857]">✓ Đã tiếp nhận yêu cầu báo giá sỉ B2B!</p>
-              <p class="text-xs sm:text-sm text-[#334155]">
+              <p class="text-sm text-[#334155]">
                 Thông tin của quý đối tác đã được chuyển thẳng vào hệ thống quản trị kho Vĩnh Khang. Bộ phận kinh doanh sẽ liên hệ qua Zalo/SĐT sớm nhất!
               </p>
             </div>
@@ -390,7 +391,7 @@ const wholesaleTiers = [
 
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = "ĐANG GỬI YÊU CẦU...";
+      submitBtn.textContent = "ĐANG GỬI YÊU CẦU…";
     }
 
     try {

@@ -1,31 +1,30 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import Icon from "../components/Icon.astro";
 import { SITE_CONFIG } from "../data/siteConfig";
 ---
 
 <Layout
   title="Tra Cứu Đơn Hàng Chính Hãng - VKINNO"
   description="Kiểm tra trạng thái thanh toán VietQR, tiến độ đóng gói tại kho và vận chuyển đơn hàng VKINNO bằng Mã đơn VKxxxx và Số điện thoại."
+  robots="noindex, follow"
 >
   <div class="w-full min-h-screen bg-[#F8FAFC] py-8 sm:py-12 font-inter">
     <div class="max-w-4xl mx-auto px-4 sm:px-8 space-y-8">
       <!-- Breadcrumbs -->
-      <nav class="flex items-center space-x-2 text-xs font-semibold text-[#475569]" aria-label="Breadcrumb">
-        <a href="/" class="hover:text-[#1E2B6B] transition-colors">Trang chủ</a>
-        <span>/</span>
-        <span class="text-[#0F172A] font-bold">Tra cứu đơn hàng</span>
-      </nav>
+      <Breadcrumb items={[{ label: "Trang chủ", href: "/" }, { label: "Tra cứu đơn hàng" }]} />
 
       <!-- Lookup Card -->
       <div class="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-6 sm:p-8 space-y-6">
         <div class="space-y-2 text-center max-w-xl mx-auto">
           <div class="w-14 h-14 rounded-2xl bg-[#EEF2FF] text-[#1E2B6B] flex items-center justify-center mx-auto text-2xl">
-            <i class="fa-solid fa-magnifying-glass-location"></i>
+            <Icon name="package-search" />
           </div>
           <h1 class="text-xl sm:text-2xl font-extrabold text-[#0F172A] uppercase tracking-wide font-montserrat">
             TRA CỨU TRẠNG THÁI ĐƠN HÀNG VKINNO
           </h1>
-          <p class="text-xs sm:text-sm text-[#475569] leading-relaxed">
+          <p class="text-sm text-[#475569] leading-relaxed">
             Nhập <strong>Mã đơn hàng (VD: VK2408)</strong> và <strong>Số điện thoại nhận hàng</strong> để xem tiến độ đóng gói tại kho Vĩnh Khang và đối soát thanh toán VietQR thời gian thực.
           </p>
         </div>
@@ -63,12 +62,12 @@ import { SITE_CONFIG } from "../data/siteConfig";
             data-cta="track-order"
             class="w-full min-h-[48px] bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-sm uppercase tracking-wider rounded-xl py-3.5 px-6 transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-2 font-montserrat"
           >
-            <i class="fa-solid fa-truck-fast"></i>
+            <Icon name="truck" />
             <span id="btn-track-text">KIỂM TRA ĐƠN HÀNG NGAY</span>
           </button>
         </form>
 
-        <div id="track-error-box" class="hidden max-w-xl mx-auto p-4 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs sm:text-sm font-bold text-[#991B1B] text-center"></div>
+        <div id="track-error-box" class="hidden max-w-xl mx-auto p-4 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-sm font-bold text-[#991B1B] text-center" role="alert"></div>
       </div>
 
       <!-- Result Card -->
@@ -89,7 +88,7 @@ import { SITE_CONFIG } from "../data/siteConfig";
 
         <!-- Order Details -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs sm:text-sm">
+          <div class="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-sm">
             <h3 class="font-extrabold text-[#0F172A] uppercase text-xs tracking-wider pb-1 border-b border-[#E2E8F0]">Thông tin giao nhận</h3>
             <p><span class="text-[#475569]">Người nhận:</span> <strong class="text-[#0F172A]" id="res-cust-name"></strong></p>
             <p><span class="text-[#475569]">Số điện thoại:</span> <strong class="text-[#0F172A] tabular-nums" id="res-cust-phone"></strong></p>
@@ -97,7 +96,7 @@ import { SITE_CONFIG } from "../data/siteConfig";
             <p id="res-tracking-row" class="hidden"><span class="text-[#475569]">Mã vận đơn:</span> <strong class="text-[#1E2B6B] tabular-nums" id="res-tracking-code"></strong></p>
           </div>
 
-          <div class="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs sm:text-sm">
+          <div class="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-sm">
             <h3 class="font-extrabold text-[#0F172A] uppercase text-xs tracking-wider pb-1 border-b border-[#E2E8F0]">Chi tiết thanh toán</h3>
             <div id="res-items-list" class="space-y-1.5 pb-2 border-b border-[#E2E8F0]"></div>
             <div class="flex justify-between pt-1">
@@ -110,17 +109,17 @@ import { SITE_CONFIG } from "../data/siteConfig";
         <!-- Unpaid VietQR Reminder if applicable -->
         <div id="res-vietqr-box" class="hidden p-5 rounded-2xl bg-[#ECFDF5]/60 border border-[#10B981] flex flex-col sm:flex-row items-center gap-6">
           <img id="res-vietqr-img" src="/logo.png" alt="Mã VietQR thanh toán đơn hàng" width="160" height="160" class="w-40 h-40 rounded-xl bg-white p-2 border border-[#A7F3D0] object-contain shrink-0" />
-          <div class="space-y-1.5 text-xs sm:text-sm text-[#0F172A]">
+          <div class="space-y-1.5 text-sm text-[#0F172A]">
             <h3 class="font-extrabold text-[#047857] uppercase">Quét mã VietQR để hoàn tất thanh toán</h3>
-            <p>Ngân hàng: <strong>Vietcombank — STK {SITE_CONFIG.bankAccountNumber}</strong></p>
-            <p>Chủ TK: <strong>{SITE_CONFIG.bankAccountName}</strong></p>
+            <p>Ngân hàng: <strong>Vietcombank — STK {SITE_CONFIG.bank.accountNo}</strong></p>
+            <p>Chủ TK: <strong>{SITE_CONFIG.bank.accountName}</strong></p>
             <p>Nội dung chuyển khoản chính xác: <strong class="text-[#C81E1E] bg-white px-2 py-0.5 rounded border border-[#FECACA] tabular-nums" id="res-vietqr-memo"></strong></p>
           </div>
         </div>
 
-        <div class="pt-2 border-t border-[#E2E8F0] text-xs text-[#475569] flex flex-wrap items-center justify-between gap-2">
+        <div class="pt-2 border-t border-[#E2E8F0] text-sm text-[#475569] flex flex-wrap items-center justify-between gap-2">
           <span>Cần hỗ trợ đổi địa chỉ hoặc xuất hóa đơn VAT 8%?</span>
-          <a href={SITE_CONFIG.zaloUrl} target="_blank" rel="noopener noreferrer" class="font-extrabold text-[#1E2B6B] underline">
+          <a href={SITE_CONFIG.zaloUrl} target="_blank" rel="noopener noreferrer" class="inline-flex items-center min-h-11 font-extrabold text-[#1E2B6B] underline">
             Nhắn Zalo Kho VKINNO ({SITE_CONFIG.hotlinePrimary}) →
           </a>
         </div>
@@ -154,7 +153,7 @@ import { SITE_CONFIG } from "../data/siteConfig";
 
       errBox?.classList.add("hidden");
       resCard?.classList.add("hidden");
-      if (btnText) btnText.textContent = "ĐANG TRA CỨU...";
+      if (btnText) btnText.textContent = "ĐANG TRA CỨU…";
 
       try {
         const res = await fetch(`/api/orders/track?code=${encodeURIComponent(code)}&phone=${encodeURIComponent(phone)}`);
