@@ -31,6 +31,18 @@ const newArrivals = newArrivalSlugs
 
 const seo = pageSeo("/");
 
+// Khối ưu đãi dưới banner: giá lấy từ products.ts (không gõ cứng), khớp nút "Bộ 3 Toàn Gia" ở cuối trang.
+const vnd = (n: number) => `${n.toLocaleString("vi-VN")} ₫`;
+const bySlug = (slug: string) => products.find((p) => p.slug === slug);
+const comboDoi = bySlug(bestsellerSlugs[0]);
+const bo3Items = [
+  { slug: bestsellerSlugs[1], label: "Tẩy cặn canxi" },
+  { slug: bestsellerSlugs[2], label: "Tẩy dầu mỡ" },
+  { slug: newArrivalSlugs[0], label: "Lau kính 500ml" },
+];
+const bo3Total = bo3Items.reduce((sum, i) => sum + (bySlug(i.slug)?.price_vnd ?? 0), 0);
+const comboSaving = comboDoi ? (comboDoi.listed_price_vnd ?? comboDoi.price_vnd) - comboDoi.price_vnd : 0;
+
 // Banner: mobile (< 640px) hiện chữ HTML + phần chai của chính ảnh banner; >= 640px giữ nguyên ảnh đầy đủ (spec V6).
 const heroSlides = [
   {
@@ -142,37 +154,91 @@ const heroSlides = [
     </section>
 
     <!-- ==================== 1B. BRAND H1 & COMBO FREESHIP BAR ==================== -->
-    <section class="w-full bg-[#1E2B6B] text-white border-b border-white/10">
-      <div class="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div class="space-y-2 max-w-2xl">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#FF8A15] text-xs font-extrabold uppercase tracking-wider">
-            <Icon name="flask-conical" />
-            <span>Kho trực tiếp Công ty TNHH Công nghệ Vĩnh Khang (VAT 8%)</span>
-          </div>
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold leading-snug font-montserrat text-white">
-            Chất Tẩy Rửa Sinh Học Chuyên Dụng, Chăm Sóc Kính Xe &amp; Vệ Sinh Điện Mặt Trời VKINNO
-          </h1>
-          <p class="text-sm text-slate-200 leading-relaxed">
-            Làm sạch đúng cơ chế hóa học an toàn bề mặt khuyến nghị: <strong>Combo Đôi Nhà Sạch 145.000 ₫</strong> (tiết kiệm 9.000 ₫) · <strong>Bộ 3 Toàn Gia 199.000 ₫ miễn phí vận chuyển toàn quốc</strong>.
+    <section class="relative w-full overflow-hidden bg-[#1E2B6B] text-white">
+      <!-- Chiều sâu nền: 2 quầng sáng + lưới chấm mờ (CSS thuần, không ảnh) -->
+      <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+        <div class="absolute -top-32 -right-24 h-80 w-80 rounded-full bg-[#FF8A15]/20 blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-[#3B5BDB]/30 blur-3xl"></div>
+        <div class="absolute inset-0 opacity-[0.07] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]"></div>
+      </div>
+
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-14 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:gap-14 items-center">
+        <!-- Trái: thương hiệu + lời hứa -->
+        <div>
+          <p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#FFB15C]">
+            <span aria-hidden="true" class="h-1.5 w-1.5 rounded-full bg-[#FF8A15]"></span>
+            Kho trực tiếp<span class="hidden sm:inline">&nbsp;· Công ty TNHH Công nghệ Vĩnh Khang</span><span class="sm:hidden">&nbsp;chính hãng VKINNO</span>
           </p>
+          <h1 class="mt-3 font-montserrat text-[1.65rem] leading-[1.2] sm:text-4xl lg:text-[2.1rem] xl:text-[2.5rem] font-extrabold tracking-tight text-balance">
+            Chất Tẩy Rửa Sinh Học Chuyên Dụng,{" "}<span class="text-[#FFB15C]">Chăm Sóc Kính Xe &amp; Vệ Sinh Điện Mặt Trời</span>{" "}VKINNO
+          </h1>
+          <p class="mt-4 max-w-xl text-base leading-relaxed text-slate-200">
+            Làm sạch đúng cơ chế hóa học, an toàn cho từng bề mặt. Giá niêm yết đã gồm VAT 8% và xuất hóa đơn cho doanh nghiệp.
+          </p>
+          <ul class="mt-6 flex flex-wrap gap-2" aria-label="Cam kết mua hàng">
+            <li class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-2 text-sm font-semibold text-white">
+              <Icon name="truck" class="text-[#FFB15C]" /> Freeship từ {vnd(SITE_CONFIG.freeshipThresholdVnd)}
+            </li>
+            <li class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-2 text-sm font-semibold text-white">
+              <Icon name="rotate-ccw" class="text-[#FFB15C]" /> Đổi trả 7 ngày
+            </li>
+            <li class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-2 text-sm font-semibold text-white">
+              <Icon name="receipt" class="text-[#FFB15C]" /> Hóa đơn VAT 8%
+            </li>
+          </ul>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-          <button
-            type="button"
-            id="btn-home-bundle-199k"
-            data-cta="bundle-199k"
-            class="min-h-[48px] px-5 py-3 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all"
-          >
-            <Icon name="gift" />
-            <span>Mua Bộ 3 Toàn Gia 199.000 ₫ (Freeship)</span>
-          </button>
+        <!-- Phải: 2 ưu đãi -->
+        <div class="space-y-3">
+          <article class="relative rounded-2xl bg-white p-5 sm:p-6 text-[#0F1638] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]">
+            <span class="absolute -top-3 left-5 inline-flex items-center gap-1.5 rounded-full bg-[#FF8A15] px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-[#0F1638] shadow">
+              <Icon name="gift" /> Bán chạy · Freeship
+            </span>
+            <div class="flex items-start justify-between gap-4 pt-1">
+              <div class="min-w-0">
+                <h2 class="font-montserrat text-lg sm:text-xl font-extrabold">Bộ 3 Toàn Gia</h2>
+                <p class="mt-1 text-sm text-slate-600">{bo3Items.map((i) => i.label).join(" + ")}</p>
+              </div>
+              <p class="shrink-0 text-right">
+                <span class="block font-montserrat text-2xl sm:text-[1.75rem] font-extrabold text-[#C2410C] tabular-nums">{vnd(bo3Total)}</span>
+                <span class="block text-xs font-semibold text-emerald-700">Miễn phí ship {vnd(SITE_CONFIG.flatShippingFeeVnd)}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              id="btn-home-bundle-199k"
+              data-cta="bundle-199k"
+              class="mt-4 min-h-[48px] w-full rounded-xl bg-[#FF8A15] hover:bg-[#E57600] active:scale-[0.99] px-5 py-3 text-sm font-extrabold uppercase tracking-wide text-[#0F1638] flex items-center justify-center gap-2 cursor-pointer transition-[background-color,transform]"
+            >
+              <Icon name="shopping-cart-plus" /> Thêm Bộ 3 vào giỏ
+            </button>
+          </article>
+
+          {comboDoi && (
+            <a
+              href={`/san-pham/${comboDoi.slug}`}
+              class="group flex items-center justify-between gap-4 rounded-2xl border border-white/15 bg-white/[0.07] p-5 hover:bg-white/[0.12] transition-colors"
+            >
+              <div class="min-w-0">
+                <p class="font-montserrat text-base sm:text-lg font-extrabold text-white">Combo Đôi Nhà Sạch</p>
+                <p class="mt-0.5 text-sm text-slate-300">Tẩy cặn canxi + Tẩy dầu mỡ</p>
+              </div>
+              <div class="flex shrink-0 items-center gap-3">
+                <p class="text-right">
+                  <span class="block font-montserrat text-xl font-extrabold text-white tabular-nums">{vnd(comboDoi.price_vnd)}</span>
+                  {comboSaving > 0 && <span class="block text-xs font-semibold text-[#FFB15C]">Tiết kiệm {vnd(comboSaving)}</span>}
+                </p>
+                <Icon name="arrow-right" class="text-lg text-white/70 transition-transform group-hover:translate-x-0.5" />
+              </div>
+            </a>
+          )}
+
           <a
             href="/giai-phap-gara"
-            class="min-h-[48px] px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm uppercase tracking-wide flex items-center justify-center gap-2 transition-all"
+            class="inline-flex min-h-[44px] items-center gap-2 px-1 text-sm font-semibold text-slate-200 hover:text-white underline-offset-4 hover:underline"
           >
-            <Icon name="building-2" />
-            <span>Báo giá sỉ Gara &amp; Solar</span>
+            <Icon name="building-2" /> Mua sỉ cho Gara &amp; Solar: chiết khấu theo bậc
+            <Icon name="arrow-right" />
           </a>
         </div>
       </div>
