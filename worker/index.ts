@@ -9,6 +9,7 @@ import { isUniqueError } from "./lib/db-errors";
 import { availability } from "./admin/inventory";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
+import { handlePancakeWebhook } from "./admin/pancake";
 import "./admin/routes";
 import { runDaily } from "./admin/scheduled";
 import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
@@ -312,6 +313,10 @@ export default {
 
     if (path === "/api/admin" || path.startsWith("/api/admin/")) {
       return handleAdmin(request, env, ctx);
+    }
+
+    if (path === "/api/webhook/pancake") {
+      return handlePancakeWebhook(request, env);
     }
 
     const method = request.method.toUpperCase();
