@@ -11,6 +11,8 @@ import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
 import { handlePancakeWebhook } from "./admin/pancake";
 import { runPancakeSync } from "./admin/pancake-sync";
+import { handleBlogPublic } from "./blog/public";
+import { runBlogDaily } from "./blog/generate";
 
 const PANCAKE_SYNC_CRON = "*/15 * * * *";
 import "./admin/routes";
@@ -302,6 +304,8 @@ export default {
       return;
     }
     ctx.waitUntil(runDaily(env));
+    // Cẩm nang: tự viết 1 bài/ngày bằng Gemini (lỗi không ảnh hưởng việc hằng ngày khác).
+    ctx.waitUntil(runBlogDaily(env).then((r) => console.log("Tự viết bài", JSON.stringify(r))));
   },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -316,6 +320,8 @@ export default {
     }
 
     if (!path.startsWith("/api")) {
+      const blog = await handleBlogPublic(request, env, url, path);
+      if (blog) return blog;
       return env.ASSETS.fetch(request);
     }
 

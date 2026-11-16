@@ -14,3 +14,4 @@ import './reports';
 import './system';
 import './pancake-sync';
 import './pancake-admin';
+import '../blog/admin';

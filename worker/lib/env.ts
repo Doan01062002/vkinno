@@ -15,6 +15,8 @@ export interface Env {
   PANCAKE_WEBHOOK_SECRET?: string;
   /** Khoá Pancake POS Open API (Cấu hình → Ứng dụng → API KEY) cho đối soát + đẩy tồn. */
   PANCAKE_API_KEY?: string;
+  /** Khoá Gemini API (Google AI Studio) cho tự viết bài cẩm nang. */
+  GEMINI_API_KEY?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
   GOOGLE_SCRIPT_WEBHOOK_URL?: string;

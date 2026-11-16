@@ -1,0 +1,18 @@
+---
+// Khung trang danh sách cẩm nang. Worker (worker/blog/public.ts) lấy file build của trang này rồi thay
+// các chuỗi giữ chỗ __VK_*__ bằng dữ liệu bài trong D1. Truy cập trực tiếp /vk-khung/* trả 404.
+import Layout from "../../layouts/Layout.astro";
+import "../../styles/blog.css";
+const schema = "__VK_SCHEMA__" as unknown as Record<string, unknown>;
+---
+
+<Layout
+  title="__VK_TITLE__VKINNO"
+  description="__VK_DESC__"
+  ogImage="https://vkinno.vn/__VK_IMAGE__"
+  canonicalUrl="https://vkinno.vn/__VK_CANONICAL__"
+  type="website"
+  schemaData={schema}
+>
+  <Fragment set:html="<!--__VK_BODY__-->" />
+</Layout>

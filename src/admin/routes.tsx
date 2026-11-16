@@ -4,6 +4,7 @@ import {
   ClipboardList,
   FileText,
   LayoutDashboard,
+  Newspaper,
   Package,
   Settings,
   ShoppingCart,
@@ -13,6 +14,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Blog } from './pages/Blog';
+import { BlogPostEdit } from './pages/BlogPostEdit';
 import { CustomerDetail } from './pages/CustomerDetail';
 import { Customers } from './pages/Customers';
 import { Dashboard } from './pages/Dashboard';
@@ -55,6 +58,7 @@ export const MENU: MenuItem[] = [
   { slug: 'san-pham', label: 'Sản phẩm', icon: Package },
   { slug: 'kho', label: 'Kho', icon: Warehouse },
   { slug: 'nha-cung-cap', label: 'Nhà cung cấp', icon: Building2 },
+  { slug: 'bai-viet', label: 'Bài viết', icon: Newspaper, adminOnly: true },
   { slug: 'bao-cao', label: 'Báo cáo', icon: BarChart3, adminOnly: true },
   { slug: 'cai-dat', label: 'Cài đặt', icon: Settings, adminOnly: true },
 ];
@@ -93,6 +97,7 @@ const SCREENS: Record<string, ReactNode> = {
   'nha-cung-cap': <Suppliers />,
   'bao-gia': <Quotes />,
   'cong-no': <Debts />,
+  'bai-viet': <Blog tab="posts" />,
 };
 
 export const ROUTES: ScreenRoute[] = [
@@ -117,6 +122,9 @@ export const ROUTES: ScreenRoute[] = [
   { path: 'cai-dat/tai-khoan', title: 'Tài khoản', section: 'cai-dat', element: <SettingsPage tab="users" /> },
   { path: 'cai-dat/nhat-ky', title: 'Nhật ký', section: 'cai-dat', element: <SettingsPage tab="audit" /> },
   { path: 'cai-dat/sao-luu', title: 'Sao lưu', section: 'cai-dat', element: <SettingsPage tab="backup" /> },
+  { path: 'bai-viet/chu-de', title: 'Chủ đề chờ viết', section: 'bai-viet', element: <Blog tab="topics" /> },
+  { path: 'bai-viet/tu-dong', title: 'Tự viết bằng AI', section: 'bai-viet', element: <Blog tab="settings" /> },
+  { path: 'bai-viet/:id', title: 'Sửa bài viết', section: 'bai-viet', element: <BlogPostEdit /> },
   { path: 'kho/nhap-xuat-ton', title: 'Nhập-xuất-tồn', section: 'kho', element: <StockMovement /> },
 ];
 

@@ -33,7 +33,7 @@ export default defineConfig({
   integrations: [
     react(),
     sitemap({
-      filter: (page) => !page.includes('/quan-tri'),
+      filter: (page) => !page.includes('/quan-tri') && !page.includes('/vk-khung'),
     }),
   ],
   vite: {
