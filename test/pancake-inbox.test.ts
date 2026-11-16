@@ -19,19 +19,19 @@ function post(body: string, headers: Record<string, string> = { 'X-VK-Key': KEY 
 }
 
 async function inbox(): Promise<{ body: string; content_type: string }[]> {
-  const r = await env.DB.prepare('SELECT body, content_type FROM pancake_inbox ORDER BY id').all<{
+  const r = await env.DB.prepare("SELECT payload_json AS body, 'application/json' AS content_type FROM pancake_events ORDER BY id").all<{
     body: string;
     content_type: string;
   }>();
   return r.results;
 }
 
-describe('POST /api/webhook/pancake (bước 0b: chỉ lưu payload thô)', () => {
+describe('POST /api/webhook/pancake (xác thực + lưu payload thô vào pancake_events)', () => {
   it('đúng khoá → 200 và lưu nguyên văn thân yêu cầu', async () => {
     const body = JSON.stringify({ id: 123, status: 0, shop_id: 101119774, is_from_ecommerce: true });
     const res = await post(body);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ success: true });
+    expect(await res.json()).toMatchObject({ success: true });
     const rows = await inbox();
     expect(rows).toHaveLength(1);
     expect(rows[0].body).toBe(body);

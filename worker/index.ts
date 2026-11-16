@@ -316,7 +316,7 @@ export default {
     }
 
     if (path === "/api/webhook/pancake") {
-      return handlePancakeWebhook(request, env);
+      return handlePancakeWebhook(request, env, ctx);
     }
 
     const method = request.method.toUpperCase();

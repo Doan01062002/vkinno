@@ -208,6 +208,15 @@ Hạ tầng: `POST /api/webhook/pancake` trên staging chỉ kiểm header `X-VK
 - Đơn sàn có bắn webhook giống đơn tạo tay không.
 - Giới hạn đơn của gói miễn phí.
 
+**Đối chiếu tài liệu OpenAPI** (`https://docs.pancake.biz/pos/api/openapi.json`, đọc 16/11/2026): `marketplace_id` là chuỗi (`"-3"` Shopee, `"-9"` TikTok, `"-4"` Lazada, `"-2"` Tiki); có `is_from_ecommerce` (đơn tạo tay không gửi); `items[]` gồm `variation_id`, `quantity`, `discount_each_product`, `is_discount_percent`, `is_bonus_product`, `variation_info{display_id, name, retail_price}`; `GET /shops/{id}/orders` lọc theo `updateStatus` + `startDateTime`/`endDateTime` (unix), phân trang `page_number`/`page_size`. Tài liệu **không** ghi `booking_sn` và không ghi giới hạn gói miễn phí.
+
+**Bước 2 đã làm (16/11/2026), có điều chỉnh so với mục 9 để không phải dựng lại bảng `orders`:**
+- Migration `0005_pancake_events.sql` chỉ thêm `pancake_events` (`result` thêm `RECEIVED`, `NEEDS_ATTENTION`). Chưa đụng `orders`.
+- Đơn Pancake tạo với `source = 'IMPORT'` (cùng cách kiểm tra dễ dãi như nhập file); nguồn Pancake nhận biết qua `pancake_events.order_id`. Cờ "cần xử lý trả hàng" nằm ở `pancake_events.result = 'NEEDS_ATTENTION'` thay vì cột `orders.needs_attention`.
+- Lazada (và sàn khác) → `SKIPPED` "chưa hỗ trợ". Thêm kênh `LAZADA`/nguồn `PANCAKE` vào `orders` để dành cho bước 5 nếu cần.
+- Giá dòng = `retail_price − discount_each_product` (hoặc theo %), quà tặng = 0; `total_discount` và `fee_marketplace` chỉ ghi vào ghi chú đơn `[ASSUMED: total_discount có thể đã gồm giảm giá từng sản phẩm]`.
+- Cài đặt bắt buộc: `pancake.shop_id` (staging đã đặt `101119774`); `pancake.enabled = '0'` → 503.
+
 **Hệ quả cho thiết kế:** vì đơn sửa ghi chú cũng bắn webhook, khoá chống lặp `UNIQUE(pancake_order_id, status, updated_at)` ở mục 8 vẫn đúng nhưng sẽ ghi nhiều sự kiện `SKIPPED`; giữ 90 ngày rồi xoá như đã định.
 
 ## Nguồn
