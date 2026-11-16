@@ -14,10 +14,14 @@ interface Props {
   externalSku: string;
   busy: boolean;
   onMap: (externalSku: string, sku: string) => void;
+  /** Nhãn trước mã cần gán (mặc định "SKU sàn"). */
+  label?: string;
+  /** Dòng mô tả thêm dưới mã (tên sản phẩm trên Pancake…). */
+  hint?: string;
 }
 
 /** Một SKU sàn chưa gán: tìm sản phẩm nội bộ rồi bấm để ánh xạ. */
-export function SkuMapper({ externalSku, busy, onMap }: Props) {
+export function SkuMapper({ externalSku, busy, onMap, label = 'SKU sàn', hint }: Props) {
   const [text, setText] = useState('');
   const q = useDebounced(text.trim(), 250);
   const hits = useQuery({
@@ -29,8 +33,9 @@ export function SkuMapper({ externalSku, busy, onMap }: Props) {
     <li className="space-y-2 px-3 py-3">
       <div className="flex flex-wrap items-center gap-3">
         <p className="min-w-0 flex-1 basis-40 text-sm font-medium text-fg">
-          <span className="text-muted">SKU sàn: </span>
+          <span className="text-muted">{label}: </span>
           {externalSku}
+          {hint && <span className="block text-xs font-normal text-muted">{hint}</span>}
         </p>
         <input
           type="search"

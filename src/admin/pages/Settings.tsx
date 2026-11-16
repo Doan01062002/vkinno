@@ -4,17 +4,19 @@ import { AuditLogs } from './AuditLogs';
 import { BackupPanel } from './settings/BackupPanel';
 import { ColumnMaps } from './settings/ColumnMaps';
 import { CompanyForm } from './settings/CompanyForm';
+import { PancakePanel } from './settings/PancakePanel';
 import { SettingsTabs } from './settings/SettingsTabs';
 import { TelegramForm } from './settings/TelegramForm';
 import { useSettings } from './settings/useSettings';
 import { Users } from './Users';
 
-export type SettingsTab = 'company' | 'telegram' | 'columns' | 'users' | 'audit' | 'backup';
+export type SettingsTab = 'company' | 'telegram' | 'columns' | 'pancake' | 'users' | 'audit' | 'backup';
 
 const TITLES: Record<SettingsTab, string> = {
   company: 'Thông tin công ty và mẫu in',
   telegram: 'Thông báo Telegram',
   columns: 'Ánh xạ cột file sàn',
+  pancake: 'Đơn sàn tự về qua Pancake POS',
   users: 'Tài khoản',
   audit: 'Nhật ký thao tác',
   backup: 'Sao lưu dữ liệu',
@@ -40,6 +42,7 @@ export function Settings({ tab }: { tab: SettingsTab }) {
       {tab === 'company' && settings.data && <CompanyForm settings={settings.data} />}
       {tab === 'telegram' && settings.data && <TelegramForm settings={settings.data} />}
       {tab === 'columns' && settings.data && <ColumnMaps settings={settings.data} />}
+      {tab === 'pancake' && <PancakePanel />}
       {tab === 'users' && <Users />}
       {tab === 'audit' && <AuditLogs />}
       {tab === 'backup' && <BackupPanel />}

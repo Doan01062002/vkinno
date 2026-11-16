@@ -4,6 +4,7 @@ const TABS = [
   { to: '/cai-dat', label: 'Công ty & mẫu in', end: true },
   { to: '/cai-dat/telegram', label: 'Telegram', end: false },
   { to: '/cai-dat/file-san', label: 'File sàn', end: false },
+  { to: '/cai-dat/pancake', label: 'Pancake', end: false },
   { to: '/cai-dat/tai-khoan', label: 'Tài khoản', end: false },
   { to: '/cai-dat/nhat-ky', label: 'Nhật ký', end: false },
   { to: '/cai-dat/sao-luu', label: 'Sao lưu', end: false },
@@ -12,7 +13,7 @@ const TABS = [
 /** Thanh chuyển giữa các màn hình của mục Cài đặt. */
 export function SettingsTabs() {
   return (
-    <nav aria-label="Cài đặt" className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
+    <nav aria-label="Cài đặt" className="mb-4 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line">
       {TABS.map((t) => (
         <NavLink
           key={t.to}

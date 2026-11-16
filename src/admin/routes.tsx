@@ -113,6 +113,7 @@ export const ROUTES: ScreenRoute[] = [
   { path: 'cong-no/:customerId', title: 'Chi tiết công nợ', section: 'cong-no', element: <DebtDetail /> },
   { path: 'cai-dat/telegram', title: 'Telegram', section: 'cai-dat', element: <SettingsPage tab="telegram" /> },
   { path: 'cai-dat/file-san', title: 'File sàn', section: 'cai-dat', element: <SettingsPage tab="columns" /> },
+  { path: 'cai-dat/pancake', title: 'Pancake', section: 'cai-dat', element: <SettingsPage tab="pancake" /> },
   { path: 'cai-dat/tai-khoan', title: 'Tài khoản', section: 'cai-dat', element: <SettingsPage tab="users" /> },
   { path: 'cai-dat/nhat-ky', title: 'Nhật ký', section: 'cai-dat', element: <SettingsPage tab="audit" /> },
   { path: 'cai-dat/sao-luu', title: 'Sao lưu', section: 'cai-dat', element: <SettingsPage tab="backup" /> },

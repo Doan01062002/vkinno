@@ -149,6 +149,9 @@ async function main(): Promise<void> {
     FILES: createMemoryR2(),
     ASSETS: assets,
     ADMIN_SESSION_SECRET: devSecret(),
+    // Tuỳ chọn trong .dev.vars để thử webhook/đồng bộ Pancake trên máy (không bắt buộc).
+    PANCAKE_WEBHOOK_SECRET: process.env.PANCAKE_WEBHOOK_SECRET || undefined,
+    PANCAKE_API_KEY: process.env.PANCAKE_API_KEY || undefined,
   };
 
   const server = createServer(async (req, res) => {

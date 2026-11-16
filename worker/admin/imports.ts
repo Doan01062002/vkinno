@@ -246,8 +246,11 @@ route('POST', '/orders/import', async ({ env, ctx, req, user }) => {
 // Ánh xạ SKU sàn → SKU nội bộ
 // ---------------------------------------------------------------------------
 
+/** Kênh của bảng ánh xạ: hai sàn nhập file + PANCAKE (mã mẫu mã Pancake → SKU, Dự án 1b). */
+const mapChannelSchema = z.enum(['SHOPEE', 'TIKTOK', 'PANCAKE']);
+
 route('GET', '/channel-sku-map', async ({ env, url }) => {
-  const q = parseQuery(url, pageQuerySchema.extend({ channel: channelSchema.optional() }));
+  const q = parseQuery(url, pageQuerySchema.extend({ channel: mapChannelSchema.optional() }));
   const where: string[] = [];
   const binds: unknown[] = [];
   if (q.channel) {
@@ -269,7 +272,7 @@ route('GET', '/channel-sku-map', async ({ env, url }) => {
 });
 
 const skuMapInput = z.object({
-  channel: channelSchema,
+  channel: mapChannelSchema,
   mappings: z
     .array(z.object({ external_sku: z.string().trim().min(1).max(64), sku: z.string().trim().min(1).max(64).nullable() }))
     .min(1)

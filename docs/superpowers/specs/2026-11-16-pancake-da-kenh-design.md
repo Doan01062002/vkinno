@@ -219,6 +219,8 @@ Hạ tầng: `POST /api/webhook/pancake` trên staging chỉ kiểm header `X-VK
 
 **Bước 3 + 4 đã làm (16/11/2026):** `worker/lib/pancake-client.ts` (khoá `api_key` trên query, timeout 10 s, thử lại 1 lần khi 5xx, tối đa 15 trang mỗi lần chạy) và `worker/admin/pancake-sync.ts`. Cron `*/15 * * * *` (và nút `POST /api/admin/pancake/sync`, chỉ ADMIN): đối soát đơn theo `updated_at` từ mốc `pancake.last_reconcile_at − 5 phút` (bị cắt trang thì không dời mốc; lỗi 3 lần liên tiếp → Telegram), rồi đẩy số "có thể bán" (`is_actual_remain_quantity = false`) vào kho `pancake.warehouse_id` (staging: "Kho mặc định" `fc4a49e0-…`), chỉ mẫu mã đổi số (bảng `pancake_stock_push`, migration `0006`). Mẫu mã gán SKU bằng `display_id` = SKU hoặc `channel_sku_map` (`PANCAKE`, theo `variation_id`). Chưa nạp `PANCAKE_API_KEY` → bỏ qua.
 
+**Bước 5 đã làm (16/11/2026):** Cài đặt → **Pancake** (`/quan-tri/cai-dat/pancake`, chỉ ADMIN): tình trạng kết nối + số liệu 7 ngày + nút "Đồng bộ ngay"; "Việc cần xử lý" (Chưa gán SKU / Cần xử lý / Lỗi) với nút "Xử lý lại" và "Đã xử lý" (migration `0007`: `resolved_at`, `resolved_by`); "Mẫu mã Pancake chưa gán SKU" (đọc từ API Pancake, gán vào `channel_sku_map` kênh `PANCAKE`); cấu hình bật/tắt, mã shop, mã kho; nhật ký đồng bộ có lọc. API: `GET /pancake/status`, `PUT /pancake/settings`, `GET /pancake/events`, `POST /pancake/events/:id/retry|resolve`, `GET /pancake/unmapped`. Chưa làm: kênh Lazada và bộ lọc "nguồn Pancake" trong danh sách đơn (chưa nối Lazada; đơn Pancake xem được qua nhật ký).
+
 **Hệ quả cho thiết kế:** vì đơn sửa ghi chú cũng bắn webhook, khoá chống lặp `UNIQUE(pancake_order_id, status, updated_at)` ở mục 8 vẫn đúng nhưng sẽ ghi nhiều sự kiện `SKIPPED`; giữ 90 ngày rồi xoá như đã định.
 
 ## Nguồn

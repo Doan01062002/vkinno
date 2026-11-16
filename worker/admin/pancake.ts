@@ -104,6 +104,19 @@ function targetOf(status: number): Target | null {
   return null;
 }
 
+/** Tên trạng thái Pancake (theo tài liệu OpenAPI, bản tiếng Việt) để ghi vào nhật ký. */
+const PANCAKE_STATUS: Record<number, string> = {
+  0: 'Mới', 17: 'Chờ xác nhận', 11: 'Chờ hàng', 12: 'Chờ in', 13: 'Đã in', 20: 'Đã đặt hàng', 1: 'Đã xác nhận',
+  8: 'Đang đóng hàng', 9: 'Chờ chuyển hàng', 2: 'Đã gửi hàng', 3: 'Đã nhận', 16: 'Đã thu tiền', 4: 'Đang hoàn',
+  15: 'Hoàn một phần', 5: 'Đã hoàn', 6: 'Đã huỷ', 7: 'Đã xoá',
+};
+const pancakeStatus = (n: number) => `"${PANCAKE_STATUS[n] ?? `trạng thái ${n}`}"`;
+/** Trạng thái đơn VKINNO bằng chữ. */
+const VK_STATUS: Record<string, string> = {
+  PENDING: 'chờ xử lý', PACKED: 'đã đóng gói', SHIPPING: 'đang giao', COMPLETED: 'hoàn tất', CANCELLED: 'đã huỷ', RETURNED: 'đã trả hàng',
+};
+const vk = (s: string) => VK_STATUS[s] ?? s;
+
 const RANK: Record<string, number> = { PENDING: 0, PACKED: 1, SHIPPING: 2, COMPLETED: 3 };
 /** Đường đi tiến từ trạng thái hiện tại tới đích, theo bảng chuyển của Dự án 1. */
 const FORWARD: TransitionTarget[] = ['PACKED', 'SHIPPING', 'COMPLETED'];
@@ -218,7 +231,7 @@ async function createFrom(env: Env, o: PancakeOrder, channel: 'SHOPEE' | 'TIKTOK
       },
       { source: 'IMPORT', userId: null, status, createdAt: isoToSql(o.inserted_at) },
     );
-    return { result: 'CREATED', message: `Tạo đơn ${made.order_code} (${status})`, orderId: made.id };
+    return { result: 'CREATED', message: `Tạo đơn ${made.order_code} (${vk(status)})`, orderId: made.id };
   } catch (e) {
     if (e instanceof ApiError && e.code === 'DUPLICATE_ORDER') {
       const existing = await findOrder(env.DB, '', ids);
@@ -243,23 +256,23 @@ async function advance(env: Env, order: { id: number; order_code: string; order_
       alert: `Đơn ${order.order_code}: sàn báo ${label}. Vào quản trị để xử lý trả hàng.`,
     };
   }
-  if (cur === 'CANCELLED' || cur === 'RETURNED') return { ...base, result: 'SKIPPED', message: `Đơn đã ${cur}.` };
+  if (cur === 'CANCELLED' || cur === 'RETURNED') return { ...base, result: 'SKIPPED', message: `Đơn VKINNO đã ${vk(cur)}, không đổi.` };
   if (target === 'CANCELLED') {
     if (cur === 'PENDING' || cur === 'PACKED') {
       await transitionOrder(env, order.id, 'CANCELLED', { userId: null });
-      return { ...base, result: 'UPDATED', message: `${cur} → CANCELLED` };
+      return { ...base, result: 'UPDATED', message: `${vk(cur)} → đã huỷ (trả hàng giữ)` };
     }
     return {
       ...base,
       result: 'NEEDS_ATTENTION',
-      message: `Sàn huỷ đơn nhưng VKINNO đang ${cur}: không tự đổi kho.`,
-      alert: `Đơn ${order.order_code} bị huỷ trên sàn nhưng đã ${cur} trong VKINNO. Vui lòng kiểm tra.`,
+      message: `Sàn huỷ đơn nhưng VKINNO đã ${vk(cur)}: không tự đổi kho.`,
+      alert: `Đơn ${order.order_code} bị huỷ trên sàn nhưng đã ${vk(cur)} trong VKINNO. Vui lòng kiểm tra.`,
     };
   }
-  if (RANK[target] <= RANK[cur]) return { ...base, result: 'SKIPPED', message: `Không lùi ${cur} → ${target}.` };
+  if (RANK[target] <= RANK[cur]) return { ...base, result: 'SKIPPED', message: `Pancake báo ${label}, VKINNO đã ${vk(cur)}: không lùi trạng thái.` };
   const steps = FORWARD.filter((s) => RANK[s] > RANK[cur] && RANK[s] <= RANK[target]);
   for (const s of steps) await transitionOrder(env, order.id, s, { userId: null });
-  return { ...base, result: 'UPDATED', message: `${cur} → ${steps.join(' → ')}` };
+  return { ...base, result: 'UPDATED', message: `${vk(cur)} → ${steps.map(vk).join(' → ')}` };
 }
 
 async function processOrder(env: Env, o: PancakeOrder, key: string): Promise<Outcome> {
@@ -277,10 +290,10 @@ async function processOrder(env: Env, o: PancakeOrder, key: string): Promise<Out
   const existing = await findOrder(env.DB, key, ids);
   if (!existing) {
     if (target === 'PENDING' || target === 'SHIPPING' || target === 'COMPLETED') return createFrom(env, o, channel, target);
-    return { result: 'SKIPPED', message: `Lần đầu thấy đơn ở trạng thái ${o.status}: không tạo.` };
+    return { result: 'SKIPPED', message: `Lần đầu thấy đơn ở trạng thái ${pancakeStatus(o.status)}: không tạo.` };
   }
   try {
-    return await advance(env, existing, target, `trạng thái ${o.status}`);
+    return await advance(env, existing, target, pancakeStatus(o.status));
   } catch (e) {
     if (e instanceof ApiError) {
       return {
@@ -347,6 +360,41 @@ export async function handlePancakeOrder(
     if (ctx) ctx.waitUntil(p);
     else await p;
   }
+  return out;
+}
+
+/**
+ * Xử lý lại một sự kiện đã lưu (nút "Xử lý lại" khi đã gán SKU/nhập thêm hàng): chạy lại từ
+ * `payload_json`, ghi đè kết quả trên chính dòng đó. Không gửi Telegram (người đang xem màn hình).
+ */
+export async function reprocessPancakeEvent(env: Env, eventId: number): Promise<Outcome> {
+  const row = await env.DB.prepare('SELECT pancake_order_id, payload_json FROM pancake_events WHERE id = ?')
+    .bind(eventId)
+    .first<{ pancake_order_id: string; payload_json: string }>();
+  if (!row) throw new ApiError(404, 'NOT_FOUND', 'Không tìm thấy sự kiện.');
+  let out: Outcome;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(row.payload_json);
+  } catch {
+    raw = null;
+  }
+  const parsed = orderSchema.safeParse(raw);
+  if (!parsed.success) {
+    out = { result: 'ERROR', message: 'Payload sai cấu trúc, không xử lý lại được.' };
+  } else {
+    try {
+      out = await processOrder(env, parsed.data, row.pancake_order_id);
+    } catch (e) {
+      console.error('Xử lý lại đơn Pancake lỗi', e);
+      out = { result: 'ERROR', message: 'Lỗi hệ thống khi xử lý đơn.' };
+    }
+  }
+  await env.DB.prepare(
+    "UPDATE pancake_events SET result = ?, message = ?, order_id = ?, resolved_at = CASE WHEN ? IN ('CREATED','UPDATED','SKIPPED') THEN datetime('now') ELSE NULL END WHERE id = ?",
+  )
+    .bind(out.result, out.message.slice(0, 1000), out.orderId ?? null, out.result, eventId)
+    .run();
   return out;
 }
 
