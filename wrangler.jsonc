@@ -25,11 +25,13 @@
         {
           "binding": "DB",
           "database_name": "vkinno-db-staging",
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "31dfb07f-2f06-46e9-b402-39f4dfc1d0e9",
           "migrations_dir": "migrations"
         }
       ],
-      "r2_buckets": [{ "binding": "FILES", "bucket_name": "vkinno-files-staging" }]
+      // Tạm chưa bật R2 trên tài khoản Cloudflare: staging chạy không R2 (upload ảnh + sao lưu tắt).
+      // Bật R2 xong thì khôi phục: [{ "binding": "FILES", "bucket_name": "vkinno-files-staging" }]
+      "r2_buckets": []
     }
   }
 }

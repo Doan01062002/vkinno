@@ -1,6 +1,7 @@
 import { ApiError, ok } from '../lib/http';
 import { auditStmt } from './audit';
 import { route } from './router';
+import { requireFiles } from './scheduled';
 
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 /** Phần dư cho phần đầu/biên của multipart khi kiểm tra Content-Length sớm. */
@@ -51,6 +52,7 @@ async function readBounded(req: Request, limit: number): Promise<Uint8Array> {
 }
 
 route('POST', '/uploads/image', async ({ env, req, user }) => {
+  const files = requireFiles(env);
   if (Number(req.headers.get('Content-Length') || '0') > MAX_IMAGE_BYTES + MULTIPART_OVERHEAD) throw tooLarge();
   let form: FormData;
   try {
@@ -73,7 +75,7 @@ route('POST', '/uploads/image', async ({ env, req, user }) => {
   if (sniff(bytes) !== kind.type) throw unsupported();
 
   const key = `products/${crypto.randomUUID()}.${kind.ext}`;
-  await env.FILES.put(key, bytes, { httpMetadata: { contentType: kind.type } });
+  await files.put(key, bytes, { httpMetadata: { contentType: kind.type } });
   await env.DB.batch([
     auditStmt(env.DB, user.id, 'upload.image', 'file', key, { size: bytes.byteLength, type: kind.type }),
   ]);
@@ -81,7 +83,8 @@ route('POST', '/uploads/image', async ({ env, req, user }) => {
 });
 
 /** Phục vụ công khai ảnh sản phẩm; chỉ khoá `products/` (cùng bucket còn có backups/). */
-export async function serveFile(env: { FILES: R2Bucket }, rawKey: string, method: string): Promise<Response> {
+export async function serveFile(env: { FILES?: R2Bucket }, rawKey: string, method: string): Promise<Response> {
+  if (!env.FILES) return new Response('Not found', { status: 404 });
   let key: string;
   try {
     key = decodeURIComponent(rawKey);

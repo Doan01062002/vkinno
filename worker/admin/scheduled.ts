@@ -1,4 +1,5 @@
 import type { Env } from '../lib/env';
+import { ApiError } from '../lib/http';
 import { sendTelegramAlert } from '../lib/notify';
 import { inventoryAlerts } from './products';
 
@@ -12,6 +13,12 @@ function vnToday(now = Date.now()): string {
   return new Date(now + 7 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
+/** Bucket R2 hoặc lỗi 503 rõ ràng khi môi trường chưa bật R2. */
+export function requireFiles(env: { FILES?: R2Bucket }): R2Bucket {
+  if (!env.FILES) throw new ApiError(503, 'STORAGE_DISABLED', 'Môi trường này chưa bật kho file R2.');
+  return env.FILES;
+}
+
 async function gzip(text: string): Promise<Uint8Array> {
   const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
@@ -20,10 +27,11 @@ async function gzip(text: string): Promise<Uint8Array> {
 /** Xoá các bản `backups/` cũ hơn 90 ngày (bản đúng 90 ngày tuổi còn giữ). Trả số khoá đã xoá. */
 export async function pruneBackups(env: Env, now = Date.now()): Promise<number> {
   const cutoff = Date.parse(`${vnToday(now)}T00:00:00Z`) - BACKUP_KEEP_DAYS * DAY_MS;
+  const files = requireFiles(env);
   const stale: string[] = [];
   let cursor: string | undefined;
   for (;;) {
-    const page = await env.FILES.list({ prefix: BACKUP_PREFIX, cursor });
+    const page = await files.list({ prefix: BACKUP_PREFIX, cursor });
     for (const obj of page.objects) {
       const m = KEY_RE.exec(obj.key);
       if (m && Date.parse(`${m[1]}T00:00:00Z`) < cutoff) stale.push(obj.key);
@@ -31,12 +39,13 @@ export async function pruneBackups(env: Env, now = Date.now()): Promise<number> 
     if (!page.truncated) break;
     cursor = page.cursor;
   }
-  for (let i = 0; i < stale.length; i += 1000) await env.FILES.delete(stale.slice(i, i + 1000));
+  for (let i = 0; i < stale.length; i += 1000) await files.delete(stale.slice(i, i + 1000));
   return stale.length;
 }
 
 /** Sao lưu mọi bảng D1 thành JSON nén gzip vào R2 `backups/YYYY-MM-DD.json.gz`, rồi dọn bản cũ. */
 export async function runBackup(env: Env): Promise<{ key: string; bytes: number }> {
+  const files = requireFiles(env);
   const names = await env.DB.prepare(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND substr(name, 1, 4) <> '_cf_' ORDER BY name",
   ).all<{ name: string }>();
@@ -50,7 +59,7 @@ export async function runBackup(env: Env): Promise<{ key: string; bytes: number 
   });
   const body = await gzip(JSON.stringify({ created_at: new Date().toISOString(), tables: data }));
   const key = `${BACKUP_PREFIX}${vnToday()}.json.gz`;
-  await env.FILES.put(key, body, { httpMetadata: { contentType: 'application/gzip' } });
+  await files.put(key, body, { httpMetadata: { contentType: 'application/gzip' } });
   try {
     await pruneBackups(env);
   } catch (e) {
@@ -117,6 +126,7 @@ async function sendInventoryAlerts(env: Env): Promise<void> {
 
 /** Bản sao lưu mới nhất (`backups/YYYY-MM-DD.json.gz`, ngày lớn nhất) hoặc null khi chưa có. */
 export async function latestBackup(env: Env): Promise<{ key: string; uploaded: string; size: number } | null> {
+  if (!env.FILES) return null;
   let best: R2Object | null = null;
   let cursor: string | undefined;
   for (;;) {
@@ -135,6 +145,7 @@ export async function latestBackup(env: Env): Promise<{ key: string; uploaded: s
  * quá CPU, không kịp báo lỗi) → báo Telegram. Cài mới chưa có bản nào thì bỏ qua.
  */
 async function checkYesterdayBackup(env: Env, now = Date.now()): Promise<void> {
+  if (!env.FILES) return;
   const any = await env.FILES.list({ prefix: BACKUP_PREFIX, limit: 1 });
   if (any.objects.length === 0) return;
   const day = vnToday(now - DAY_MS);
@@ -169,6 +180,10 @@ export async function runDaily(env: Env): Promise<void> {
     await checkYesterdayBackup(env);
   } catch (e) {
     console.error('Kiểm tra bản sao lưu hôm qua thất bại', e);
+  }
+  if (!env.FILES) {
+    console.warn('Bỏ qua sao lưu hằng ngày: môi trường chưa bật R2');
+    return;
   }
   try {
     await runBackup(env);
