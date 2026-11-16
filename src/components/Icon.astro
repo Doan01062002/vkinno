@@ -1,0 +1,13 @@
+---
+// Icon SVG inline (Lucide), cỡ 1em: class text-* quyết định cỡ, class màu quyết định màu.
+import { svg, type IconName } from "../shared/icons";
+
+interface Props {
+  name: IconName;
+  class?: string;
+}
+
+const { name, class: cls = "" } = Astro.props;
+---
+
+<Fragment set:html={svg(name, cls)} />
