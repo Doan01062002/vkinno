@@ -22,6 +22,13 @@ export interface Product {
   id: number;
   name: string;
   slug: string;
+  /**
+   * Tiêu đề SEO 45–60 ký tự (đã chứa "VKINNO" nên SEOHead không nối đuôi).
+   * Có thể chứa biến giá {price}, {bo3}, {combo_saving}…: src/data/seo.ts thay bằng giá định dạng lúc build.
+   */
+  seo_title?: string;
+  /** Meta description 140–160 ký tự sau khi ghép giá (test/seo.test.ts kiểm). Cùng quy ước biến như seo_title. */
+  meta_description?: string;
   sku: string;
   brand: string;
   category_id: number;

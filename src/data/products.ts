@@ -5,6 +5,9 @@ export const products: Product[] = [
     id: 1,
     name: "Dung dịch vệ sinh tấm pin mặt trời Solar Shield đậm đặc can 5L tặng kèm bình xịt",
     slug: "dung-dich-ve-sinh-tam-pin-mat-troi-solar-shield-dam-dac-giup-tang-hieu-suat-dien-tang-kem-binh-xit",
+    seo_title: "Dung dịch vệ sinh tấm pin mặt trời Solar Shield 5L | VKINNO",
+    meta_description:
+      "Solar Shield can 5L đậm đặc, pha 1:20–1:30, pH trung tính, an toàn lớp phủ ARC và khung nhôm. Giá {price} đã gồm VAT, tặng bình xịt 500ml, freeship.",
     sku: "VK-SOLAR-SHIELD-5L",
     brand: "VKINNO",
     category_id: 1,
@@ -74,6 +77,9 @@ export const products: Product[] = [
     id: 3,
     name: "Chai xịt rỗng 500ml bình xịt nhựa PET dày phun sương có khóa an toàn",
     slug: "bo-chai-xit-500ml-phun-suong",
+    seo_title: "Bình xịt phun sương 500ml nhựa PET dày, có khóa | VKINNO",
+    meta_description:
+      "Chai xịt rỗng 500ml nhựa PET nguyên sinh, cò xịt kháng hóa chất pH 3–10.5, 2 chế độ phun sương và tia thẳng, có khóa OFF. Giá {price}, mua kèm can 5L.",
     sku: "VK-BOTTLE-SPRAY-500ML",
     brand: "VKINNO",
     category_id: 2,
@@ -132,6 +138,9 @@ export const products: Product[] = [
     id: 4,
     name: "Nước lau kính đa năng ClearWay GlassPro can 5L dùng ngay tặng kèm bình xịt",
     slug: "nuoc-lau-kinh-lam-sach-cuc-sau-khong-de-lai-vet-mo-can-5l-tang-kem-binh-xit-clearway-glasspro",
+    seo_title: "Nước lau kính can 5L ClearWay, tặng bình xịt | VKINNO",
+    meta_description:
+      "ClearWay GlassPro can 5L dùng ngay không cần pha, không Amoniac, không Methanol, khô trong 10–15 giây. Giá {price} đã gồm VAT, tặng kèm bình xịt 500ml.",
     sku: "VK-CLEARWAY-GLASSPRO-5L",
     brand: "ClearWay (by VKINNO)",
     category_id: 1,
@@ -195,6 +204,9 @@ export const products: Product[] = [
     id: 5,
     name: "Nước lau kính ClearWay GlassPro 500ml sạch trong không vệt cho kính nhà & văn phòng",
     slug: "nuoc-lau-kinh-clearway-glasspro-500ml-sach-nhanh-khong-vet-sang-bong-kinh-nha-van-phong",
+    seo_title: "Nước lau kính 500ml ClearWay không vệt mờ, {price} | VKINNO",
+    meta_description:
+      "Chai xịt lau kính ClearWay 500ml cho gương, cửa sổ, bàn kính: khô nhanh, không mùi Amoniac, pH trung tính. Giá {price}, ghép Bộ 3 Toàn Gia {bo3} để freeship.",
     sku: "VK-CLEARWAY-GLASSPRO-500ML",
     brand: "VKINNO",
     category_id: 1,
@@ -257,6 +269,9 @@ export const products: Product[] = [
     id: 6,
     name: "Chai xịt tẩy cặn canxi 500ml Bossman làm sạch vách kính nhà tắm và sen vòi inox",
     slug: "chai-xit-tay-can-canxi-500ml-an-toan-cho-da-tay-dung-dich-tay-can-canxi-lam-sach-voi-sen-va-nha-tam",
+    seo_title: "Tẩy cặn canxi kính nhà tắm, vòi sen Bossman 500ml | VKINNO",
+    meta_description:
+      "Bossman 500ml gốc acid hữu cơ, không HCl/HF: xịt, ủ 5–15 phút là cặn vôi trên vách kính, sen vòi Chrome, Inox 304 mềm ra dễ lau. Giá {price} đã gồm VAT.",
     sku: "VK-BOSSMAN-DESCALER-500ML",
     brand: "BOSSMAN (by VKINNO)",
     category_id: 1,
@@ -323,6 +338,9 @@ export const products: Product[] = [
     id: 7,
     name: "Chai xịt tẩy ố kính ô tô, logo mạ Chrome và màng dầu kính lái VisionX Clean 500ml",
     slug: "chai-xit-tay-rua-vet-o-kinh-logo-o-to-va-mang-dau-kinh-xit-lam-sach-sau-tiet-kiem-visionx-clean",
+    seo_title: "Tẩy ố kính ô tô, màng dầu kính lái VisionX 500ml | VKINNO",
+    meta_description:
+      "VisionX Clean 500ml xử lý đốm ố nước mưa, màng dầu gây lóa đèn ban đêm và làm sáng logo Chrome. Không chứa HF, tự làm tại nhà. Giá {price} đã gồm VAT.",
     sku: "VK-VISIONX-CLEAN-500ML",
     brand: "VKINNO",
     category_id: 3,
@@ -384,6 +402,9 @@ export const products: Product[] = [
     id: 9,
     name: "Nước rửa kính ô tô chuyên dụng ClearWay can 5L đổ bình gạt mưa sạch trong êm lưỡi gạt",
     slug: "nuoc-rua-kinh-o-to-chuyen-dung-clearway-chong-bam-nuoc-sach-sau-an-toan-voi-can-gat-va-be-mat-kinh",
+    seo_title: "Nước rửa kính ô tô can 5L không Methanol | VKINNO",
+    meta_description:
+      "ClearWay can 5L đổ thẳng bình gạt mưa, không pha thêm nước. Nền nước Deion hạn chế tắc béc phun, gạt êm không kêu rít, không Methanol. Giá {price} có VAT.",
     sku: "VK-CLEARWAY-AUTO-5L",
     brand: "VKINNO",
     category_id: 3,
@@ -446,6 +467,9 @@ export const products: Product[] = [
     id: 10,
     name: "Chai xịt tẩy dầu mỡ đa năng VKINNO 500ml chuyên dụng cho bếp từ và lưới lọc hút mùi",
     slug: "tay-dau-mo-da-nang-cao-cap-vkinno-500ml-chuyen-dung-cho-bep-tu-bep-hong-ngoai-an-toan-be-mat-bep",
+    seo_title: "Tẩy dầu mỡ bếp từ, lưới máy hút mùi chai 500ml | VKINNO",
+    meta_description:
+      "Chai xịt bọt tẩy dầu mỡ 500ml không xút NaOH, không làm sùi đen lưới nhôm hút mùi, dùng được trên mặt kính bếp từ đã nguội. Hương chanh. Giá {price} có VAT.",
     sku: "VK-DEGREASER-500ML",
     brand: "VKINNO",
     category_id: 1,
@@ -513,6 +537,9 @@ export const products: Product[] = [
     id: 11,
     name: "Combo Nhà tắm & Nhà bếp sạch sâu: Chai tẩy cặn canxi Bossman 500ml + Tẩy dầu mỡ VKINNO 500ml",
     slug: "combo-chai-xit-tay-can-canxi-500ml-va-chai-tay-dau-mo-an-toan-da-tay-cong-thuc-moi-sach-vuot-troi---combobossmanvkinno-1782568108",
+    seo_title: "Combo tẩy cặn canxi + tẩy dầu mỡ bếp {price} | VKINNO",
+    meta_description:
+      "Combo Đôi Nhà Sạch: Bossman 500ml tẩy cặn canxi nhà tắm + VKINNO 500ml tẩy dầu mỡ bếp. Giá {price}, rẻ hơn mua lẻ {combo_saving}. Thêm chai lau kính để freeship.",
     sku: "VK-COMBO-BOSSMAN-VKINNO-500ML",
     brand: "VKINNO",
     category_id: 1,
