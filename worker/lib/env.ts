@@ -13,6 +13,8 @@ export interface Env {
   SEPAY_WEBHOOK_API_KEY?: string;
   /** Giá trị header `X-VK-Key` mà webhook Pancake POS phải gửi kèm. */
   PANCAKE_WEBHOOK_SECRET?: string;
+  /** Khoá Pancake POS Open API (Cấu hình → Ứng dụng → API KEY) cho đối soát + đẩy tồn. */
+  PANCAKE_API_KEY?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
   GOOGLE_SCRIPT_WEBHOOK_URL?: string;

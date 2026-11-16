@@ -18,7 +18,8 @@
     }
   ],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "vkinno-files" }],
-  "triggers": { "crons": ["0 19 * * *"] },
+  // "0 19 * * *" = 02:00 giờ VN: việc hằng ngày; "*/15 * * * *": đối soát đơn + đẩy tồn Pancake.
+  "triggers": { "crons": ["0 19 * * *", "*/15 * * * *"] },
   "env": {
     "staging": {
       "d1_databases": [

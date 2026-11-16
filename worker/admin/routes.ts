@@ -12,3 +12,4 @@ import './debts';
 import './imports';
 import './reports';
 import './system';
+import './pancake-sync';

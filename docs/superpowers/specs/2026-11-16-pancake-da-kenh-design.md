@@ -217,6 +217,8 @@ Hạ tầng: `POST /api/webhook/pancake` trên staging chỉ kiểm header `X-VK
 - Giá dòng = `retail_price − discount_each_product` (hoặc theo %), quà tặng = 0; `total_discount` và `fee_marketplace` chỉ ghi vào ghi chú đơn `[ASSUMED: total_discount có thể đã gồm giảm giá từng sản phẩm]`.
 - Cài đặt bắt buộc: `pancake.shop_id` (staging đã đặt `101119774`); `pancake.enabled = '0'` → 503.
 
+**Bước 3 + 4 đã làm (16/11/2026):** `worker/lib/pancake-client.ts` (khoá `api_key` trên query, timeout 10 s, thử lại 1 lần khi 5xx, tối đa 15 trang mỗi lần chạy) và `worker/admin/pancake-sync.ts`. Cron `*/15 * * * *` (và nút `POST /api/admin/pancake/sync`, chỉ ADMIN): đối soát đơn theo `updated_at` từ mốc `pancake.last_reconcile_at − 5 phút` (bị cắt trang thì không dời mốc; lỗi 3 lần liên tiếp → Telegram), rồi đẩy số "có thể bán" (`is_actual_remain_quantity = false`) vào kho `pancake.warehouse_id` (staging: "Kho mặc định" `fc4a49e0-…`), chỉ mẫu mã đổi số (bảng `pancake_stock_push`, migration `0006`). Mẫu mã gán SKU bằng `display_id` = SKU hoặc `channel_sku_map` (`PANCAKE`, theo `variation_id`). Chưa nạp `PANCAKE_API_KEY` → bỏ qua.
+
 **Hệ quả cho thiết kế:** vì đơn sửa ghi chú cũng bắn webhook, khoá chống lặp `UNIQUE(pancake_order_id, status, updated_at)` ở mục 8 vẫn đúng nhưng sẽ ghi nhiều sự kiện `SKIPPED`; giữ 90 ngày rồi xoá như đã định.
 
 ## Nguồn

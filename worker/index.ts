@@ -10,6 +10,9 @@ import { availability } from "./admin/inventory";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
 import { handlePancakeWebhook } from "./admin/pancake";
+import { runPancakeSync } from "./admin/pancake-sync";
+
+const PANCAKE_SYNC_CRON = "*/15 * * * *";
 import "./admin/routes";
 import { runDaily } from "./admin/scheduled";
 import { sendTelegramAlert, syncToGoogleSheetsRealtime } from "./lib/notify";
@@ -292,7 +295,12 @@ async function serveAdminShell(request: Request, env: Env, url: URL, path: strin
 }
 
 export default {
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    // "*/15 * * * *": đối soát đơn + đẩy tồn Pancake; lịch còn lại ("0 19 * * *"): việc hằng ngày.
+    if (event.cron === PANCAKE_SYNC_CRON) {
+      ctx.waitUntil(runPancakeSync(env).then((r) => console.log("Đồng bộ Pancake", JSON.stringify(r))));
+      return;
+    }
     ctx.waitUntil(runDaily(env));
   },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
