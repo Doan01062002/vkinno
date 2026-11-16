@@ -42,6 +42,8 @@ export interface Product {
   is_new: number;
   is_bestseller: number;
   is_combo?: boolean;
+  /** Video quay thực tế cách dùng (public/videos/), hiện ở trang sản phẩm. */
+  demo_video?: DemoVideoData;
   bom_skus?: string[];
   image_url: string;
   volume_ml: number;
@@ -57,4 +59,15 @@ export interface Product {
   target_segments: string[];
   usage_instructions: string[];
   certifications?: string[];
+}
+
+/** Video minh hoạ thực tế: bản ngắn không tiếng tự phát + bản đầy đủ có tiếng + ảnh trước/sau. */
+export interface DemoVideoData {
+  title: string;
+  caption: string;
+  shortSrc: string;
+  fullSrc: string;
+  fullLabel: string;
+  beforeImg: string;
+  afterImg: string;
 }

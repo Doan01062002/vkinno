@@ -4,6 +4,8 @@ import { SITE_CONFIG } from "../data/siteConfig";
 import Breadcrumb from "../components/Breadcrumb.astro";
 import HeroVisual from "../components/HeroVisual.astro";
 import Icon from "../components/Icon.astro";
+import DemoVideo from "../components/DemoVideo.astro";
+import { BOSSMAN_DEMO } from "../data/products";
 import { pageSeo } from "../data/seo";
 
 const seo = pageSeo("/bossman-creator/");
@@ -116,6 +118,14 @@ const seo = pageSeo("/bossman-creator/");
           </div>
         </div>
       </div>
+
+      <!-- Video mẫu cho KOC: cùng video thật của trang sản phẩm Bossman -->
+      <DemoVideo
+        {...BOSSMAN_DEMO}
+        title="Video mẫu: tẩy cặn vòi lavabo bằng Bossman"
+        caption="Tham khảo cách quay: cận cảnh vết cặn trước, thao tác xịt và chải, rồi kết quả sau khi xả nước. KOC tự quay trên vết bẩn thật tại nhà mình."
+        class="max-w-5xl mx-auto"
+      />
 
       <!-- KOC Registration Form -->
       <div id="dang-ky-koc" class="max-w-3xl mx-auto bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-6 sm:p-10 space-y-6">

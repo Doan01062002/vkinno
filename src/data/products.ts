@@ -1,4 +1,15 @@
-import type { Product } from "../types";
+import type { DemoVideoData, Product } from "../types";
+
+/** Video quay thật: tẩy cặn canxi vòi lavabo bằng Bossman 500ml (nguồn: video trên web cũ vkinno.vn, đã nén). */
+export const BOSSMAN_DEMO: DemoVideoData = {
+  title: "Tẩy cặn canxi vòi lavabo bằng Bossman",
+  caption: "Xịt Bossman lên vòi bám cặn, để dung dịch ngấm theo hướng dẫn trên nhãn, chải nhẹ bằng bàn chải mềm rồi xả lại bằng nước sạch.",
+  shortSrc: "/videos/bossman-tay-can-voi-sen-15s.mp4",
+  fullSrc: "/videos/bossman-tay-can-voi-sen.mp4",
+  fullLabel: "Xem video đầy đủ 2 phút (có tiếng)",
+  beforeImg: "/videos/bossman-tay-can-voi-sen-truoc.jpg",
+  afterImg: "/videos/bossman-tay-can-voi-sen-poster.jpg",
+};
 
 export const products: Product[] = [
   {
@@ -269,6 +280,7 @@ export const products: Product[] = [
     id: 6,
     name: "Chai xịt tẩy cặn canxi 500ml Bossman làm sạch vách kính nhà tắm và sen vòi inox",
     slug: "chai-xit-tay-can-canxi-500ml-an-toan-cho-da-tay-dung-dich-tay-can-canxi-lam-sach-voi-sen-va-nha-tam",
+    demo_video: BOSSMAN_DEMO,
     seo_title: "Tẩy cặn canxi kính nhà tắm, vòi sen Bossman 500ml | VKINNO",
     meta_description:
       "Bossman 500ml gốc acid hữu cơ, không HCl/HF: xịt, ủ 5–15 phút là cặn vôi trên vách kính, sen vòi Chrome, Inox 304 mềm ra dễ lau. Giá {price} đã gồm VAT.",
@@ -537,6 +549,7 @@ export const products: Product[] = [
     id: 11,
     name: "Combo Nhà tắm & Nhà bếp sạch sâu: Chai tẩy cặn canxi Bossman 500ml + Tẩy dầu mỡ VKINNO 500ml",
     slug: "combo-chai-xit-tay-can-canxi-500ml-va-chai-tay-dau-mo-an-toan-da-tay-cong-thuc-moi-sach-vuot-troi---combobossmanvkinno-1782568108",
+    demo_video: BOSSMAN_DEMO,
     seo_title: "Combo tẩy cặn canxi + tẩy dầu mỡ bếp {price} | VKINNO",
     meta_description:
       "Combo Đôi Nhà Sạch: Bossman 500ml tẩy cặn canxi nhà tắm + VKINNO 500ml tẩy dầu mỡ bếp. Giá {price}, rẻ hơn mua lẻ {combo_saving}. Thêm chai lau kính để freeship.",

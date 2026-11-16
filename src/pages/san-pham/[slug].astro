@@ -6,6 +6,7 @@ import Icon from "../../components/Icon.astro";
 import { productSeo } from "../../data/seo";
 import { products } from "../../data/products";
 import { SITE_CONFIG } from "../../data/siteConfig";
+import DemoVideo from "../../components/DemoVideo.astro";
 
 export function getStaticPaths() {
   return products.map((product) => ({
@@ -310,6 +311,9 @@ const productSchema = {
         )}
       </div>
     )}
+
+    <!-- Video quay thực tế (nếu sản phẩm có) -->
+    {product.demo_video && <DemoVideo {...product.demo_video} />}
 
     <!-- Product Description & Specs Tabs -->
     <div class="bg-white p-6 sm:p-8 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-6">

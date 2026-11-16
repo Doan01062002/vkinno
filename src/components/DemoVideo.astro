@@ -1,0 +1,134 @@
+---
+// Video quay thật cách dùng sản phẩm: bản ngắn không tiếng tự phát khi cuộn tới (chỉ tải lúc đó),
+// nút xem bản đầy đủ có tiếng (chỉ tải khi bấm). Ảnh Trước / Sau đặt cạnh để xem nhanh không cần phát.
+import Icon from "./Icon.astro";
+
+interface Props {
+  title: string;
+  caption: string;
+  shortSrc: string;
+  fullSrc: string;
+  fullLabel: string;
+  beforeImg: string;
+  afterImg: string;
+  beforeLabel?: string;
+  afterLabel?: string;
+  class?: string;
+}
+const {
+  title,
+  caption,
+  shortSrc,
+  fullSrc,
+  fullLabel,
+  beforeImg,
+  afterImg,
+  beforeLabel = "Trước khi tẩy",
+  afterLabel = "Sau khi tẩy",
+  class: cls = "",
+} = Astro.props;
+---
+
+<section
+  class={`rounded-3xl border border-[#E2E8F0] bg-white p-5 sm:p-8 ${cls}`}
+  aria-label={title}
+  data-demo-video
+>
+  <div class="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,300px)] md:gap-10">
+    <div class="order-2 md:order-1">
+      <p class="inline-flex items-center gap-2 rounded-full bg-[#FFF4E8] px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-[#A84B00]">
+        <Icon name="circle-check" /> Video quay thực tế
+      </p>
+      <h2 class="mt-3 font-montserrat text-xl sm:text-2xl font-extrabold text-[#0F172A]">{title}</h2>
+      <p class="mt-2 text-base leading-relaxed text-[#475569]">{caption}</p>
+
+      <div class="mt-5 grid max-w-md grid-cols-2 gap-3">
+        <figure class="overflow-hidden rounded-2xl border border-[#E2E8F0]">
+          <img src={beforeImg} alt={`${title}: ${beforeLabel.toLowerCase()}`} width="480" height="854" loading="lazy" decoding="async" class="aspect-square w-full object-cover" />
+          <figcaption class="bg-[#F8FAFC] px-3 py-2 text-sm font-bold text-[#64748B]">{beforeLabel}</figcaption>
+        </figure>
+        <figure class="overflow-hidden rounded-2xl border border-[#BBF7D0]">
+          <img src={afterImg} alt={`${title}: ${afterLabel.toLowerCase()}`} width="480" height="854" loading="lazy" decoding="async" class="aspect-square w-full object-cover" />
+          <figcaption class="bg-[#F0FDF4] px-3 py-2 text-sm font-bold text-[#047857]">{afterLabel}</figcaption>
+        </figure>
+      </div>
+
+      <button
+        type="button"
+        data-demo-full
+        class="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#1E2B6B] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#151E4B] cursor-pointer transition-colors sm:w-auto"
+      >
+        <Icon name="circle-play" /> {fullLabel}
+      </button>
+    </div>
+
+    <div class="order-1 md:order-2">
+      <div class="relative mx-auto w-full max-w-[260px] md:max-w-none overflow-hidden rounded-[2rem] border-[6px] border-[#0F172A] bg-[#0F172A] shadow-[0_25px_50px_-20px_rgba(15,23,42,0.6)]">
+        <video
+          class="block aspect-[9/16] w-full object-cover"
+          data-short={shortSrc}
+          data-full={fullSrc}
+          poster={afterImg}
+          muted
+          loop
+          playsinline
+          preload="none"
+          aria-label={`${title}: video minh hoạ`}
+        ></video>
+        <button
+          type="button"
+          data-demo-play
+          class="absolute inset-0 flex items-center justify-center bg-black/25 text-white cursor-pointer"
+          aria-label="Phát video ngắn"
+        >
+          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-[#0F172A] shadow-lg">
+            <Icon name="play" class="text-2xl" />
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  document.querySelectorAll<HTMLElement>("[data-demo-video]").forEach((box) => {
+    const video = box.querySelector<HTMLVideoElement>("video");
+    const playBtn = box.querySelector<HTMLButtonElement>("[data-demo-play]");
+    const fullBtn = box.querySelector<HTMLButtonElement>("[data-demo-full]");
+    if (!video) return;
+    let full = false;
+
+    const playShort = () => {
+      if (full) return;
+      if (!video.src) video.src = video.dataset.short || "";
+      video.play().then(() => playBtn?.classList.add("hidden")).catch(() => playBtn?.classList.remove("hidden"));
+    };
+
+    playBtn?.addEventListener("click", () => (full ? video.play() : playShort()));
+
+    fullBtn?.addEventListener("click", () => {
+      full = true;
+      video.src = video.dataset.full || "";
+      video.loop = false;
+      video.muted = false;
+      video.controls = true;
+      playBtn?.classList.add("hidden");
+      video.play().catch(() => {});
+      video.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+    });
+
+    if (reduce || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) playShort();
+          else if (!full) video.pause();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(video);
+  });
+</script>
