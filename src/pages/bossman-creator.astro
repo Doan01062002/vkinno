@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { SITE_CONFIG } from "../data/siteConfig";
 import Breadcrumb from "../components/Breadcrumb.astro";
+import HeroVisual from "../components/HeroVisual.astro";
 import Icon from "../components/Icon.astro";
 import { pageSeo } from "../data/seo";
 
@@ -15,32 +16,42 @@ const seo = pageSeo("/bossman-creator/");
       <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-5">
         <Breadcrumb tone="dark" items={[{ label: "Trang chủ", href: "/" }, { label: "Hợp tác KOC & Affiliate" }]} />
 
-        <div class="max-w-3xl space-y-4">
-          <div class="inline-flex flex-wrap items-center gap-2">
-            <span class="px-3 py-1 rounded-full bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold uppercase">
-              VKINNO Creator Program
-            </span>
-            <span class="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-slate-100 text-xs font-semibold">
-              Minh bạch #TiepThiLienKet · Luật Quảng cáo 75/2025/QH15
-            </span>
-          </div>
+        <div class="grid items-center gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
+          <div class="max-w-3xl space-y-4">
+            <div class="inline-flex flex-wrap items-center gap-2">
+              <span class="px-3 py-1 rounded-full bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold uppercase">
+                VKINNO Creator Program
+              </span>
+              <span class="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-slate-100 text-xs font-semibold">
+                Minh bạch #TiepThiLienKet · Luật Quảng cáo 75/2025/QH15
+              </span>
+            </div>
 
-          <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold font-montserrat leading-[1.3]">
-            ĐỒNG HÀNH CÙNG BOSSMAN &amp; VKINNO REVIEW THẬT TẠI NHÀ
-          </h1>
-          <p class="text-sm sm:text-base text-slate-200 leading-relaxed">
-            Dành cho các nhà sáng tạo nội dung Mẹo dọn nhà, Chăm sóc gia đình và Chăm xe trên TikTok, Shopee Video, Facebook Reels: nhận bộ sản phẩm trải nghiệm thực tế từ kho Vĩnh Khang và hoa hồng tiếp thị liên kết minh bạch.
-          </p>
+            <h1 class="text-2xl sm:text-4xl lg:text-[2.5rem] xl:text-5xl font-extrabold font-montserrat leading-[1.3]">
+              ĐỒNG HÀNH CÙNG BOSSMAN &amp; VKINNO REVIEW THẬT TẠI NHÀ
+            </h1>
+            <p class="text-sm sm:text-base text-slate-200 leading-relaxed">
+              Dành cho các nhà sáng tạo nội dung Mẹo dọn nhà, Chăm sóc gia đình và Chăm xe trên TikTok, Shopee Video, Facebook Reels: nhận bộ sản phẩm trải nghiệm thực tế từ kho Vĩnh Khang và hoa hồng tiếp thị liên kết minh bạch.
+            </p>
 
-          <div class="pt-2 flex flex-wrap items-center gap-3">
-            <a
-              href="#dang-ky-koc"
-              data-cta="koc-register-hero"
-              class="min-h-[48px] px-6 py-3.5 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center shadow-md"
-            >
-              Đăng Ký Nhận Bộ Mẫu Trải Nghiệm →
-            </a>
+            <div class="pt-2 flex flex-wrap items-center gap-3">
+              <a
+                href="#dang-ky-koc"
+                data-cta="koc-register-hero"
+                class="min-h-[48px] px-6 py-3.5 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center shadow-md"
+              >
+                Đăng Ký Nhận Bộ Mẫu Trải Nghiệm →
+              </a>
+            </div>
           </div>
+          <HeroVisual
+            photo="/images/blog/blog-nha-tam.jpg"
+            photoAlt="Vách kính nhà tắm sạch cặn canxi"
+            chips={[
+              { src: "/images/products/vk-bossman-descaler-500ml.jpg", alt: "Chai tẩy cặn canxi Bossman 500ml", label: "Bossman 500ml", sub: "Mẫu dùng thử cho KOC" },
+              { src: "/images/products/vk-combo-bossman-vkinno-500ml.jpg", alt: "Combo Bossman và tẩy dầu mỡ VKINNO", label: "Combo Đôi Nhà Sạch", sub: "Hoa hồng theo đơn" },
+            ]}
+          />
         </div>
       </div>
     </section>

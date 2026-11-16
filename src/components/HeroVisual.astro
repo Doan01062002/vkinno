@@ -1,0 +1,53 @@
+---
+// Ảnh minh hoạ cho phần đầu trang có nền tối: ảnh bo góc lớn + tối đa 2 thẻ sản phẩm nổi.
+// Desktop: cột phải của lưới 2 cột. Mobile: nằm dưới khối chữ, thẻ thứ 2 ẩn cho gọn.
+interface Chip {
+  src: string;
+  alt: string;
+  label: string;
+  sub?: string;
+}
+interface Props {
+  photo: string;
+  photoAlt: string;
+  chips?: Chip[];
+  class?: string;
+}
+const { photo, photoAlt, chips = [], class: cls = "" } = Astro.props;
+const [first, second] = chips;
+---
+
+<div class={`relative mx-auto mt-2 mb-6 w-full max-w-lg lg:my-0 lg:max-w-none ${cls}`}>
+  <div class="relative overflow-hidden rounded-3xl ring-1 ring-white/15 shadow-[0_30px_60px_-25px_rgba(0,0,0,0.75)]">
+    <img
+      src={photo}
+      alt={photoAlt}
+      width="600"
+      height="400"
+      loading="eager"
+      decoding="async"
+      class="block aspect-[16/10] w-full object-cover lg:aspect-[5/4]"
+    />
+    <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-t from-[#0F1638]/60 via-[#0F1638]/5 to-transparent"></div>
+  </div>
+
+  {first && (
+    <div class="absolute -bottom-5 left-3 flex max-w-[85%] items-center gap-3 rounded-2xl bg-white p-2.5 pr-4 text-[#0F1638] shadow-xl sm:-left-5">
+      <img src={first.src} alt={first.alt} width="56" height="56" loading="lazy" decoding="async" class="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14" />
+      <div class="min-w-0">
+        <p class="truncate text-sm font-extrabold leading-tight">{first.label}</p>
+        {first.sub && <p class="truncate text-xs text-slate-500">{first.sub}</p>}
+      </div>
+    </div>
+  )}
+
+  {second && (
+    <div class="absolute -top-5 right-3 hidden max-w-[70%] items-center gap-3 rounded-2xl bg-white p-2.5 pr-4 text-[#0F1638] shadow-xl sm:flex sm:-right-5">
+      <img src={second.src} alt={second.alt} width="56" height="56" loading="lazy" decoding="async" class="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14" />
+      <div class="min-w-0">
+        <p class="truncate text-sm font-extrabold leading-tight">{second.label}</p>
+        {second.sub && <p class="truncate text-xs text-slate-500">{second.sub}</p>}
+      </div>
+    </div>
+  )}
+</div>

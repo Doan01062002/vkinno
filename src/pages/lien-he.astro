@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { SITE_CONFIG } from "../data/siteConfig";
 import Breadcrumb from "../components/Breadcrumb.astro";
+import HeroVisual from "../components/HeroVisual.astro";
 import Icon from "../components/Icon.astro";
 import { pageSeo } from "../data/seo";
 
@@ -15,16 +16,26 @@ const seo = pageSeo("/lien-he/");
       <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10 space-y-4">
         <Breadcrumb tone="dark" items={[{ label: "Trang chủ", href: "/" }, { label: "Liên hệ" }]} />
 
-        <div class="max-w-3xl space-y-3">
-          <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
-            Hỗ trợ trực tiếp từ kho Vĩnh Khang
-          </span>
-          <h1 class="text-2xl sm:text-4xl font-extrabold uppercase tracking-wide font-montserrat">
-            LIÊN HỆ VỚI VKINNO
-          </h1>
-          <p class="text-sm text-slate-200 font-medium leading-relaxed max-w-2xl">
-            Cần tư vấn cách xử lý vết cặn canxi, dầu mỡ nhà bếp hay nhận bảng chiết khấu sỉ can 5L xuất hóa đơn VAT 8%? Đội ngũ kỹ thuật kho VKINNO luôn sẵn sàng hỗ trợ.
-          </p>
+        <div class="grid items-center gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
+          <div class="max-w-3xl space-y-3">
+            <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
+              Hỗ trợ trực tiếp từ kho Vĩnh Khang
+            </span>
+            <h1 class="text-2xl sm:text-4xl font-extrabold uppercase tracking-wide font-montserrat">
+              LIÊN HỆ VỚI VKINNO
+            </h1>
+            <p class="text-sm text-slate-200 font-medium leading-relaxed max-w-2xl">
+              Cần tư vấn cách xử lý vết cặn canxi, dầu mỡ nhà bếp hay nhận bảng chiết khấu sỉ can 5L xuất hóa đơn VAT 8%? Đội ngũ kỹ thuật kho VKINNO luôn sẵn sàng hỗ trợ.
+            </p>
+          </div>
+          <HeroVisual
+          class="lg:max-w-sm lg:ml-auto"
+            photo="/images/blog/cat-tay-rua.jpg"
+            photoAlt="Tư vấn chọn chất tẩy rửa phù hợp bề mặt"
+            chips={[
+              { src: "/images/products/vk-clearway-glasspro-500ml.jpg", alt: "Nước lau kính ClearWay 500ml", label: "Tư vấn đúng sản phẩm", sub: "Gửi ảnh vết bẩn qua Zalo" },
+            ]}
+          />
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { SITE_CONFIG } from "../data/siteConfig";
 import Breadcrumb from "../components/Breadcrumb.astro";
+import HeroVisual from "../components/HeroVisual.astro";
 import Icon from "../components/Icon.astro";
 import { pageSeo } from "../data/seo";
 
@@ -15,17 +16,27 @@ const seo = pageSeo("/gioi-thieu/");
       <div class="max-w-7xl mx-auto px-4 sm:px-8 relative z-10">
         <Breadcrumb tone="dark" class="mb-6" items={[{ label: "Trang chủ", href: "/" }, { label: "Giới thiệu" }]} />
 
-        <div class="max-w-3xl space-y-5">
-          <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
-            Pháp nhân chính danh MST {SITE_CONFIG.taxId}
-          </span>
-          <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold uppercase tracking-wide leading-[1.3] font-montserrat">
-            GIẢI PHÁP LÀM SẠCH CHUYÊN DỤNG <br class="hidden sm:inline" />
-            <span class="text-[#FF8A15]">CHUẨN KỸ THUẬT &amp; MINH BẠCH</span>
-          </h1>
-          <p class="text-sm sm:text-base text-slate-200 font-medium leading-relaxed max-w-2xl">
-            Được phát triển bởi <strong>{SITE_CONFIG.legalName}</strong>, VKINNO tập trung giải quyết bài toán làm sạch cặn khoáng nước cứng, dầu mỡ nhà bếp, kính ô tô và tấm pin năng lượng mặt trời phù hợp điều kiện khí hậu và nguồn nước tại Việt Nam.
-          </p>
+        <div class="grid items-center gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
+          <div class="max-w-3xl space-y-5">
+            <span class="inline-block bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold tracking-wider uppercase px-3 py-1 rounded-full font-montserrat">
+              Pháp nhân chính danh MST {SITE_CONFIG.taxId}
+            </span>
+            <h1 class="text-2xl sm:text-4xl lg:text-[2.5rem] xl:text-5xl font-extrabold uppercase tracking-wide leading-[1.3] font-montserrat">
+              GIẢI PHÁP LÀM SẠCH CHUYÊN DỤNG <br class="hidden sm:inline" />
+              <span class="text-[#FF8A15]">CHUẨN KỸ THUẬT &amp; MINH BẠCH</span>
+            </h1>
+            <p class="text-sm sm:text-base text-slate-200 font-medium leading-relaxed max-w-2xl">
+              Được phát triển bởi <strong>{SITE_CONFIG.legalName}</strong>, VKINNO tập trung giải quyết bài toán làm sạch cặn khoáng nước cứng, dầu mỡ nhà bếp, kính ô tô và tấm pin năng lượng mặt trời phù hợp điều kiện khí hậu và nguồn nước tại Việt Nam.
+            </p>
+          </div>
+          <HeroVisual
+            photo="/assets/expert_rd.jpg"
+            photoAlt="Pha chế và kiểm tra dung dịch làm sạch"
+            chips={[
+              { src: "/images/products/vk-degreaser-500ml.jpg", alt: "Chai xịt tẩy dầu mỡ VKINNO 500ml", label: "Nền nước Deion", sub: "Công thức theo nước cứng VN" },
+              { src: "/images/products/vk-bossman-descaler-500ml.jpg", alt: "Chai tẩy cặn canxi Bossman 500ml", label: "9 sản phẩm", sub: "Đủ hướng dẫn sử dụng" },
+            ]}
+          />
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { SITE_CONFIG } from "../data/siteConfig";
 import Breadcrumb from "../components/Breadcrumb.astro";
+import HeroVisual from "../components/HeroVisual.astro";
 import { pageSeo } from "../data/seo";
 
 const seo = pageSeo("/giai-phap-gara/");
@@ -57,32 +58,42 @@ const wholesaleTiers = [
         items={[{ label: "Trang chủ", href: "/" }, { label: "Giải pháp Gara & Điện mặt trời B2B" }]}
       />
 
-      <div class="max-w-3xl space-y-4">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[#FF8A15] text-xs font-extrabold uppercase tracking-wider">
-          • CHÍNH SÁCH SỈ PHÁP NHÂN TNHH VĨNH KHANG (VAT 8%) •
-        </div>
-        <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold font-montserrat tracking-tight leading-[1.3] text-white">
-          GIẢI PHÁP HÓA CHẤT CAN 5L CHO GARA Ô TÔ &amp; NHÀ THẦU ĐIỆN MẶT TRỜI
-        </h1>
-        <p class="text-slate-100 text-sm sm:text-base leading-relaxed">
-          Chiết khấu bậc thang <strong>20% – 30% – 40% tính trực tiếp trên giá bán lẻ hiện hành</strong>. Công thức can 5L đậm đặc pha 1:20 đến 1:30 trên nền nước khử khoáng Deion giúp tối ưu chi phí vật tư, an toàn cho bề mặt sơn xe, lưỡi gạt mưa cao su và lớp phủ chống phản xạ ARC của tấm pin mặt trời khi pha đúng hướng dẫn.
-        </p>
+      <div class="grid items-center gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
+        <div class="max-w-3xl space-y-4">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[#FF8A15] text-xs font-extrabold uppercase tracking-wider">
+            • CHÍNH SÁCH SỈ PHÁP NHÂN TNHH VĨNH KHANG (VAT 8%) •
+          </div>
+          <h1 class="text-2xl sm:text-4xl lg:text-[2.5rem] xl:text-5xl font-extrabold font-montserrat tracking-tight leading-[1.3] text-white">
+            GIẢI PHÁP HÓA CHẤT CAN 5L CHO GARA Ô TÔ &amp; NHÀ THẦU ĐIỆN MẶT TRỜI
+          </h1>
+          <p class="text-slate-100 text-sm sm:text-base leading-relaxed">
+            Chiết khấu bậc thang <strong>20% – 30% – 40% tính trực tiếp trên giá bán lẻ hiện hành</strong>. Công thức can 5L đậm đặc pha 1:20 đến 1:30 trên nền nước khử khoáng Deion giúp tối ưu chi phí vật tư, an toàn cho bề mặt sơn xe, lưỡi gạt mưa cao su và lớp phủ chống phản xạ ARC của tấm pin mặt trời khi pha đúng hướng dẫn.
+          </p>
 
-        <div class="pt-2 flex flex-wrap items-center gap-3">
-          <a
-            href="#dang-ky-dai-ly"
-            data-cta="b2b-hero-quote"
-            class="min-h-[48px] px-6 py-3.5 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center transition shadow-lg"
-          >
-            Nhận Báo Giá Sỉ &amp; Tách VAT 8% →
-          </a>
-          <a
-            href={`tel:${SITE_CONFIG.hotlinePrimaryTel}`}
-            class="min-h-[48px] px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center transition tabular-nums"
-          >
-            Hotline Sỉ &amp; Dự Án: {SITE_CONFIG.hotlinePrimary}
-          </a>
+          <div class="pt-2 flex flex-wrap items-center gap-3">
+            <a
+              href="#dang-ky-dai-ly"
+              data-cta="b2b-hero-quote"
+              class="min-h-[48px] px-6 py-3.5 rounded-xl bg-[#FF8A15] hover:bg-[#E57600] text-[#0F1638] font-extrabold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center transition shadow-lg"
+            >
+              Nhận Báo Giá Sỉ &amp; Tách VAT 8% →
+            </a>
+            <a
+              href={`tel:${SITE_CONFIG.hotlinePrimaryTel}`}
+              class="min-h-[48px] px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center transition tabular-nums"
+            >
+              Hotline Sỉ &amp; Dự Án: {SITE_CONFIG.hotlinePrimary}
+            </a>
+          </div>
         </div>
+        <HeroVisual
+          photo="/assets/expert_solar.jpg"
+          photoAlt="Hệ thống tấm pin năng lượng mặt trời cần vệ sinh định kỳ"
+          chips={[
+            { src: "/images/products/vk-solar-shield-5l.jpg", alt: "Can Solar Shield 5L", label: "Solar Shield 5L", sub: "Vệ sinh tấm pin, pha 1:20" },
+            { src: "/images/products/vk-clearway-auto-5l.jpg", alt: "Can nước rửa kính ô tô ClearWay 5L", label: "ClearWay Can 5L", sub: "Cho gara rửa xe" },
+          ]}
+        />
       </div>
     </div>
   </section>
