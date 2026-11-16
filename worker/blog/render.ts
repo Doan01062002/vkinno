@@ -1,6 +1,7 @@
 // Dựng HTML cho cẩm nang (thân trang bài, danh sách, thẻ bài, JSON-LD, sitemap, robots).
 // Khung trang (head, header, footer) do Astro build ở /vk-khung/*; file này chỉ dựng phần ruột.
 import { products } from '../../src/data/products';
+import { svg } from '../../src/shared/icons';
 import { addHeadingIds, esc, jsonForScript, labelTableCells, stripTags } from './html';
 import { parseJsonArray, sqlToIso, type BlogPostRow, type FaqItem, type SourceItem } from './store';
 
@@ -107,7 +108,7 @@ export function postCard(post: BlogPostRow): string {
     </div>
     <h2 class="vk-post-card__title"><a href="${href}">${esc(post.title)}</a></h2>
     <p class="vk-post-card__summary">${esc(post.summary)}</p>
-    <a href="${href}" class="vk-post-card__more">Đọc hướng dẫn <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></a>
+    <a href="${href}" class="vk-post-card__more">Đọc hướng dẫn ${svg('move-right')}</a>
   </div>
 </article>`;
 }
@@ -200,18 +201,18 @@ export function renderPostBody(
       <h1>${esc(post.title)}</h1>
       <p class="vk-post-hero__summary">${esc(post.summary)}</p>
       <div class="vk-post-hero__meta">
-        <span><i class="fa-solid fa-user-gear" aria-hidden="true"></i> ${esc(opts.author)}</span>
-        <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> <time datetime="${sqlToIso(
+        <span>${svg('user-cog')} ${esc(opts.author)}</span>
+        <span>${svg('calendar')} <time datetime="${sqlToIso(
           post.published_at || post.created_at,
         )}">${published}</time></span>
         ${
           showUpdated
-            ? `<span><i class="fa-solid fa-rotate" aria-hidden="true"></i> Cập nhật <time datetime="${sqlToIso(
+            ? `<span>${svg('rotate-cw')} Cập nhật <time datetime="${sqlToIso(
                 post.updated_at,
               )}">${updated}</time></span>`
             : ''
         }
-        <span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${minutes} phút đọc</span>
+        <span>${svg('clock')} ${minutes} phút đọc</span>
       </div>
     </header>
 
@@ -228,12 +229,12 @@ export function renderPostBody(
         ${tocHtml ? `<div class="vk-toc-mobile">${tocHtml}</div>` : ''}
         ${html}
         ${faqHtml}
-        ${post.origin === 'ai' ? `<p class="vk-ai-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> ${esc(AI_NOTE)}</p>` : ''}
+        ${post.origin === 'ai' ? `<p class="vk-ai-note">${svg('info')} ${esc(AI_NOTE)}</p>` : ''}
         <div class="vk-post-share">
-          <a href="${BLOG_PATH}" class="vk-link-back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Tất cả bài viết</a>
+          <a href="${BLOG_PATH}" class="vk-link-back">${svg('arrow-left')} Tất cả bài viết</a>
           <a class="vk-share-btn" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
             postUrl(post.slug),
-          )}" target="_blank" rel="noopener noreferrer" aria-label="Chia sẻ bài viết lên Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
+          )}" target="_blank" rel="noopener noreferrer" aria-label="Chia sẻ bài viết lên Facebook">${svg('facebook')}</a>
         </div>
       </article>
       <div class="vk-post-aside">
