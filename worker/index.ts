@@ -10,6 +10,7 @@ import { availability } from "./admin/inventory";
 import { handleAdmin } from "./admin/router";
 import { serveFile } from "./admin/uploads";
 import { handlePancakeWebhook } from "./admin/pancake";
+import { withByteRange } from "./lib/range";
 import { runPancakeSync } from "./admin/pancake-sync";
 import { handleBlogPublic } from "./blog/public";
 import { runBlogDaily } from "./blog/generate";
@@ -313,6 +314,12 @@ export default {
 
     if (path.startsWith("/files/") && (request.method === "GET" || request.method === "HEAD")) {
       return serveFile(env, path.slice("/files/".length), request.method);
+    }
+
+    // Video tĩnh: Static Assets không trả 206, Safari/iPhone cần Range mới phát được <video>.
+    if (path.startsWith("/videos/") && (request.method === "GET" || request.method === "HEAD")) {
+      const asset = await env.ASSETS.fetch(new Request(url.toString(), { method: "GET" }));
+      return withByteRange(request, asset);
     }
 
     if (path === "/quan-tri" || path.startsWith("/quan-tri/")) {
