@@ -115,18 +115,7 @@ const adsId = SITE_CONFIG.googleAdsId;
   rel="stylesheet"
 />
 
-<!-- FontAwesome 6: trang của Astro đã chuyển hết sang SVG (src/shared/icons.ts); chỉ còn trang Cẩm nang do Worker dựng dùng 8 icon FA. -->
-<!-- TODO: gỡ sau khi worker/blog/render.ts chuyển sang svg() (spec V10.6/V10.7). -->
-<!-- Nạp không chặn hiển thị (media=print rồi đổi sang all); font FA chỉ tải khi trang thật sự dùng icon FA. -->
-<link
-  rel="stylesheet"
-  media="print"
-  onload="this.media='all'"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
-  crossorigin="anonymous"
-  referrerpolicy="no-referrer"
-/>
+<!-- Icon: SVG inline (src/shared/icons.ts) cho cả trang Astro lẫn Cẩm nang do Worker dựng; đã bỏ Font Awesome CDN (spec V10.7). -->
 
 <!-- Schema.org JSON-LD -->
 <script type="application/ld+json" set:html={JSON.stringify(defaultOrgSchema)} />
