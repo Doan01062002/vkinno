@@ -1,5 +1,6 @@
 ---
 import type { Product } from "../types";
+import Icon from "./Icon.astro";
 
 interface Props {
   product: Product;
@@ -27,7 +28,7 @@ const discountPercent =
       </span>
     )}
     {product.is_combo && (
-      <span class="absolute top-3 right-3 bg-[#FF8A15] text-[#0F1638] text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-full z-10 shadow-xs">
+      <span class="absolute top-3 right-3 bg-[#FF8A15] text-[#0F1638] text-xs font-extrabold uppercase px-2.5 py-1 rounded-full z-10 shadow-xs">
         Combo Tiết Kiệm
       </span>
     )}
@@ -84,7 +85,7 @@ const discountPercent =
         data-slug={product.slug}
         class="w-full min-h-[44px] px-3 py-2 rounded-xl bg-[#F3F6FC] hover:bg-[#FF8A15] text-[#1E2B6B] hover:text-[#0F1638] font-display font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer border border-slate-200 hover:border-[#FF8A15]"
       >
-        <i class="fa-solid fa-cart-plus" aria-hidden="true"></i>
+        <Icon name="shopping-cart-plus" class="text-sm [stroke-width:2.25]" />
         <span>Thêm vào giỏ</span>
       </button>
     </div>

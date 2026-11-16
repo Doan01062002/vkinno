@@ -8,6 +8,8 @@ interface Props {
   canonicalUrl?: string;
   type?: "website" | "article" | "product";
   noindex?: boolean;
+  /** Ghi đè nội dung meta robots mà không tắt GTM (vd. "noindex, follow" cho giỏ hàng/thanh toán/tài khoản). */
+  robots?: string;
   schema?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
@@ -18,8 +20,15 @@ const {
   canonicalUrl = Astro.url.href,
   type = "website",
   noindex = false,
+  robots,
   schema,
 } = Astro.props;
+
+const robotsContent =
+  robots ??
+  (noindex
+    ? "noindex, nofollow"
+    : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
 
 const siteTitle = title.includes("VKINNO")
   ? title
@@ -68,7 +77,7 @@ const adsId = SITE_CONFIG.googleAdsId;
 ---
 
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 <meta name="theme-color" content="#1E2B6B" />
@@ -78,14 +87,7 @@ const adsId = SITE_CONFIG.googleAdsId;
 <title>{siteTitle}</title>
 <meta name="title" content={siteTitle} />
 <meta name="description" content={description} />
-<meta
-  name="robots"
-  content={
-    noindex
-      ? "noindex, nofollow"
-      : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
-  }
-/>
+<meta name="robots" content={robotsContent} />
 
 <!-- Open Graph / Zalo / Facebook (1200x630) -->
 <meta property="og:type" content={type} />
@@ -105,17 +107,21 @@ const adsId = SITE_CONFIG.googleAdsId;
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={resolvedOgImage} />
 
-<!-- Google Fonts: Be Vietnam Pro & Inter (Vietnamese subset) -->
+<!-- Google Fonts: Be Vietnam Pro 700/800 + Inter 400–700 (Google tự chia file theo unicode-range, gồm tiếng Việt) -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
-  href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap&subset=vietnamese"
+  href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@700;800&family=Inter:wght@400;500;600;700&display=swap"
   rel="stylesheet"
 />
 
-<!-- FontAwesome 6 Icons -->
+<!-- FontAwesome 6: trang của Astro đã chuyển hết sang SVG (src/shared/icons.ts); chỉ còn trang Cẩm nang do Worker dựng dùng 8 icon FA. -->
+<!-- TODO: gỡ sau khi worker/blog/render.ts chuyển sang svg() (spec V10.6/V10.7). -->
+<!-- Nạp không chặn hiển thị (media=print rồi đổi sang all); font FA chỉ tải khi trang thật sự dùng icon FA. -->
 <link
   rel="stylesheet"
+  media="print"
+  onload="this.media='all'"
   href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
   integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
   crossorigin="anonymous"

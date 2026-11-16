@@ -4,6 +4,8 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { products } from "../data/products";
 import { SITE_CONFIG } from "../data/siteConfig";
+import Icon from "../components/Icon.astro";
+import { svg } from "../shared/icons";
 import "../styles/global.css";
 
 interface Props {
@@ -13,6 +15,9 @@ interface Props {
   canonicalUrl?: string;
   type?: "website" | "article" | "product";
   noindex?: boolean;
+  /** Ghi đè nội dung thẻ meta robots (vd. "noindex, follow" cho giỏ hàng/thanh toán); vẫn giữ GTM. */
+  robots?: string;
+  /** @deprecated Từ đợt nâng cấp 11/2026 nút Zalo nổi luôn ẩn dưới 1024px (tab Zalo ở thanh đáy); prop không còn tác dụng. */
   hideFloatingZaloOnMobile?: boolean;
   schemaData?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
@@ -24,7 +29,7 @@ const {
   canonicalUrl,
   type = "website",
   noindex = false,
-  hideFloatingZaloOnMobile = false,
+  robots,
   schemaData,
 } = Astro.props;
 
@@ -40,10 +45,18 @@ const searchCatalog = products.map((p) => ({
   brand: p.brand || "VKINNO",
   is_combo: !!p.is_combo,
 }));
+
+// Icon dựng sẵn ở server, chèn vào chuỗi HTML do script ngăn giỏ sinh ra.
+const ICON_SVG = {
+  toastCheck: svg("circle-check", "text-[#FF8A15] text-base"),
+  freeshipCheck: svg("circle-check"),
+  emptyBasket: svg("shopping-basket", "text-3xl text-slate-300"),
+  trash: svg("trash-2", "text-sm"),
+};
 ---
 
 <!doctype html>
-<html lang="vi" class="h-full scroll-smooth">
+<html lang="vi" class="scroll-smooth">
   <head>
     <SEOHead
       title={title}
@@ -52,11 +65,12 @@ const searchCatalog = products.map((p) => ({
       canonicalUrl={canonicalUrl}
       type={type}
       noindex={noindex}
+      robots={robots}
       schema={schemaData}
     />
   </head>
 
-  <body class="has-storefront-shell h-full bg-[#F8FAFC] text-[#1E293B] font-inter antialiased overflow-x-hidden flex flex-col justify-between">
+  <body class="has-storefront-shell min-h-dvh bg-[#F8FAFC] text-[#1E293B] font-inter antialiased flex flex-col">
     <Header />
 
     <main class="flex-grow" id="site-main">
@@ -65,42 +79,40 @@ const searchCatalog = products.map((p) => ({
 
     <Footer />
 
-    <!-- Floating Zalo Direct Support Pill (Hidden on mobile conversion pages to prevent CTA overlap) -->
+    <!-- Nút Zalo nổi chỉ hiện từ 1024px; dưới 1024px Zalo là tab giữa của thanh đáy (spec V3) -->
     <a
       href={SITE_CONFIG.zaloUrl}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Nhắn Zalo tư vấn kỹ thuật VKINNO"
-      class={`${
-        hideFloatingZaloOnMobile ? "hidden lg:inline-flex" : "inline-flex"
-      } fixed right-4 bottom-[76px] lg:bottom-6 lg:right-6 z-[130] items-center gap-2 px-4 min-h-[46px] rounded-full bg-[#0052CC] hover:bg-blue-700 text-white font-display font-bold text-xs shadow-lg transition-transform hover:scale-105`}
+      class="hidden lg:inline-flex fixed lg:bottom-6 lg:right-6 z-[130] items-center gap-2 px-4 min-h-[46px] rounded-full bg-[#0052CC] hover:bg-blue-700 text-white font-display font-bold text-xs shadow-lg transition-transform hover:scale-105"
     >
-      <i class="fa-solid fa-comment-dots text-base" aria-hidden="true"></i>
+      <Icon name="message-circle-more" class="text-base" />
       <span>Zalo Tư Vấn</span>
     </a>
 
     <!-- ==================== SLIDE-OVER CART DRAWER ==================== -->
     <div class="cart-drawer-backdrop" id="cart-backdrop"></div>
-    <aside class="cart-drawer" id="cart-drawer" aria-label="Giỏ hàng của bạn">
+    <aside class="cart-drawer" id="cart-drawer" aria-label="Giỏ hàng của bạn" aria-hidden="true" inert>
       <div class="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white">
         <div class="flex items-center space-x-2.5">
           <div class="w-9 h-9 rounded-xl bg-[#1E2B6B] text-white flex items-center justify-center font-bold">
-            <i class="fa-solid fa-basket-shopping text-sm" aria-hidden="true"></i>
+            <Icon name="shopping-basket" class="text-sm [stroke-width:2.25]" />
           </div>
           <div>
             <h2 class="text-sm font-extrabold text-slate-900 uppercase tracking-wide font-display">
               Giỏ hàng của bạn
             </h2>
-            <p class="text-xs text-slate-500 font-medium">Freeship toàn quốc từ 199.000 ₫</p>
+            <p class="text-sm text-slate-500 font-medium">Freeship toàn quốc từ 199.000 ₫</p>
           </div>
         </div>
         <button
           aria-label="Đóng giỏ hàng"
-          class="text-slate-600 hover:text-slate-900 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+          class="text-slate-600 hover:text-slate-900 size-11 flex items-center justify-center rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
           id="cart-drawer-close"
           type="button"
         >
-          <i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i>
+          <Icon name="x" class="text-lg" />
         </button>
       </div>
 
@@ -133,14 +145,14 @@ const searchCatalog = products.map((p) => ({
             id="cart-checkout-btn"
           >
             <span>Thanh toán</span>
-            <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
+            <Icon name="arrow-right" class="text-xs [stroke-width:2.25]" />
           </button>
         </div>
       </div>
     </aside>
 
     <!-- Global Cart & Live Catalog Sync Script -->
-    <script is:inline define:vars={{ searchCatalog }}>
+    <script is:inline define:vars={{ searchCatalog, ICON_SVG }}>
       const FREESHIP_THRESHOLD = 199000;
       const FLAT_SHIPPING = 25000;
 
@@ -186,8 +198,10 @@ const searchCatalog = products.map((p) => ({
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
         const s = document.createElement("div");
         s.className =
-          "app-toast fixed top-20 right-4 z-[260] bg-[#0F1638] text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold border border-white/15 max-w-sm";
-        s.innerHTML = `<i class="fa-solid fa-circle-check text-[#FF8A15] text-base shrink-0"></i><span></span>`;
+          "app-toast fixed top-20 right-4 left-4 sm:left-auto z-[260] bg-[#0F1638] text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-sm font-semibold border border-white/15 sm:max-w-sm";
+        s.setAttribute("role", "status");
+        s.setAttribute("aria-live", "polite");
+        s.innerHTML = `${ICON_SVG.toastCheck}<span></span>`;
         s.querySelector("span").textContent = msg;
         document.body.appendChild(s);
         setTimeout(() => {
@@ -237,7 +251,7 @@ const searchCatalog = products.map((p) => ({
             <div class="flex items-center justify-between font-semibold text-slate-700">
               <span>🚚 Đơn từ <strong class="text-[#1E2B6B]">199.000 ₫</strong> miễn phí giao hàng toàn quốc</span>
             </div>
-            <button type="button" onclick="window.vkinnoApplyBo3ToanGia()" class="w-full min-h-[40px] px-3 py-2 rounded-xl bg-white border border-[#1E2B6B]/20 hover:border-[#FF8A15] text-[#1E2B6B] font-display font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+            <button type="button" onclick="window.vkinnoApplyBo3ToanGia()" class="w-full min-h-11 px-3 py-2 rounded-xl bg-white border border-[#1E2B6B]/20 hover:border-[#FF8A15] text-[#1E2B6B] font-display font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
               <span>⚡ Chọn nhanh Bộ 3 Toàn Gia 199.000 ₫ (Đủ Freeship)</span>
             </button>
           `;
@@ -246,7 +260,7 @@ const searchCatalog = products.map((p) => ({
         if (subtotal >= FREESHIP_THRESHOLD) {
           box.innerHTML = `
             <div class="flex items-center gap-2 text-[#047857] font-bold">
-              <i class="fa-solid fa-circle-check"></i>
+              ${ICON_SVG.freeshipCheck}
               <span>Tuyệt vời! Đơn hàng đã được MIỄN PHÍ VẬN CHUYỂN (tiết kiệm 25.000 ₫)</span>
             </div>
             <div class="w-full h-2 bg-emerald-100 rounded-full overflow-hidden">
@@ -265,13 +279,13 @@ const searchCatalog = products.map((p) => ({
             <div class="h-full bg-[#FF8A15] rounded-full transition-all" style="width: ${pct}%"></div>
           </div>
           <div class="pt-1 flex flex-wrap gap-1.5">
-            <button type="button" onclick="window.vkinnoApplyBo3ToanGia()" class="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-lg bg-[#FF8A15] text-[#0F1638] font-display font-bold text-[11px] cursor-pointer">
+            <button type="button" onclick="window.vkinnoApplyBo3ToanGia()" class="flex-1 min-h-11 px-2.5 py-1.5 rounded-lg bg-[#FF8A15] text-[#0F1638] font-display font-bold text-xs cursor-pointer">
               ⚡ Bộ 3 Toàn Gia 199k (Freeship)
             </button>
-            <button type="button" onclick="window.vkinnoQuickAddSku('VK-CLEARWAY-GLASSPRO-500ML', 1)" class="min-h-[38px] px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-[11px] cursor-pointer">
+            <button type="button" onclick="window.vkinnoQuickAddSku('VK-CLEARWAY-GLASSPRO-500ML', 1)" class="min-h-11 px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-xs cursor-pointer">
               + Lau kính 45k
             </button>
-            <button type="button" onclick="window.vkinnoQuickAddSku('VK-BOTTLE-SPRAY-500ML', 1)" class="min-h-[38px] px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-[11px] cursor-pointer">
+            <button type="button" onclick="window.vkinnoQuickAddSku('VK-BOTTLE-SPRAY-500ML', 1)" class="min-h-11 px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 font-bold text-xs cursor-pointer">
               + Bình xịt 19k
             </button>
           </div>
@@ -323,9 +337,9 @@ const searchCatalog = products.map((p) => ({
         if (cart.length === 0) {
           container.innerHTML = `
             <div class="text-center py-10 text-slate-500 space-y-3">
-              <i class="fa-solid fa-basket-shopping text-3xl text-slate-300"></i>
-              <p class="text-xs font-semibold">Giỏ hàng của bạn đang trống</p>
-              <a href="/san-pham" class="inline-flex items-center justify-center min-h-[42px] px-4 py-2 bg-[#1E2B6B] text-white text-xs font-display font-bold rounded-xl hover:bg-[#151E4B]">
+              ${ICON_SVG.emptyBasket}
+              <p class="text-sm font-semibold">Giỏ hàng của bạn đang trống</p>
+              <a href="/san-pham" class="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-[#1E2B6B] text-white text-xs font-display font-bold rounded-xl hover:bg-[#151E4B]">
                 Xem 9 sản phẩm VKINNO
               </a>
             </div>
@@ -339,16 +353,16 @@ const searchCatalog = products.map((p) => ({
           <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
             <img src="${item.image || "/logo.png"}" alt="${item.name}" width="56" height="56" class="w-14 h-14 object-cover rounded-lg bg-slate-50 shrink-0 border border-slate-200" />
             <div class="flex-1 min-w-0">
-              <h3 class="text-xs font-bold text-slate-900 line-clamp-2">${item.name}</h3>
-              <p class="text-xs font-extrabold text-[#C81E1E] mt-0.5 tabular-nums">${Number(item.price).toLocaleString("vi-VN")} ₫</p>
-              <div class="flex items-center space-x-2 mt-1.5">
-                <button type="button" aria-label="Giảm số lượng" onclick="window.vkinnoUpdateCartQty(${idx}, -1)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-sm font-bold text-slate-800 cursor-pointer">−</button>
-                <span class="text-xs font-bold text-slate-900 min-w-[20px] text-center tabular-nums">${item.quantity}</span>
-                <button type="button" aria-label="Tăng số lượng" onclick="window.vkinnoUpdateCartQty(${idx}, 1)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-sm font-bold text-slate-800 cursor-pointer">+</button>
+              <h3 class="text-sm font-bold text-slate-900 line-clamp-2">${item.name}</h3>
+              <p class="text-sm font-extrabold text-[#C81E1E] mt-0.5 tabular-nums">${Number(item.price).toLocaleString("vi-VN")} ₫</p>
+              <div class="flex items-center gap-1.5 mt-1">
+                <button type="button" aria-label="Giảm số lượng" onclick="window.vkinnoUpdateCartQty(${idx}, -1)" class="size-11 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-base font-bold text-slate-800 cursor-pointer">−</button>
+                <span class="text-sm font-bold text-slate-900 min-w-6 text-center tabular-nums">${item.quantity}</span>
+                <button type="button" aria-label="Tăng số lượng" onclick="window.vkinnoUpdateCartQty(${idx}, 1)" class="size-11 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-base font-bold text-slate-800 cursor-pointer">+</button>
               </div>
             </div>
-            <button type="button" aria-label="Xóa khỏi giỏ" onclick="window.vkinnoRemoveCartItem(${idx})" class="text-slate-500 hover:text-[#C81E1E] w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors cursor-pointer" title="Xóa">
-              <i class="fa-solid fa-trash-can text-xs"></i>
+            <button type="button" aria-label="Xóa khỏi giỏ" onclick="window.vkinnoRemoveCartItem(${idx})" class="text-slate-500 hover:text-[#C81E1E] size-11 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors cursor-pointer shrink-0" title="Xóa">
+              ${ICON_SVG.trash}
             </button>
           </div>
         `
@@ -366,14 +380,18 @@ const searchCatalog = products.map((p) => ({
         if (!drawer || !backdrop) return;
         backdrop.classList.add("active");
         drawer.classList.add("active");
-        document.body.style.overflow = "hidden";
+        drawer.removeAttribute("aria-hidden");
+        drawer.inert = false;
+        document.documentElement.style.overflow = "hidden";
       }
 
       function closeCartDrawer() {
         if (!drawer || !backdrop) return;
         backdrop.classList.remove("active");
         drawer.classList.remove("active");
-        document.body.style.overflow = "";
+        drawer.setAttribute("aria-hidden", "true");
+        drawer.inert = true;
+        document.documentElement.style.overflow = "";
       }
 
       window.vkinnoOpenCartDrawer = openCartDrawer;

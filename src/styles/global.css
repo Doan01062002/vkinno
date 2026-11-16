@@ -54,18 +54,19 @@
 }
 
 /* Base resets & Vietnamese typography */
+/* Trang cuộn bằng document (window.scrollY, sự kiện scroll trên window đều chạy).
+   overflow-x: clip cắt phần tràn ngang mà KHÔNG biến html/body thành khung cuộn như hidden;
+   không đặt chiều cao cố định (h-full) cho html/body. Khoá cuộn khi mở ngăn kéo: đặt overflow trên <html>. */
 html {
   font-family: var(--font-inter);
   scroll-behavior: smooth;
   color: var(--vk-text-body);
   background-color: var(--vk-bg-canvas);
-  overflow-x: hidden;
-  max-width: 100vw;
+  overflow-x: clip;
 }
 
 body {
-  overflow-x: hidden;
-  max-width: 100vw;
+  overflow-x: clip;
   width: 100%;
 }
 
@@ -334,4 +335,13 @@ a:focus-visible {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Chạm trên mobile: bỏ trễ double-tap, màu nhấn theo navy thương hiệu (spec V4.4) */
+a,
+button,
+[role="button"],
+label {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(30 43 107 / 0.12);
 }
